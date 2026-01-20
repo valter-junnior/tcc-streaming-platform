@@ -1,0 +1,14 @@
+stateDiagram-v2
+    [*] --> Criada: Usuário cria stream
+    Criada --> Aguardando: Stream key gerada
+    Aguardando --> Transmitindo: OBS conecta e inicia
+    Transmitindo --> Pausada: Streamer pausa
+    Pausada --> Transmitindo: Streamer retoma
+    Transmitindo --> Encerrada: Streamer para
+    Aguardando --> Expirada: Timeout (30 min sem conexão)
+    Encerrada --> [*]
+    Expirada --> [*]
+    
+    Transmitindo --> Erro: Falha técnica
+    Erro --> Transmitindo: Reconexão
+    Erro --> Encerrada: Falha permanente

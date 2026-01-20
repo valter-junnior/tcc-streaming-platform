@@ -1,0 +1,24 @@
+%%{init: {'theme':'base'}}%%
+graph TB
+    subgraph Decision[Critérios de Decisão]
+        P[Performance]
+        E[Escalabilidade]
+        F[Facilidade]
+        C[Comunidade]
+        D[Documentação]
+    end
+    
+    subgraph RTMP[Servidor RTMP]
+        N1[Nginx-RTMP: ⭐⭐⭐⭐]
+        S1[SRS: ⭐⭐⭐⭐⭐]
+        NM1[Node-Media: ⭐⭐⭐]
+    end
+    
+    subgraph Broker[Message Broker]
+        K1[Kafka: ⭐⭐⭐⭐⭐]
+        R1[RabbitMQ: ⭐⭐⭐⭐]
+        RS1[Redis Streams: ⭐⭐⭐]
+    end
+    
+    Decision --> RTMP
+    Decision --> Broker

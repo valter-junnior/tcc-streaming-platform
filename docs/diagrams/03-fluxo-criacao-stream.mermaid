@@ -1,0 +1,16 @@
+sequenceDiagram
+    actor User as Usuário
+    participant Web as React Frontend
+    participant API as Stream Service
+    participant DB as PostgreSQL
+    participant Cache as Redis
+    participant Kafka as Message Broker
+
+    User->>Web: Clica "Iniciar Streaming"
+    Web->>API: POST /api/streams/create
+    API->>API: Gera Stream Key único
+    API->>DB: Salva dados da stream
+    API->>Cache: Armazena sessão ativa
+    API->>Kafka: Publica evento "stream_created"
+    API-->>Web: Retorna URL RTMP + Stream Key + Link
+    Web-->>User: Exibe painel com credenciais OBS

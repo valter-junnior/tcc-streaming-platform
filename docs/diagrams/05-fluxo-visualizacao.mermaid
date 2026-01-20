@@ -1,0 +1,16 @@
+sequenceDiagram
+    actor Viewer as Espectador
+    participant Web as React Frontend
+    participant HLS as Nginx HLS
+    participant WS as WebSocket Server
+    participant API as Stream Service
+
+    Viewer->>Web: Acessa link da stream
+    Web->>API: GET /api/streams/:id/status
+    API-->>Web: Status da stream (online/offline)
+    Web->>HLS: Requisita playlist.m3u8
+    HLS-->>Web: Retorna playlist HLS
+    Web->>Web: Player carrega vídeo (HLS.js)
+    Web->>WS: Conecta WebSocket
+    WS-->>Web: Notifica "viewer_joined"
+    WS-->>Web: Atualiza contagem de viewers

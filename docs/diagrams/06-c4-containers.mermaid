@@ -1,0 +1,48 @@
+C4Container
+    title Diagrama de Containers - Plataforma de Streaming
+
+    Person(user, "Usuário", "Streamer ou Espectador")
+    Person(obs, "OBS Studio", "Software de streaming")
+
+    Container_Boundary(frontend, "Frontend") {
+        Container(web, "React App", "React, TypeScript", "Interface web para streaming")
+    }
+
+    Container_Boundary(backend, "Backend Services") {
+        Container(stream_service, "Stream Service", "Spring Boot", "API REST e WebSocket")
+        Container(consumer_service, "Consumer Service", "Spring Boot", "Processa eventos")
+        Container(metrics_service, "Metrics Service", "Spring Boot", "Coleta métricas")
+    }
+
+    Container_Boundary(streaming, "Streaming Infrastructure") {
+        Container(nginx_rtmp, "Nginx RTMP", "Nginx + RTMP Module", "Recebe streams RTMP")
+        Container(ffmpeg, "FFmpeg", "FFmpeg", "Transcodifica vídeo")
+        Container(nginx_hls, "Nginx", "Nginx", "Serve HLS")
+    }
+
+    Container_Boundary(data, "Data Layer") {
+        ContainerDb(postgres, "PostgreSQL", "PostgreSQL", "Dados persistentes")
+        ContainerDb(redis, "Redis", "Redis", "Cache e sessões")
+        ContainerQueue(kafka, "Kafka", "Apache Kafka", "Message broker")
+    }
+
+    Container_Boundary(monitoring, "Monitoring") {
+        Container(prometheus, "Prometheus", "Prometheus", "Métricas")
+        Container(grafana, "Grafana", "Grafana", "Dashboards")
+    }
+
+    Rel(user, web, "Acessa", "HTTPS")
+    Rel(obs, nginx_rtmp, "Envia stream", "RTMP")
+    Rel(web, stream_service, "Usa", "REST/WebSocket")
+    Rel(web, nginx_hls, "Assiste", "HLS/HTTP")
+    
+    Rel(stream_service, postgres, "Lê/Escreve")
+    Rel(stream_service, redis, "Cache")
+    Rel(stream_service, kafka, "Publica eventos")
+    
+    Rel(nginx_rtmp, ffmpeg, "Stream bruto")
+    Rel(ffmpeg, nginx_hls, "Segmentos HLS")
+    
+    Rel(consumer_service, kafka, "Consome eventos")
+    Rel(metrics_service, prometheus, "Expõe métricas")
+    Rel(prometheus, grafana, "Datasource")

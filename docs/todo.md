@@ -44,10 +44,9 @@ Desenvolvimento de uma plataforma de streaming de vídeo ao vivo que permite ava
 
 #### 3. Message Broker / Event Streaming
 **Opção A (Principal)**:
-- Apache Kafka
+- RabbitMQ
 
 **Alternativas para Comparação**:
-- RabbitMQ
 - Redis Streams
 - NATS
 
@@ -111,7 +110,6 @@ tcc/
 │       └── grafana/
 ├── docker/
 │   ├── nginx-rtmp/
-│   ├── kafka/
 │   ├── rabbitmq/
 │   ├── redis/
 │   ├── postgres/
@@ -127,9 +125,9 @@ tcc/
 │   ├── start-services.sh
 │   └── monitoring/
 └── docker-compose/
-    ├── docker-compose.yml           # Setup principal
-    ├── docker-compose.kafka.yml     # Variante com Kafka
-    ├── docker-compose.rabbitmq.yml  # Variante com RabbitMQ
+    ├── docker-compose.yml           # Setup principal (RabbitMQ)
+    ├── docker-compose.redis-streams.yml  # Variante com Redis Streams
+    ├── docker-compose.nats.yml      # Variante com NATS
     └── docker-compose.srs.yml       # Variante com SRS
 ```
 
@@ -228,13 +226,15 @@ Nginx serve HLS → Player renderiza vídeo
 - [ ] Implementar contador de viewers (WebSocket)
 
 ### Fase 5: Message Broker e Eventos (Semana 9-10)
-- [ ] Configurar Kafka no Docker
+- [ ] Configurar RabbitMQ no Docker
 - [ ] Implementar Producer no stream-service
   - [ ] Eventos: stream_started, stream_ended, viewer_joined, viewer_left
+  - [ ] Configurar exchanges e queues
 - [ ] Criar consumer-service
-  - [ ] Processar eventos do Kafka
+  - [ ] Processar eventos do RabbitMQ
   - [ ] Atualizar métricas em tempo real
   - [ ] Persistir eventos no banco
+  - [ ] Configurar Dead Letter Queue
 - [ ] Implementar WebSocket no backend
   - [ ] Notificar frontend sobre eventos
 
@@ -251,22 +251,24 @@ Nginx serve HLS → Player renderiza vídeo
   - [ ] Expor métricas para Prometheus
 
 ### Fase 7: Implementação de Alternativas (Semana 13-15)
-- [ ] **Alternativa 1: RabbitMQ**
-  - [ ] Configurar RabbitMQ no Docker
-  - [ ] Criar docker-compose.rabbitmq.yml
-  - [ ] Implementar adapter para RabbitMQ
+- [ ] **Alternativa 1: Redis Streams (Message Broker)**
+  - [ ] Configurar Redis Streams
+  - [ ] Criar docker-compose.redis-streams.yml
+  - [ ] Implementar adapter para Redis Streams
   - [ ] Testar e coletar métricas
   
-- [ ] **Alternativa 2: SRS (Simple Realtime Server)**
+- [ ] **Alternativa 2: NATS (Message Broker)**
+  - [ ] Configurar NATS no Docker
+  - [ ] Criar docker-compose.nats.yml
+  - [ ] Implementar adapter para NATS
+  - [ ] Testar e coletar métricas
+  
+- [ ] **Alternativa 3: SRS (RTMP Server)**
   - [ ] Configurar SRS no Docker
   - [ ] Adaptar callbacks para SRS
   - [ ] Testar e coletar métricas
   
-- [ ] **Alternativa 3: Redis Streams**
-  - [ ] Implementar usando Redis Streams
-  - [ ] Testar e coletar métricas
-  
-- [ ] **Alternativa 4: GStreamer**
+- [ ] **Alternativa 4: GStreamer (Transcodificação)**
   - [ ] Configurar GStreamer
   - [ ] Implementar pipeline de transcodificação
   - [ ] Testar e coletar métricas
@@ -297,7 +299,7 @@ Nginx serve HLS → Player renderiza vídeo
 ## 🛠️ Tecnologias e Ferramentas
 
 ### Backend
-- Java 17+
+- Java 21
 - Spring Boot 3.x
   - Spring Web
   - Spring WebSocket
@@ -321,7 +323,7 @@ Nginx serve HLS → Player renderiza vídeo
 - FFmpeg
 - PostgreSQL
 - Redis
-- Kafka
+- RabbitMQ
 - Prometheus
 - Grafana
 

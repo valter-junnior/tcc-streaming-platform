@@ -1,0 +1,22 @@
+sequenceDiagram
+    actor Streamer as Streamer (OBS)
+    participant RTMP as Nginx RTMP
+    participant FFmpeg as FFmpeg
+    participant HLS as Nginx HLS
+    participant Kafka as Message Broker
+    participant Consumer as Consumer Service
+    actor Viewer as Espectador
+
+    Streamer->>RTMP: Stream RTMP (1080p)
+    RTMP->>RTMP: Valida Stream Key
+    RTMP->>FFmpeg: Envia stream bruta
+    FFmpeg->>FFmpeg: Transcodifica (1080p, 720p, 480p, 360p)
+    FFmpeg->>HLS: Gera segmentos HLS (.ts) + playlist (.m3u8)
+    RTMP->>Kafka: Evento "stream_started"
+    Consumer->>Kafka: Consome evento
+    Consumer->>Consumer: Atualiza métricas
+    
+    Viewer->>HLS: Requisita playlist.m3u8
+    HLS-->>Viewer: Retorna playlist
+    Viewer->>HLS: Requisita segmentos .ts
+    HLS-->>Viewer: Retorna vídeo
