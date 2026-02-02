@@ -39,11 +39,11 @@
         </rollingPolicy>
     </appender>
 
-    <!-- Appender específico para ERRORS (com rotação) -->
+    <!-- Appender específico para ERRORS e WARNINGS (com rotação) -->
     <appender name="ERROR_FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
         <file>${LOG_PATH}/error.log</file>
         <filter class="ch.qos.logback.classic.filter.ThresholdFilter">
-            <level>ERROR</level>
+            <level>WARN</level>
         </filter>
         <encoder>
             <pattern>${FILE_LOG_PATTERN}</pattern>
@@ -57,7 +57,7 @@
         </rollingPolicy>
     </appender>
 
-    <!-- Appender específico para requisições HTTP (similar ao Laravel) -->
+    <!-- Appender específico para requisições HTTP -->
     <appender name="REQUEST_FILE" class="ch.qos.logback.core.rolling.RollingFileAppender">
         <file>${LOG_PATH}/requests.log</file>
         <encoder>

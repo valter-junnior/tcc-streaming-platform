@@ -20,7 +20,7 @@ public class NginxCallbackController {
         this.streamService = streamService;
     }
 
-    @GetMapping("/publish")
+    @PostMapping("/publish")
     @Operation(
         summary = "Callback de publicação",
         description = "Chamado pelo Nginx-RTMP quando um streamer tenta iniciar uma transmissão. Valida a stream key."
@@ -36,7 +36,7 @@ public class NginxCallbackController {
         return valid ? ResponseEntity.ok().build() : ResponseEntity.status(403).build();
     }
 
-    @GetMapping("/publish_done")
+    @PostMapping("/publish_done")
     @Operation(
         summary = "Callback de início de transmissão",
         description = "Chamado pelo Nginx-RTMP quando a transmissão efetivamente inicia. Atualiza status da stream para LIVE."
@@ -49,7 +49,7 @@ public class NginxCallbackController {
         return ResponseEntity.ok().build();
     }
 
-    @GetMapping("/done")
+    @PostMapping("/done")
     @Operation(
         summary = "Callback de fim de transmissão",
         description = "Chamado pelo Nginx-RTMP quando a transmissão é encerrada. Atualiza status da stream para ENDED."
