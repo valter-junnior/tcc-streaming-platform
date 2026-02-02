@@ -29,3 +29,11 @@ logging:
     com.tcc.streaming: DEBUG
     org.springframework.web: INFO
     org.hibernate.SQL: DEBUG
+
+streaming:
+  rtmp:
+    provider: nginx-rtmp
+    host: localhost
+    port: 1935
+    application: live
+    callbackUrl: http://localhost:8080/api/streams/callback

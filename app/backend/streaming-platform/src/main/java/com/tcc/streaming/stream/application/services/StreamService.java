@@ -1,6 +1,7 @@
 package com.tcc.streaming.stream.application.services;
 
 import com.tcc.streaming.common.infrastructure.events.EventPublisher;
+import com.tcc.streaming.common.infrastructure.rtmp.RtmpServerGateway;
 import com.tcc.streaming.stream.core.dtos.stream.CreateStreamDto;
 import com.tcc.streaming.stream.core.dtos.stream.StreamDto;
 import com.tcc.streaming.stream.core.dtos.stream.StreamStatusDto;
@@ -25,16 +26,24 @@ public class StreamService implements CreateStreamUseCase, GetStreamUseCase, Get
 
     private final StreamRepository streamRepository;
     private final EventPublisher eventPublisher;
+    private final RtmpServerGateway rtmpServerGateway;
 
-    public StreamService(StreamRepository streamRepository, EventPublisher eventPublisher) {
+    public StreamService(
+            StreamRepository streamRepository, 
+            EventPublisher eventPublisher,
+            RtmpServerGateway rtmpServerGateway) {
         this.streamRepository = streamRepository;
         this.eventPublisher = eventPublisher;
+        this.rtmpServerGateway = rtmpServerGateway;
     }
 
     @Override
     @Transactional
     @CacheEvict(value = "streams", key = "#result.id")
     public StreamDto execute(CreateStreamDto dto) {
+        // Get RTMP configuration from the configured gateway
+        String rtmpUrl = rtmpServerGateway.getServerConfig().getCompleteRtmpUrl();
+        
         // Criar entidade de domínio
         Stream stream = Stream.create(dto.title(), dto.description());
         

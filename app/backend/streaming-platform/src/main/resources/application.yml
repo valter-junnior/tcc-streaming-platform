@@ -49,6 +49,26 @@ management:
       prometheus:
         enabled: true
 
+streaming:
+  rtmp:
+    # Provider: "nginx-rtmp" or "srs" (future implementation)
+    provider: nginx-rtmp
+    host: ${RTMP_HOST:nginx-rtmp}
+    port: ${RTMP_PORT:1935}
+    application: live
+    callbackUrl: http://streaming-platform:8080/api/streams/callback
+    url: rtmp://nginx-rtmp:1935/live
+    stats-url: http://nginx-rtmp:8080/stat
+  hls:
+    base-url: http://nginx-hls:8081/hls
+  stream:
+    waiting-timeout-minutes: 30
+  metrics:
+    collection-interval-seconds: 15
+  cleanup:
+    expired-streams-cron: "0 */5 * * * *"  # Every 5 minutes
+    old-hls-files-cron: "0 0 * * * *"      # Every hour
+
 springdoc:
   api-docs:
     path: /api-docs
@@ -58,21 +78,6 @@ springdoc:
     operations-sorter: method
     display-request-duration: true
     doc-expansion: none
-
-streaming:
-  rtmp:
-    url: rtmp://nginx-rtmp:1935/live
-  hls:
-    base-url: http://nginx-hls:8081/hls
-  stream:
-    waiting-timeout-minutes: 30
-  nginx-rtmp:
-    stats-url: http://nginx-rtmp:8080/stat
-  metrics:
-    collection-interval-seconds: 15
-  cleanup:
-    expired-streams-cron: "0 */5 * * * *"  # Every 5 minutes
-    old-hls-files-cron: "0 0 * * * *"      # Every hour
 
 ---
 # Perfil de Desenvolvimento

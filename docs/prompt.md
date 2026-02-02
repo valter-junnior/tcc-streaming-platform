@@ -1,1 +1,3 @@
-resolva os bugs do teste do NginxCallbackController
+vamos agora implementar a Fase 3: Infraestrutura de Streaming, do todo.md
+
+inicie com o 3.1, gere testes e também implemente corretamente seguindo a arquitetura limpa seria bom para as essas ferramentas implementadas que terão alternativas como descrito na fase 7 que trabalhemos como a questão de interface service e gateways, digo pra ser algo parecido com o facades que por um arquivo de application.yml(ou config) possamos escolher quando usamos um e quando usamos o outro

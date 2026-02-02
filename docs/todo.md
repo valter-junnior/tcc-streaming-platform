@@ -183,15 +183,17 @@ Desenvolver uma plataforma de streaming de vídeo ao vivo que permita avaliar e 
 **Objetivo**: Configurar ingestão RTMP, transcodificação e serving HLS
 
 #### 3.1 Nginx-RTMP
-- [ ] Criar Dockerfile para Nginx-RTMP
-- [ ] Configurar `nginx.conf`:
-  - [ ] Porta RTMP: 1935
-  - [ ] Application: `live`
-  - [ ] Callbacks HTTP para Stream Service
-  - [ ] Exec FFmpeg on publish
-- [ ] Configurar autenticação via callback
-- [ ] Adicionar ao docker-compose.yml
-- [ ] Testar conexão RTMP com OBS
+- [x] Criar Dockerfile para Nginx-RTMP
+- [x] Configurar `nginx.conf`:
+  - [x] Porta RTMP: 1935
+  - [x] Application: `live`
+  - [x] Callbacks HTTP para Stream Service
+  - [ ] Exec FFmpeg on publish (pendente - fase 3.2)
+- [x] Configurar autenticação via callback
+- [x] Adicionar ao docker-compose.yml
+- [x] Criar abstração com interfaces (RtmpServerGateway) ⭐
+- [x] Implementar testes de integração
+- [ ] Testar conexão RTMP com OBS (teste manual pendente)
 
 #### 3.2 FFmpeg Transcodificação
 - [ ] Criar script de transcodificação

@@ -93,6 +93,8 @@ services:
       SPRING_RABBITMQ_PORT: 5672
       SPRING_RABBITMQ_USERNAME: ${RABBITMQ_USER}
       SPRING_RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD}
+      RTMP_HOST: nginx-rtmp
+      RTMP_PORT: 1935
     depends_on:
       postgres:
         condition: service_healthy
@@ -100,3 +102,20 @@ services:
         condition: service_healthy
       rabbitmq:
         condition: service_healthy
+
+  # Nginx-RTMP Server
+  nginx-rtmp:
+    build:
+      context: ./docker/nginx-rtmp
+      dockerfile: Dockerfile
+    container_name: streaming-nginx-rtmp
+    networks:
+      - streaming-network
+    volumes:
+      - hls-data:/tmp/hls
+    ports:
+      - "${RTMP_PORT}:1935"    # RTMP
+      - "${HLS_PORT}:8081"     # HLS HTTP Server
+    depends_on:
+      - streaming-platform
+    restart: unless-stopped
