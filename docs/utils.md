@@ -33,9 +33,40 @@ app/backend/streaming-platform/
 
 ## 🐳 Comandos Específicos do Projeto
 
-### Build do Backend Java
+### Setup Inicial
 
-⚠️ **SEMPRE use Docker** para compilar (garante Java 21):
+⚠️ **PRIMEIRO PASSO**: Configurar variáveis de ambiente:
+
+```bash
+# Copiar template de variáveis
+cp .env.example .env
+
+# Editar valores (opcional - valores padrão funcionam)
+nano .env
+```
+
+**Veja**: [/ENV_SETUP.md](../ENV_SETUP.md) para documentação completa
+
+### Executar Projeto Completo (Hot Reload Ativado)
+
+⚠️ **RECOMENDADO**: Backend roda no Docker Compose com **hot reload automático**:
+
+```bash
+# Iniciar todos os serviços (infraestrutura + backend)
+docker-compose up -d
+
+# Ver logs do backend em tempo real
+docker-compose logs -f streaming-platform
+
+# Edite qualquer arquivo .java e salve (Ctrl+S)
+# O Spring Boot DevTools recompila e reinicia automaticamente (~10s)
+```
+
+**Veja**: [/app/backend/streaming-platform/HOT_RELOAD.md](../app/backend/streaming-platform/HOT_RELOAD.md) para guia completo
+
+### Build Manual do Backend (Opcional)
+
+Se precisar compilar manualmente fora do Docker Compose:
 
 ```bash
 cd app/backend/streaming-platform
@@ -73,6 +104,12 @@ docker-compose exec streaming-platform mvn test
 **Quando**: Ao completar qualquer task do [todo.md](./todo.md)
 
 **Onde**: `/docs/changelog/YYYY-MM-DD_HHhMM.md`
+
+**⚠️ IMPORTANTE**: 
+- **NÃO criar arquivos .md extras** (como SETUP.md, GUIDE.md, HOW_TO.md, etc)
+- **Apenas o changelog é necessário** para documentar mudanças
+- O changelog já contém toda informação necessária
+- Mantenha documentação simples e objetiva
 
 **Formato**:
 ```markdown

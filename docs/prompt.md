@@ -1,0 +1,1 @@
+tenho duas duvidas sobre o projeto a primeira é sobre o spring ele atualiza quando atualizamos algo no código e caso sim, tem como jogar ele no docker e ele atualizar no docker sempre que atualizarmos o projeto no caso o codigo do projeto, caso sim faça isso jogo todo projeto backend para rodar no docker compose yml da raiz 

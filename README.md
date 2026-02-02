@@ -29,11 +29,24 @@ tcc/
 - Java 21 (para desenvolvimento local)
 - Node.js 20+ (para desenvolvimento local)
 
+### Setup Inicial
+
+```bash
+# 1. Copiar variáveis de ambiente
+cp .env.example .env
+
+# 2. (Opcional) Editar .env com suas configurações
+nano .env
+```
+
 ### Iniciar Infraestrutura
 
 ```bash
-# Subir PostgreSQL, Redis e RabbitMQ
+# Subir todos os serviços (PostgreSQL, Redis, RabbitMQ, Backend)
 docker-compose up -d
+
+# Ver logs
+docker-compose logs -f
 ```
 
 ### Verificar Status
@@ -44,8 +57,10 @@ docker-compose ps
 
 ## 🔗 Acessos
 
-- **RabbitMQ Management**: http://localhost:15672 (streaming_user / streaming_pass)
-- **PostgreSQL**: localhost:5432
+- **Backend API**: http://localhost:8080
+- **Backend Health**: http://localhost:8080/actuator/health
+- **RabbitMQ Management**: http://localhost:15672 (user/pass configurados no .env)
+- **PostgreSQL**: localhost:5432 (credenciais no .env)
 - **Redis**: localhost:6379
 
 ## 📚 Documentação
@@ -53,6 +68,9 @@ docker-compose ps
 - [Documentação Completa](docs/documentacao_v2.md)
 - [TODO - Roadmap](docs/todo.md)
 - [Utils - Orientações Especiais](docs/utils.md)
+- [Configuração de Variáveis (.env)](ENV_SETUP.md)
+- [Hot Reload no Docker](app/backend/streaming-platform/HOT_RELOAD.md)
+- [Testes de API (.http)](scripts/api-tests/README.md)
 
 ## 🛠️ Stack Tecnológico
 

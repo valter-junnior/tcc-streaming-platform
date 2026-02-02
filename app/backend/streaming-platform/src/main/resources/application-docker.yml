@@ -1,0 +1,28 @@
+spring:
+  devtools:
+    restart:
+      enabled: true
+      poll-interval: 1000ms
+      quiet-period: 400ms
+    livereload:
+      enabled: false  # Desabilitado porque estamos em Docker
+  
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:postgresql://postgres:5432/streaming_db}
+    username: ${SPRING_DATASOURCE_USERNAME:streaming_user}
+    password: ${SPRING_DATASOURCE_PASSWORD:streaming_pass}
+  
+  redis:
+    host: ${SPRING_REDIS_HOST:redis}
+    port: ${SPRING_REDIS_PORT:6379}
+  
+  rabbitmq:
+    host: ${SPRING_RABBITMQ_HOST:rabbitmq}
+    port: ${SPRING_RABBITMQ_PORT:5672}
+    username: ${SPRING_RABBITMQ_USERNAME:streaming_user}
+    password: ${SPRING_RABBITMQ_PASSWORD:streaming_pass}
+
+logging:
+  level:
+    com.tcc.streaming: DEBUG
+    org.springframework.web: DEBUG
