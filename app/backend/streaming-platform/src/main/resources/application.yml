@@ -46,6 +46,16 @@ management:
       prometheus:
         enabled: true
 
+springdoc:
+  api-docs:
+    path: /api-docs
+  swagger-ui:
+    path: /swagger-ui.html
+    tags-sorter: alpha
+    operations-sorter: method
+    display-request-duration: true
+    doc-expansion: none
+
 streaming:
   rtmp:
     url: rtmp://nginx-rtmp:1935/live
