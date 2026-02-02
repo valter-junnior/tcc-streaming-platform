@@ -1,1 +1,1 @@
-crie um controller no common para a rota raiz /
+adicione o swagger no projeto e já configure ele em todo o projeto onde for preciso controllers, requests, presenters
