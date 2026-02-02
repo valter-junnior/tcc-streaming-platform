@@ -9,10 +9,9 @@ flowchart TB
         Metrics[Metrics Service<br/>Spring Boot]
     end
     
-    subgraph "RTMP Ingestion (Escolha 1 de 3)"
+    subgraph "RTMP Ingestion (Escolha 1 de 2)"
         RTMP1[Nginx-RTMP<br/>⭐ Principal]
         RTMP2[SRS<br/>Alternativa 1]
-        RTMP3[Node-Media-Server<br/>Alternativa 2]
     end
     
     subgraph "Video Processing (Escolha 1 de 2)"
@@ -50,7 +49,7 @@ flowchart TB
     StreamAPI --> DB1 & DB3
     StreamAPI --> MB2 & MB3 & MB4
     
-    RTMP1 & RTMP2 & RTMP3 --> Proc1 & Proc2
+    RTMP1 & RTMP2 --> Proc1 & Proc2
     Proc1 & Proc2 --> HLS1
     HLS1 --> React
     
