@@ -14,6 +14,8 @@ import com.tcc.streaming.stream.core.usecases.DeleteStreamUseCase;
 import com.tcc.streaming.stream.core.usecases.GetStreamStatusUseCase;
 import com.tcc.streaming.stream.core.usecases.GetStreamUseCase;
 import com.tcc.streaming.stream.core.usecases.ValidateStreamKeyUseCase;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
@@ -24,6 +26,7 @@ import java.util.UUID;
 @Service
 public class StreamService implements CreateStreamUseCase, GetStreamUseCase, GetStreamStatusUseCase, DeleteStreamUseCase, ValidateStreamKeyUseCase {
 
+    private static final Logger log = LoggerFactory.getLogger(StreamService.class);
     private final StreamRepository streamRepository;
     private final EventPublisher eventPublisher;
     private final RtmpServerGateway rtmpServerGateway;
@@ -110,27 +113,45 @@ public class StreamService implements CreateStreamUseCase, GetStreamUseCase, Get
     }
 
     @Transactional
-    public void startStream(String streamKey) {
+    @CacheEvict(value = {"streams", "streamStatus"}, key = "#result")
+    public UUID startStream(String streamKey) {
         Stream stream = streamRepository.findByStreamKey(streamKey)
             .orElseThrow(() -> new StreamNotFoundException(streamKey));
+        
+        log.info("[START] Attempting to start stream - ID: {}, Title: '{}', Current Status: {}", 
+                 stream.getId(), stream.getTitle(), stream.getStatus());
         
         stream.start();
         streamRepository.save(stream);
         
+        log.info("[START] Stream started successfully - ID: {}, Title: '{}', New Status: {}", 
+                 stream.getId(), stream.getTitle(), stream.getStatus());
+        
         // Publicar evento stream_started no RabbitMQ
         eventPublisher.publishStreamStarted(stream.getId(), stream.getStreamKey());
+        
+        return stream.getId();
     }
 
     @Transactional
-    public void endStream(String streamKey) {
+    @CacheEvict(value = {"streams", "streamStatus"}, key = "#result")
+    public UUID endStream(String streamKey) {
         Stream stream = streamRepository.findByStreamKey(streamKey)
             .orElseThrow(() -> new StreamNotFoundException(streamKey));
+        
+        log.info("[END] Attempting to end stream - ID: {}, Title: '{}', Current Status: {}", 
+                 stream.getId(), stream.getTitle(), stream.getStatus());
         
         stream.end();
         streamRepository.save(stream);
         
+        log.info("[END] Stream ended successfully - ID: {}, Title: '{}', New Status: {}, Peak viewers: {}", 
+                 stream.getId(), stream.getTitle(), stream.getStatus(), stream.getViewersPeak());
+        
         // Publicar evento stream_ended no RabbitMQ
         eventPublisher.publishStreamEnded(stream.getId(), stream.getStreamKey(), stream.getViewersPeak());
+        
+        return stream.getId();
     }
 
     private StreamDto toDto(Stream stream) {

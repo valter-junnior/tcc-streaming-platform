@@ -13,6 +13,7 @@ RUN apt-get update && apt-get install -y \
     wget \
     git \
     ffmpeg \
+    netcat \
     && rm -rf /var/lib/apt/lists/*
 
 # Download Nginx and RTMP module
@@ -33,7 +34,7 @@ RUN ./configure \
 # Create directories for HLS
 RUN mkdir -p /tmp/hls && \
     mkdir -p /var/log/nginx && \
-    chmod -R 755 /tmp/hls
+    chmod -R 777 /tmp/hls
 
 # Clean up
 RUN rm -rf /tmp/nginx-1.24.0* /tmp/nginx-rtmp-module
@@ -41,7 +42,7 @@ RUN rm -rf /tmp/nginx-1.24.0* /tmp/nginx-rtmp-module
 # Copy nginx configuration
 COPY nginx.conf /usr/local/nginx/conf/nginx.conf
 
-# Copy transcoding script
+# Copy transcoding script (if needed for multi-bitrate)
 COPY transcode.sh /usr/local/bin/transcode.sh
 RUN chmod +x /usr/local/bin/transcode.sh
 

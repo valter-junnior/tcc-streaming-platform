@@ -112,40 +112,12 @@ springdoc:
     display-request-duration: true
     doc-expansion: none
 
-# Configuração de Logging
-logging:
-  file:
-    name: ./storage/logs/application.log
-    path: ./storage/logs
-  pattern:
-    console: "%d{yyyy-MM-dd HH:mm:ss.SSS} %5p --- [%15.15t] %-40.40logger{39} : %m%n%ex"
-    file: "%d{yyyy-MM-dd HH:mm:ss.SSS} %5p --- [%t] %-40.40logger{39} : %m%n%ex"
-  level:
-    root: INFO
-    com.tcc.streaming: DEBUG
-    org.springframework.web: DEBUG
-    org.hibernate.SQL: DEBUG
-    org.hibernate.type.descriptor.sql.BasicBinder: TRACE
-  logback:
-    rollingpolicy:
-      max-file-size: 10MB
-      max-history: 30
-      total-size-cap: 500MB
-
 ---
 # Perfil de Desenvolvimento
 spring:
   config:
     activate:
       on-profile: dev
-
-logging:
-  level:
-    root: INFO
-    com.tcc.streaming: DEBUG
-    org.springframework.web: DEBUG
-    org.hibernate.SQL: DEBUG
-    org.hibernate.type.descriptor.sql.BasicBinder: TRACE
 
 ---
 # Perfil de Produção
@@ -161,9 +133,3 @@ spring:
     properties:
       hibernate:
         format_sql: false
-
-logging:
-  level:
-    root: WARN
-    com.tcc.streaming: INFO
-    org.springframework.web: WARN

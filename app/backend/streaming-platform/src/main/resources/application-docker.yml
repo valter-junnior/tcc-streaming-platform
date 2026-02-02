@@ -22,7 +22,4 @@ spring:
     username: ${SPRING_RABBITMQ_USERNAME:streaming_user}
     password: ${SPRING_RABBITMQ_PASSWORD:streaming_pass}
 
-logging:
-  level:
-    com.tcc.streaming: DEBUG
-    org.springframework.web: DEBUG
+# Configuração de logging via logback-spring.xml

@@ -98,7 +98,7 @@ Antes de iniciar, certifique-se de que:
 
    **Encoder de Vídeo**: `x264`
    
-   **Bitrate**: `2500 Kbps` (para 720p) ou `5000 Kbps` (para 1080p)
+   **Bitrate**: `6000 Kbps` (recomendado para 1080p - FFmpeg fará as outras qualidades)
    
    **Keyframe Interval**: `2` segundos
    
@@ -107,6 +107,9 @@ Antes de iniciar, certifique-se de que:
    **Profile**: `main`
    
    **Tune**: `zerolatency` (importante!)
+   
+   > ⚠️ **Importante**: O servidor transcodifica automaticamente para 4 qualidades (1080p, 720p, 480p, 360p). 
+   > Envie sempre na melhor qualidade possível (1080p com bitrate alto) para evitar perda de qualidade.
 
 4. Clique em **Aplicar**
 
@@ -118,13 +121,14 @@ Antes de iniciar, certifique-se de que:
 
    **Resolução Base (Canvas)**: `1920x1080` (ou sua resolução nativa)
    
-   **Resolução de Saída (Escalada)**: 
-   - Para 1080p: `1920x1080`
-   - Para 720p: `1280x720`
+   **Resolução de Saída (Escalada)**: `1920x1080` (recomendado)
    
-   **Filtro de Redução de Escala**: `Bicubic` (melhor qualidade)
+   > ⚠️ **Importante**: Envie sempre em 1080p. O servidor criará automaticamente 720p, 480p e 360p.
+   > Se enviar 720p, o servidor não conseguirá gerar 1080p com qualidade (upscaling).
    
-   **FPS Comum**: `30` (ou `60` se tiver PC potente)
+   **Filtro de Redução de Escala**: `Lanczos` (melhor qualidade) ou `Bicubic`
+   
+   **FPS Comum**: `30` (recomendado) ou `60` (se tiver PC potente e upload ≥10 Mbps)
 
 3. Clique em **Aplicar**
 
@@ -208,7 +212,9 @@ Antes de iniciar, certifique-se de que:
 
 3. O **player HLS deve carregar** e exibir sua transmissão
 
-4. **Latência esperada**: 10-20 segundos (normal para HLS)
+4. **Adaptive Bitrate**: O player escolhe automaticamente entre 1080p, 720p, 480p e 360p
+
+5. **Latência esperada**: 10-20 segundos (normal para HLS)
 
 ---
 
@@ -349,29 +355,34 @@ Antes de iniciar, certifique-se de que:
 
 ## 🎓 Dicas de Performance
 
-### Para PC com configuração básica:
+> 💡 **Nota**: O servidor faz transcoding automático para 4 qualidades. Quanto melhor você enviar, melhor será a qualidade final.
+
+### Para PC com configuração básica (ou internet limitada):
 ```
 Resolução: 1280x720
-Bitrate: 1500 Kbps
+Bitrate: 3000 Kbps
 FPS: 30
 Preset: ultrafast
 ```
+⚠️ Espectadores terão no máximo 720p (servidor não faz upscaling)
 
 ### Para PC com configuração média:
 ```
-Resolução: 1280x720
-Bitrate: 2500 Kbps
+Resolução: 1920x1080
+Bitrate: 4500 Kbps
 FPS: 30
 Preset: veryfast
 ```
+✅ Espectadores terão todas as 4 qualidades disponíveis
 
 ### Para PC com configuração alta:
 ```
 Resolução: 1920x1080
-Bitrate: 5000 Kbps
+Bitrate: 6000-8000 Kbps
 FPS: 60
-Preset: fast
+Preset: fast ou medium
 ```
+✅ Melhor qualidade possível para espectadores
 
 ---
 

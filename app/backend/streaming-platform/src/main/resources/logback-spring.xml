@@ -72,47 +72,36 @@
         </rollingPolicy>
     </appender>
 
-    <!-- Logger específico para suas classes -->
-    <logger name="com.tcc.streaming" level="DEBUG" additivity="false">
+    <!-- Logger específico para suas classes (aplicação) -->
+    <logger name="com.tcc.streaming" level="INFO" additivity="false">
         <appender-ref ref="CONSOLE"/>
         <appender-ref ref="FILE"/>
         <appender-ref ref="ERROR_FILE"/>
     </logger>
 
-    <!-- Logger para SQL queries (similar ao query log do Laravel) -->
-    <logger name="org.hibernate.SQL" level="DEBUG" additivity="false">
-        <appender-ref ref="CONSOLE"/>
-        <appender-ref ref="FILE"/>
-    </logger>
-    
-    <!-- Logger para valores de bind do SQL -->
-    <logger name="org.hibernate.type.descriptor.sql.BasicBinder" level="TRACE" additivity="false">
-        <appender-ref ref="CONSOLE"/>
-        <appender-ref ref="FILE"/>
-    </logger>
-
-    <!-- Logger para Spring Web (para capturar requisições HTTP) -->
-    <logger name="org.springframework.web" level="DEBUG" additivity="false">
+    <!-- Logger para requisições HTTP (apenas INFO e acima) -->
+    <logger name="org.springframework.web.servlet.mvc.method.annotation.RequestMappingHandlerMapping" level="INFO" additivity="false">
         <appender-ref ref="CONSOLE"/>
         <appender-ref ref="REQUEST_FILE"/>
     </logger>
-
-    <!-- Logger para transações do Spring -->
-    <logger name="org.springframework.transaction" level="DEBUG" additivity="false">
+    
+    <logger name="org.springframework.web.servlet.DispatcherServlet" level="INFO" additivity="false">
         <appender-ref ref="CONSOLE"/>
-        <appender-ref ref="FILE"/>
+        <appender-ref ref="REQUEST_FILE"/>
+        <appender-ref ref="ERROR_FILE"/>
+    </logger>
+    
+    <logger name="org.springframework.web.servlet.mvc.method.annotation.ExceptionHandlerExceptionResolver" level="WARN" additivity="false">
+        <appender-ref ref="CONSOLE"/>
+        <appender-ref ref="REQUEST_FILE"/>
+        <appender-ref ref="ERROR_FILE"/>
     </logger>
 
-    <!-- Logger para RabbitMQ -->
-    <logger name="org.springframework.amqp" level="INFO" additivity="false">
+    <!-- Logger para WebSocket (apenas eventos importantes) -->
+    <logger name="org.springframework.web.socket" level="INFO" additivity="false">
         <appender-ref ref="CONSOLE"/>
         <appender-ref ref="FILE"/>
-    </logger>
-
-    <!-- Logger para Redis -->
-    <logger name="org.springframework.data.redis" level="INFO" additivity="false">
-        <appender-ref ref="CONSOLE"/>
-        <appender-ref ref="FILE"/>
+        <appender-ref ref="ERROR_FILE"/>
     </logger>
 
     <!-- Root logger (padrão para todas as outras classes) -->
@@ -122,11 +111,20 @@
         <appender-ref ref="ERROR_FILE"/>
     </root>
 
+    <!-- Profile específico para desenvolvimento (mais verboso) -->
+    <springProfile name="dev">
+        <logger name="com.tcc.streaming" level="DEBUG"/>
+        <logger name="org.springframework.web.servlet.DispatcherServlet" level="DEBUG"/>
+        <logger name="org.hibernate.SQL" level="DEBUG" additivity="false">
+            <appender-ref ref="CONSOLE"/>
+            <appender-ref ref="FILE"/>
+        </logger>
+    </springProfile>
+
     <!-- Profile específico para produção (menos verboso) -->
     <springProfile name="prod">
         <logger name="com.tcc.streaming" level="INFO"/>
-        <logger name="org.hibernate.SQL" level="WARN"/>
-        <logger name="org.springframework.web" level="INFO"/>
+        <logger name="org.springframework.web" level="WARN"/>
         <root level="WARN"/>
     </springProfile>
 

@@ -132,6 +132,7 @@ export function WatchPage() {
     );
   }
 
+  // Nginx-RTMP nativo gera index.m3u8 (não master.m3u8)
   const hlsUrl = `${HLS_URL}/${stream.streamKey}/index.m3u8`;
 
   return (

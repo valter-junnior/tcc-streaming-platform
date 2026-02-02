@@ -12,6 +12,7 @@ export function VideoPlayer({ hlsUrl, autoPlay = true }: VideoPlayerProps) {
   const hlsRef = useRef<Hls | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [needsInteraction, setNeedsInteraction] = useState(false);
   const [currentQuality, setCurrentQuality] = useState<string>("auto");
 
   useEffect(() => {
@@ -41,7 +42,8 @@ export function VideoPlayer({ hlsUrl, autoPlay = true }: VideoPlayerProps) {
         if (autoPlay) {
           video.play().catch((err) => {
             console.error("Autoplay failed:", err);
-            setError("Clique em play para iniciar");
+            // Navegadores bloqueiam autoplay - requer interação do usuário
+            setNeedsInteraction(true);
             setIsLoading(false);
           });
         }
@@ -83,7 +85,7 @@ export function VideoPlayer({ hlsUrl, autoPlay = true }: VideoPlayerProps) {
         if (autoPlay) {
           video.play().catch((err) => {
             console.error("Autoplay failed:", err);
-            setError("Clique em play para iniciar");
+            setNeedsInteraction(true);
           });
         }
       });
@@ -105,6 +107,21 @@ export function VideoPlayer({ hlsUrl, autoPlay = true }: VideoPlayerProps) {
     };
   }, [hlsUrl, autoPlay]);
 
+  const handlePlayClick = () => {
+    const video = videoRef.current;
+    if (video) {
+      video
+        .play()
+        .then(() => {
+          setNeedsInteraction(false);
+        })
+        .catch((err) => {
+          console.error("Failed to play:", err);
+          setError("Não foi possível reproduzir o vídeo");
+        });
+    }
+  };
+
   return (
     <div
       className="relative w-full bg-black rounded-lg overflow-hidden"
@@ -122,21 +139,39 @@ export function VideoPlayer({ hlsUrl, autoPlay = true }: VideoPlayerProps) {
         </div>
       )}
 
+      {/* Needs Interaction Overlay */}
+      {needsInteraction && !isLoading && !error && (
+        <div
+          className="absolute inset-0 flex items-center justify-center bg-black/90 cursor-pointer group"
+          onClick={handlePlayClick}
+        >
+          <div className="text-center p-8">
+            <div className="w-20 h-20 bg-purple-600 group-hover:bg-purple-700 rounded-full flex items-center justify-center mx-auto mb-4 transition-all transform group-hover:scale-110">
+              <Play className="w-10 h-10 text-white ml-1" />
+            </div>
+            <p className="text-white text-lg font-semibold mb-2">
+              Clique para Reproduzir
+            </p>
+            <p className="text-slate-400 text-sm">
+              Seu navegador requer interação para iniciar o vídeo
+            </p>
+          </div>
+        </div>
+      )}
+
       {/* Error Overlay */}
       {error && !isLoading && (
         <div className="absolute inset-0 flex items-center justify-center bg-black/80">
           <div className="text-center p-4">
             <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-2" />
             <p className="text-white mb-2">{error}</p>
-            {error.includes("Clique") && (
-              <button
-                onClick={() => videoRef.current?.play()}
-                className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-colors inline-flex items-center gap-2"
-              >
-                <Play className="w-4 h-4" />
-                Reproduzir
-              </button>
-            )}
+            <button
+              onClick={handlePlayClick}
+              className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-colors inline-flex items-center gap-2"
+            >
+              <Play className="w-4 h-4" />
+              Tentar Novamente
+            </button>
           </div>
         </div>
       )}
