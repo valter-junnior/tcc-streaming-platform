@@ -1,0 +1,30 @@
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Environment
+.env
+*.env
+!.env.example
+
+# Logs
+*.log
+
+# HLS Files
+*.ts
+*.m3u8
+
+# Build artifacts
+target/
+node_modules/
+dist/
+build/
+
+# Docker
+docker-compose.override.yml

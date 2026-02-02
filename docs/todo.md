@@ -17,23 +17,27 @@ Desenvolver uma plataforma de streaming de vídeo ao vivo que permita avaliar e 
 **Objetivo**: Preparar ambiente de desenvolvimento e estrutura base do projeto
 
 #### 1.1 Configuração do Ambiente
-- [ ] Instalar Docker e Docker Compose
-- [ ] Instalar Java 21 JDK
-- [ ] Instalar Node.js 20+ e npm
-- [ ] Instalar Maven
-- [ ] Configurar VS Code
-- [ ] Instalar OBS Studio para testes
+- [x] Instalar Docker e Docker Compose (já estava instalado)
+- [x] Instalar Java 21 JDK
+- [x] Instalar Node.js 20+ e npm (já estava instalado)
+- [x] Instalar Maven
+- [x] Configurar VS Code
+- [ ] Instalar OBS Studio para testes (usuário vai instalar)
 
 #### 1.2 Estrutura do Projeto
-- [ ] Criar estrutura de pastas completa
+- [x] Criar estrutura de pastas completa
   ```
   tcc/
   ├── app/
   │   ├── backend/
-  │   │   ├── stream-service/
-  │   │   ├── consumer-service/
-  │   │   ├── metrics-service/
-  │   │   └── common/
+  │   │   └── streaming-platform/    # ⚠️ Projeto Spring Boot ÚNICO
+  │   │       ├── pom.xml
+  │   │       └── src/main/java/com/tcc/streaming/
+  │   │           ├── StreamingPlatformApplication.java
+  │   │           ├── common/        # Código compartilhado
+  │   │           ├── stream/        # Stream Service
+  │   │           ├── consumer/      # Consumer Service
+  │   │           └── metrics/       # Metrics Service
   │   ├── frontend/
   │   │   └── web/
   │   └── config/
@@ -50,16 +54,16 @@ Desenvolver uma plataforma de streaming de vídeo ao vivo que permita avaliar e 
   ├── scripts/
   └── docker-compose/
   ```
-- [ ] Inicializar repositório Git
-- [ ] Criar arquivo `.gitignore`
-- [ ] Criar README.md inicial
-- [ ] Documentar estrutura de pastas
+- [x] Inicializar repositório Git
+- [x] Criar arquivo `.gitignore`
+- [x] Criar README.md inicial
+- [x] Documentar estrutura de pastas (utils.md criado)
 
 #### 1.3 Docker Base
-- [ ] Criar `docker-compose.yml` base
-- [ ] Configurar rede Docker (`streaming-network`)
-- [ ] Definir volumes persistentes
-- [ ] Testar comunicação entre containers
+- [x] Criar `docker-compose.yml` base
+- [x] Configurar rede Docker (`streaming-network`)
+- [x] Definir volumes persistentes
+- [x] Testar comunicação entre containers
 
 ### 🔧 Fase 2: Backend - Stream Service (Semana 3-4)
 **Objetivo**: Implementar serviço principal de gerenciamento de streams
@@ -670,8 +674,8 @@ Para cada tecnologia alternativa testada, avaliar:
 ## 📈 Acompanhamento
 
 **Última Atualização**: 02/02/2026  
-**Progresso Geral**: 0% (0/400+ tarefas)  
-**Fase Atual**: Fase 1 - Setup e Estruturação  
+**Progresso Geral**: 3% (11/400+ tarefas)  
+**Fase Atual**: Fase 1 - Setup e Estruturação (100% completa ✅)  
 **Prazo Final**: Junho/2026
 
 ---

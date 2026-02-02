@@ -1,0 +1,62 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: streaming-platform
+  
+  datasource:
+    url: jdbc:postgresql://postgres:5432/streaming_db
+    username: streaming_user
+    password: streaming_pass
+    driver-class-name: org.postgresql.Driver
+  
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: true
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+        format_sql: true
+  
+  data:
+    redis:
+      host: redis
+      port: 6379
+      timeout: 2000ms
+  
+  rabbitmq:
+    host: rabbitmq
+    port: 5672
+    username: streaming_user
+    password: streaming_pass
+    listener:
+      simple:
+        concurrency: 3
+        max-concurrency: 10
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,prometheus,metrics
+  metrics:
+    export:
+      prometheus:
+        enabled: true
+
+streaming:
+  rtmp:
+    url: rtmp://nginx-rtmp:1935/live
+  hls:
+    base-url: http://nginx-hls:8081/hls
+  stream:
+    waiting-timeout-minutes: 30
+  nginx-rtmp:
+    stats-url: http://nginx-rtmp:8080/stat
+  metrics:
+    collection-interval-seconds: 15
+  cleanup:
+    expired-streams-cron: "0 */5 * * * *"  # Every 5 minutes
+    old-hls-files-cron: "0 0 * * * *"      # Every hour
