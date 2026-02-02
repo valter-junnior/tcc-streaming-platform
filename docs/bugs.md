@@ -36,6 +36,55 @@
 
 ---
 
+## ✅ 3. CORS Policy Error
+
+**Problema**: 
+```
+Access to XMLHttpRequest at 'http://localhost:8080/api/streams' from origin 
+'http://localhost:3001' has been blocked by CORS policy: Response to preflight 
+request doesn't pass access control check: No 'Access-Control-Allow-Origin' 
+header is present on the requested resource.
+```
+
+**Causa**: Backend Spring Boot não estava configurado para aceitar requisições de diferentes origens (cross-origin).
+
+**Solução implementada**:
+- Criado `WebConfig.java` em `common/infrastructure/config/`
+- Configurado CORS globalmente:
+  - `allowedOriginPatterns`: `*` (todas as origens)
+  - `allowedMethods`: GET, POST, PUT, DELETE, OPTIONS, PATCH
+  - `allowedHeaders`: `*` (todos os headers)
+  - `allowCredentials`: `true`
+  - `maxAge`: 3600s (cache de preflight)
+- Implementado `CorsFilter` bean para filtrar todas as requisições
+- Reiniciado backend para aplicar configurações
+
+**Arquivo criado**:
+- `/app/backend/streaming-platform/src/main/java/com/tcc/streaming/common/infrastructure/config/WebConfig.java`
+
+**Validação**:
+```bash
+curl -X OPTIONS http://localhost:8080/api/streams \
+  -H "Origin: http://localhost:3001" \
+  -H "Access-Control-Request-Method: POST" -v
+
+# Resposta:
+✅ HTTP/1.1 200 
+✅ Access-Control-Allow-Origin: http://localhost:3001
+✅ Access-Control-Allow-Methods: GET,POST,PUT,DELETE,OPTIONS,PATCH
+✅ Access-Control-Allow-Credentials: true
+✅ Access-Control-Max-Age: 3600
+```
+
+**Resultado**: 
+- ✅ Frontend pode fazer requisições para o backend
+- ✅ Requisições OPTIONS (preflight) retornam 200
+- ✅ Headers CORS corretos presentes
+- ✅ Credenciais permitidas para cookies/sessions
+
+---
+
 **Status**: ✅ Todos os bugs corrigidos  
 **Data**: 02/02/2026  
-**Build**: Sucesso sem warnings críticos
+**Build**: Sucesso  
+**Backend**: Rodando com CORS habilitado
