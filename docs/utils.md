@@ -54,7 +54,6 @@ docker-compose up -d postgres redis rabbitmq
 # Depois executar testes
 docker-compose exec streaming-platform mvn test
 ```
-
 ---
 
 ## 🔄 Manutenção do TODO.md
@@ -77,6 +76,8 @@ docker-compose exec streaming-platform mvn test
 
 **Formato**:
 ```markdown
+
+**Observações**: Crie changelogs simples e direto
 # Changelog - [Nome da Task]
 
 **Data**: DD/MM/YYYY HH:MM  
