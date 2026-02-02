@@ -262,60 +262,60 @@ Desenvolver uma plataforma de streaming de vídeo ao vivo que permita avaliar e 
 - [x] Configurar proxy para backend
 
 #### 4.2 Página Inicial
-- [ ] Criar componente `HomePage`
-- [ ] Botão "Iniciar Streaming" destacado
-- [ ] Seção de explicação sobre a plataforma
-- [ ] Design responsivo
+- [x] Criar componente `HomePage`
+- [x] Botão "Iniciar Streaming" destacado
+- [x] Seção de explicação sobre a plataforma
+- [x] Design responsivo
 
 #### 4.3 Criação de Stream
-- [ ] Criar componente `CreateStreamModal`
-- [ ] Formulário: título e descrição
-- [ ] Validação de inputs
-- [ ] Integração com API: POST /api/streams/create
-- [ ] Loading states
-- [ ] Error handling
-- [ ] Redirecionamento para painel após criação
+- [x] Criar componente `CreateStreamModal`
+- [x] Formulário: título e descrição
+- [x] Validação de inputs
+- [x] Integração com API: POST /api/streams
+- [x] Loading states
+- [x] Error handling
+- [x] Redirecionamento para painel após criação
 
 #### 4.4 Painel do Streamer
-- [ ] Criar componente `StreamerDashboard`
-- [ ] Exibir URL RTMP: `rtmp://localhost:1935/live`
-- [ ] Exibir Stream Key (com botão copiar)
-- [ ] Exibir link compartilhável
-- [ ] Instruções de configuração do OBS
-- [ ] Status da stream (WAITING, LIVE, ENDED)
-- [ ] Contador de viewers online
-- [ ] Botão "Encerrar Stream"
-- [ ] WebSocket connection para atualizações
+- [x] Criar componente `StreamerDashboard`
+- [x] Exibir URL RTMP: `rtmp://localhost:1935/live`
+- [x] Exibir Stream Key (com botão copiar)
+- [x] Exibir link compartilhável
+- [x] Instruções de configuração do OBS
+- [x] Status da stream (WAITING, LIVE, ENDED)
+- [x] Contador de viewers online
+- [x] Botão "Encerrar Stream"
+- [x] WebSocket connection para atualizações
 
 #### 4.5 Player de Vídeo
-- [ ] Criar componente `VideoPlayer`
-- [ ] Integrar HLS.js
-- [ ] Configurar player responsivo
-- [ ] Adaptive Bitrate Streaming (ABR)
-- [ ] Controles de reprodução
-- [ ] Indicador de qualidade atual
-- [ ] Tratamento de erros (stream offline)
-- [ ] Loading states
+- [x] Criar componente `VideoPlayer`
+- [x] Integrar HLS.js
+- [x] Configurar player responsivo
+- [x] Adaptive Bitrate Streaming (ABR)
+- [x] Controles de reprodução
+- [x] Indicador de qualidade atual
+- [x] Tratamento de erros (stream offline)
+- [x] Loading states
 
 #### 4.6 Página de Visualização
-- [ ] Criar componente `WatchPage`
-- [ ] Rota: `/watch/:streamId`
-- [ ] Carregar informações da stream
-- [ ] Renderizar VideoPlayer
-- [ ] Exibir título e descrição
-- [ ] Contador de viewers
-- [ ] Mensagem se stream ainda não iniciou
-- [ ] Mensagem se stream encerrou
-- [ ] WebSocket para atualizações
+- [x] Criar componente `WatchPage`
+- [x] Rota: `/watch/:streamId`
+- [x] Carregar informações da stream
+- [x] Renderizar VideoPlayer
+- [x] Exibir título e descrição
+- [x] Contador de viewers
+- [x] Mensagem se stream ainda não iniciou
+- [x] Mensagem se stream encerrou
+- [x] WebSocket para atualizações
 
 #### 4.7 WebSocket Integration
-- [ ] Configurar STOMP client
-- [ ] Conectar ao endpoint `/ws`
-- [ ] Subscrever a tópicos de stream
-- [ ] Enviar evento `viewer_joined` ao entrar
-- [ ] Enviar evento `viewer_left` ao sair
-- [ ] Atualizar UI baseado em eventos recebidos
-- [ ] Reconexão automática
+- [x] Configurar STOMP client
+- [x] Conectar ao endpoint `/ws`
+- [x] Subscrever a tópicos de stream
+- [x] Enviar evento `viewer_joined` ao entrar
+- [x] Enviar evento `viewer_left` ao sair
+- [x] Atualizar UI baseado em eventos recebidos
+- [x] Reconexão automática
 
 ### 🔄 Fase 5: Consumer Service (Semana 9-10)
 **Objetivo**: Processar eventos assíncronos do message broker

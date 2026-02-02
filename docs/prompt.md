@@ -14,4 +14,4 @@
 
 2. utilize .env na aplicação
 
-3. faça a task do arquivo todo.md
+3. faça toda a task 4 do arquivo todo.md (Fase 4: Frontend React )
