@@ -69,7 +69,7 @@ Desenvolver uma plataforma de streaming de vídeo ao vivo que permita avaliar e 
 **Objetivo**: Implementar serviço principal de gerenciamento de streams
 
 #### 2.1 Projeto Spring Boot
-- [ ] Criar projeto Spring Boot 3.x com Maven/Gradle
+- [ ] Criar projeto Spring Boot 3.x com Maven
 - [ ] Adicionar dependências:
   - [ ] Spring Web
   - [ ] Spring Data JPA
