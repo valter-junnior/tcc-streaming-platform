@@ -1,1 +1,1 @@
-Agora desenvolva a fase 2 do todo.md por completo seguindo a documetacao.md, utils.md e todo.md 
+crie um controller no common para a rota raiz /
