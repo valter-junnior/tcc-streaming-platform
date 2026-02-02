@@ -1,1 +1,0 @@
-verifique os topicos 3.4, 3.5 e 3.6 do todo.md e verifique se o que está implementado altualmente em todo o projeto atende os requisitos do todo.md e da documentacao.md, caso não atenda implemente ou modifique o que precisar 

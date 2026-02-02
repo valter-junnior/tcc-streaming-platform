@@ -217,9 +217,9 @@ Desenvolver uma plataforma de streaming de vídeo ao vivo que permita avaliar e 
 - [x] Configurar Nginx para servir HLS (já configurado no nginx.conf)
 - [x] Porta: 8081
 - [x] Location `/hls/` aponta para pasta de segmentos
-- [ ] Configurar headers CORS
-- [ ] Configurar cache headers
-- [ ] Testar acesso a playlists com streaming real
+- [x] Configurar headers CORS ⭐
+- [x] Configurar cache headers ⭐
+- [ ] Testar acesso a playlists com streaming real (aguardando teste OBS) (ainda nao)
 
 #### 3.4 PostgreSQL
 - [x] Criar Dockerfile para PostgreSQL
