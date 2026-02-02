@@ -248,17 +248,18 @@ Desenvolver uma plataforma de streaming de vídeo ao vivo que permita avaliar e 
 **Objetivo**: Criar interface web para streamers e espectadores
 
 #### 4.1 Setup React
-- [ ] Criar projeto React com Vite
-- [ ] Configurar TypeScript
-- [ ] Adicionar dependências:
-  - [ ] React Router
-  - [ ] Axios
-  - [ ] Video.js ou HLS.js
-  - [ ] STOMP client (WebSocket)
-  - [ ] Tailwind CSS ou Material-UI
-  - [ ] React Icons
-- [ ] Configurar estrutura de pastas
-- [ ] Configurar proxy para backend
+- [x] Criar projeto React com Vite (/frontend)
+- [x] Configurar TypeScript
+- [x] Adicionar dependências:
+  - [x] React Router
+  - [x] Axios
+  - [x] Video.js ou HLS.js
+  - [x] STOMP client (WebSocket)
+  - [x] Tailwind CSS
+  - [x] Shadcn
+  - [x] Lucide Icons
+- [x] Configurar estrutura de pastas
+- [x] Configurar proxy para backend
 
 #### 4.2 Página Inicial
 - [ ] Criar componente `HomePage`
