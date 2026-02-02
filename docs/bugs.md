@@ -1,0 +1,1 @@
+faltou atualizar o todo.md e acredito que falto finalizar a fasa 2.1 por completo
