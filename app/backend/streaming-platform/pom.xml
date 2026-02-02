@@ -97,6 +97,12 @@
             <version>2.3.0</version>
         </dependency>
 
+        <!-- Jackson Java 8 Date/Time Support -->
+        <dependency>
+            <groupId>com.fasterxml.jackson.datatype</groupId>
+            <artifactId>jackson-datatype-jsr310</artifactId>
+        </dependency>
+
         <!-- Spring Boot DevTools (Hot Reload) -->
         <dependency>
             <groupId>org.springframework.boot</groupId>
