@@ -2,6 +2,7 @@ package com.tcc.streaming.common.infrastructure.config;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.SerializationFeature;
+import com.fasterxml.jackson.databind.jsontype.BasicPolymorphicTypeValidator;
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
 import org.springframework.cache.CacheManager;
@@ -24,16 +25,20 @@ import java.time.Duration;
 public class RedisConfig {
 
     /**
-     * Creates an ObjectMapper configured for Redis serialization with Java 8 date/time support.
+     * Creates an ObjectMapper configured for Redis serialization.
+     * Includes JavaTimeModule for LocalDateTime support.
      */
-    private ObjectMapper redisObjectMapper() {
+    private ObjectMapper createRedisObjectMapper() {
         ObjectMapper mapper = new ObjectMapper();
         mapper.registerModule(new JavaTimeModule());
         mapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
-        mapper.activateDefaultTyping(
-            mapper.getPolymorphicTypeValidator(),
-            ObjectMapper.DefaultTyping.NON_FINAL
-        );
+        
+        BasicPolymorphicTypeValidator validator = BasicPolymorphicTypeValidator.builder()
+            .allowIfBaseType(Object.class)
+            .build();
+        mapper.activateDefaultTyping(validator, ObjectMapper.DefaultTyping.EVERYTHING, 
+            com.fasterxml.jackson.annotation.JsonTypeInfo.As.PROPERTY);
+        
         return mapper;
     }
 
@@ -42,7 +47,7 @@ public class RedisConfig {
         RedisTemplate<String, Object> template = new RedisTemplate<>();
         template.setConnectionFactory(connectionFactory);
         
-        GenericJackson2JsonRedisSerializer serializer = new GenericJackson2JsonRedisSerializer(redisObjectMapper());
+        GenericJackson2JsonRedisSerializer serializer = new GenericJackson2JsonRedisSerializer(createRedisObjectMapper());
         
         template.setKeySerializer(new StringRedisSerializer());
         template.setValueSerializer(serializer);
@@ -53,7 +58,7 @@ public class RedisConfig {
 
     @Bean
     public CacheManager cacheManager(RedisConnectionFactory connectionFactory) {
-        GenericJackson2JsonRedisSerializer serializer = new GenericJackson2JsonRedisSerializer(redisObjectMapper());
+        GenericJackson2JsonRedisSerializer serializer = new GenericJackson2JsonRedisSerializer(createRedisObjectMapper());
         
         RedisCacheConfiguration defaultConfig = RedisCacheConfiguration.defaultCacheConfig()
             .entryTtl(Duration.ofMinutes(10))

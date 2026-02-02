@@ -1,0 +1,32 @@
+spring:
+  datasource:
+    driver-class-name: org.postgresql.Driver
+  
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: false
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+  
+  main:
+    allow-bean-definition-overriding: true
+
+  # Use Redis cache (configured via DynamicPropertySource in test class)
+  cache:
+    type: redis
+    cache-names: streams, streamStatus
+
+rabbitmq:
+  enabled: false
+
+redis:
+  enabled: true  # Will be configured with Testcontainer
+
+logging:
+  level:
+    com.tcc.streaming: INFO
+    org.springframework.web: WARN
+    org.hibernate.SQL: WARN

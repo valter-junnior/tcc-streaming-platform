@@ -628,8 +628,15 @@ Para cada tecnologia alternativa testada, avaliar:
 - [ ] Dead letter queues
 
 ### Qualidade de Código
-- [ ] Testes unitários (cobertura > 70%)
-- [ ] Testes de integração
+- [x] Testes unitários (cobertura básica implementada)
+- [x] Testes de integração (testes E2E com Testcontainers)
+- [x] **Testes E2E para backend** ✅ 24 testes passando
+  - [x] StreamControllerE2ETest (11 testes)
+  - [x] StreamControllerRedisE2ETest (6 testes com Redis real)
+  - [x] NginxCallbackControllerE2ETest (7 testes)
+  - [x] Testcontainers (PostgreSQL + Redis)
+  - [x] Correção de bugs de serialização Redis
+  - [x] Correção de concorrência entre suítes de teste
 - [ ] Testes E2E para frontend
 - [ ] Code review
 - [ ] Análise estática de código (SonarQube - opcional)

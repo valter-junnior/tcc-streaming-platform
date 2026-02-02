@@ -1,1 +1,1 @@
-reveja os testes que deu erro e ajuste
+resolva os bugs do teste do NginxCallbackController
