@@ -1,1 +1,1 @@
-finalize a tarefa 2.2 do todo.md
+finalize as do todo.md da 2.3 até a 2.6
