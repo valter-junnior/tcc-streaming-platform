@@ -89,26 +89,26 @@ Desenvolver uma plataforma de streaming de vídeo ao vivo que permita avaliar e 
   - [x] title
   - [x] description
   - [x] streamKey (unique)
-  - [x] status (enum: WAITING, LIVE, ENDED) ⚠️ Simplificado para MVP
+  - [x] status (enum: WAITING, LIVE, ENDED)
   - [x] createdAt
   - [x] startedAt
   - [x] endedAt
   - [x] currentViewers
   - [x] viewersPeak
-- [ ] Criar entidade `StreamEvent` ⏳ Fase 3
-  - [ ] id
-  - [ ] streamId
-  - [ ] eventType (enum)
-  - [ ] metadata (JSON)
-  - [ ] timestamp
-- [ ] Criar entidade `ViewerSession` ⏳ Fase 3
-  - [ ] id
-  - [ ] streamId
-  - [ ] viewerId (session)
-  - [ ] joinedAt
-  - [ ] leftAt
+- [x] Criar entidade `StreamEvent`
+  - [x] id
+  - [x] streamId
+  - [x] eventType (enum: CREATED, STARTED, ENDED, VIEWER_JOINED, VIEWER_LEFT)
+  - [x] metadata (JSON/TEXT)
+  - [x] timestamp
+- [x] Criar entidade `ViewerSession`
+  - [x] id
+  - [x] streamId
+  - [x] viewerId (session)
+  - [x] joinedAt
+  - [x] leftAt
 - [x] Criar repositórios JPA
-- [ ] Adicionar índices no banco de dados ⏳ Optimization Phase
+- [x] Adicionar índices no banco de dados
 
 #### 2.3 API REST
 - [x] **POST /api/streams** (criar stream)

@@ -1,1 +1,1 @@
-adicione o swagger no projeto e já configure ele em todo o projeto onde for preciso controllers, requests, presenters
+finalize a tarefa 2.2 do todo.md
