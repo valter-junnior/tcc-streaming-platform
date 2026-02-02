@@ -122,7 +122,7 @@ Desenvolver uma plataforma de streaming de vídeo ao vivo que permita avaliar e 
   - [x] Buscar stream por ID
   - [x] Retornar detalhes completos
   - [x] Cachear resposta
-- [ ] **GET /api/streams/{id}/status**
+- [x] **GET /api/streams/{id}/status**
   - [x] Retornar status atual
   - [x] Retornar contador de viewers
   - [x] Consultar Redis (cache)
