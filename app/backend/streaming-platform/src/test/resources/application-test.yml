@@ -37,3 +37,9 @@ streaming:
     port: 1935
     application: live
     callbackUrl: http://localhost:8080/api/streams/callback
+  transcoding:
+    provider: ffmpeg
+    segment-duration: 6
+    playlist-length: 60
+    output-path: /tmp/hls
+    hardware-acceleration: false

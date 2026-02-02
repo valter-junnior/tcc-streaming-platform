@@ -12,6 +12,7 @@ RUN apt-get update && apt-get install -y \
     zlib1g-dev \
     wget \
     git \
+    ffmpeg \
     && rm -rf /var/lib/apt/lists/*
 
 # Download Nginx and RTMP module
@@ -39,6 +40,10 @@ RUN rm -rf /tmp/nginx-1.24.0* /tmp/nginx-rtmp-module
 
 # Copy nginx configuration
 COPY nginx.conf /usr/local/nginx/conf/nginx.conf
+
+# Copy transcoding script
+COPY transcode.sh /usr/local/bin/transcode.sh
+RUN chmod +x /usr/local/bin/transcode.sh
 
 # Expose ports
 EXPOSE 1935 8081

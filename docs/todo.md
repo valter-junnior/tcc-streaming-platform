@@ -196,48 +196,53 @@ Desenvolver uma plataforma de streaming de vídeo ao vivo que permita avaliar e 
 - [ ] Testar conexão RTMP com OBS (teste manual pendente)
 
 #### 3.2 FFmpeg Transcodificação
-- [ ] Criar script de transcodificação
-- [ ] Configurar presets de qualidade:
-  - [ ] 1080p: 1920x1080, 5000kbps, H.264 medium
-  - [ ] 720p: 1280x720, 2800kbps, H.264 medium
-  - [ ] 480p: 854x480, 1400kbps, H.264 fast
-  - [ ] 360p: 640x360, 800kbps, H.264 faster
-- [ ] Gerar segmentos HLS (.ts)
-- [ ] Gerar playlists HLS (.m3u8)
-- [ ] Configurar duração de segmentos (6 segundos)
-- [ ] Criar master playlist com variantes
-- [ ] Configurar logging de FFmpeg
+- [x] Criar abstração com interfaces (TranscoderGateway) ⭐
+- [x] Implementar FFmpegTranscoderGateway
+- [x] Criar script de transcodificação (transcode.sh)
+- [x] Configurar presets de qualidade:
+  - [x] 1080p: 1920x1080, 5000kbps, H.264 medium
+  - [x] 720p: 1280x720, 2800kbps, H.264 medium
+  - [x] 480p: 854x480, 1400kbps, H.264 fast
+  - [x] 360p: 640x360, 800kbps, H.264 faster
+- [x] Gerar segmentos HLS (.ts)
+- [x] Gerar playlists HLS (.m3u8)
+- [x] Configurar duração de segmentos (6 segundos)
+- [x] Criar master playlist com variantes
+- [x] Configurar logging de FFmpeg
+- [x] Integrar com Nginx-RTMP via exec_push
+- [x] Criar testes unitários (QualityPresetTest)
+- [ ] Testar transcodificação end-to-end com OBS (teste manual pendente)
 
 #### 3.3 Nginx HLS Server
-- [ ] Configurar Nginx para servir HLS
-- [ ] Porta: 8081
-- [ ] Location `/hls/` aponta para pasta de segmentos
+- [x] Configurar Nginx para servir HLS (já configurado no nginx.conf)
+- [x] Porta: 8081
+- [x] Location `/hls/` aponta para pasta de segmentos
 - [ ] Configurar headers CORS
 - [ ] Configurar cache headers
-- [ ] Testar acesso a playlists
+- [ ] Testar acesso a playlists com streaming real
 
 #### 3.4 PostgreSQL
-- [ ] Criar Dockerfile para PostgreSQL
-- [ ] Configurar banco de dados `streaming_db`
-- [ ] Criar usuário e senha
-- [ ] Configurar volume persistente
-- [ ] Criar scripts de inicialização (schema)
-- [ ] Adicionar ao docker-compose.yml
+- [x] Criar Dockerfile para PostgreSQL
+- [x] Configurar banco de dados `streaming_db`
+- [x] Criar usuário e senha
+- [x] Configurar volume persistente
+- [x] Criar scripts de inicialização (schema)
+- [x] Adicionar ao docker-compose.yml
 
 #### 3.5 Redis
-- [ ] Configurar Redis container
-- [ ] Porta: 6379
-- [ ] Configurar persistência (RDB)
-- [ ] Configurar maxmemory policy
-- [ ] Adicionar ao docker-compose.yml
+- [x] Configurar Redis container
+- [x] Porta: 6379
+- [x] Configurar persistência (RDB)
+- [x] Configurar maxmemory policy
+- [x] Adicionar ao docker-compose.yml
 
 #### 3.6 RabbitMQ
-- [ ] Configurar RabbitMQ container
-- [ ] Porta AMQP: 5672
-- [ ] Porta Management: 15672
-- [ ] Configurar credenciais
-- [ ] Habilitar management plugin
-- [ ] Adicionar ao docker-compose.yml
+- [x] Configurar RabbitMQ container
+- [x] Porta AMQP: 5672
+- [x] Porta Management: 15672
+- [x] Configurar credenciais
+- [x] Habilitar management plugin
+- [x] Adicionar ao docker-compose.yml
 
 ### 🎨 Fase 4: Frontend React (Semana 7-8)
 **Objetivo**: Criar interface web para streamers e espectadores

@@ -59,8 +59,41 @@ streaming:
     callbackUrl: http://streaming-platform:8080/api/streams/callback
     url: rtmp://nginx-rtmp:1935/live
     stats-url: http://nginx-rtmp:8080/stat
+  transcoding:
+    # Provider: "ffmpeg" or "gstreamer" (future implementation)
+    provider: ffmpeg
+    segment-duration: 6
+    playlist-length: 60
+    output-path: /tmp/hls
+    hardware-acceleration: false
+    # Quality presets (if empty, uses defaults)
+    qualities:
+      - name: 1080p
+        width: 1920
+        height: 1080
+        video-bitrate: 5000
+        audio-bitrate: 128
+        encoder-preset: medium
+      - name: 720p
+        width: 1280
+        height: 720
+        video-bitrate: 2800
+        audio-bitrate: 128
+        encoder-preset: medium
+      - name: 480p
+        width: 854
+        height: 480
+        video-bitrate: 1400
+        audio-bitrate: 128
+        encoder-preset: fast
+      - name: 360p
+        width: 640
+        height: 360
+        video-bitrate: 800
+        audio-bitrate: 96
+        encoder-preset: faster
   hls:
-    base-url: http://nginx-hls:8081/hls
+    base-url: http://localhost:8081/hls
   stream:
     waiting-timeout-minutes: 30
   metrics:
