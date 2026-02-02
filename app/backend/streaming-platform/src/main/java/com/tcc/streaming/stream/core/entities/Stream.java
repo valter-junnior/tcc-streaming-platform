@@ -66,6 +66,14 @@ public class Stream {
         this.endedAt = LocalDateTime.now();
     }
 
+    public void forceEnd() {
+        // Force end without status check - used for cleanup/delete
+        this.status = StreamStatus.ENDED;
+        if (this.endedAt == null) {
+            this.endedAt = LocalDateTime.now();
+        }
+    }
+
     public void incrementViewers() {
         this.currentViewers++;
         if (this.currentViewers > this.viewersPeak) {

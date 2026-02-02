@@ -1,1 +1,1 @@
-finalize as do todo.md da 2.3 até a 2.6
+reveja os testes que deu erro e ajuste

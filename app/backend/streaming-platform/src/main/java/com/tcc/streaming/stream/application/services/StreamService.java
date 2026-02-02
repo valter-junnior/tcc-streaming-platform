@@ -5,6 +5,7 @@ import com.tcc.streaming.stream.core.dtos.stream.CreateStreamDto;
 import com.tcc.streaming.stream.core.dtos.stream.StreamDto;
 import com.tcc.streaming.stream.core.dtos.stream.StreamStatusDto;
 import com.tcc.streaming.stream.core.entities.Stream;
+import com.tcc.streaming.stream.core.entities.StreamStatus;
 import com.tcc.streaming.stream.core.exceptions.StreamNotFoundException;
 import com.tcc.streaming.stream.core.repositories.StreamRepository;
 import com.tcc.streaming.stream.core.usecases.CreateStreamUseCase;
@@ -79,7 +80,14 @@ public class StreamService implements CreateStreamUseCase, GetStreamUseCase, Get
         Stream stream = streamRepository.findById(id)
             .orElseThrow(() -> new StreamNotFoundException(id));
         
-        stream.end();
+        // Only call end() if stream is LIVE, otherwise just mark as ENDED directly
+        if (stream.getStatus() == StreamStatus.LIVE) {
+            stream.end();
+        } else if (stream.getStatus() != StreamStatus.ENDED) {
+            // If not LIVE and not already ENDED, force status to ENDED
+            stream.forceEnd();
+        }
+        
         streamRepository.save(stream);
         
         // Publicar evento stream_ended no RabbitMQ
