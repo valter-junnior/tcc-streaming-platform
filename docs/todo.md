@@ -1,458 +1,679 @@
-# TODO - Projeto TCC: Plataforma de Streaming com Análise Comparativa de Desempenho
+# TODO - Plataforma de Streaming com Análise Comparativa
 
-## 📋 Visão Geral
-Desenvolvimento de uma plataforma de streaming de vídeo ao vivo que permite avaliar e comparar o desempenho de diferentes tecnologias e bibliotecas para a mesma funcionalidade.
+## 📋 Informações do Projeto
 
-**Objetivo Principal**: Avaliar o desempenho de uma plataforma de streaming utilizando diferentes bibliotecas e ferramentas na composição do projeto.
+**Nome do Projeto**: Plataforma de Streaming com Análise Comparativa de Desempenho  
+**Tipo**: TCC (Trabalho de Conclusão de Curso)  
+**Período**: Janeiro 2026 - Junho 2026 (20 semanas)  
+**Status**: 🚀 Iniciando Desenvolvimento
 
-## 🎯 Funcionalidades Principais
+## 🎯 Objetivo Principal
 
-### Para o Streamer
-- [ ] Acesso via `stream.localhost/` sem necessidade de login/cadastro
-- [ ] Botão "Iniciar Streaming" que gera:
-  - Painel de gestão (título, descrição, configurações)
-  - URL RTMP para configurar no OBS
-  - Stream Key (chave de transmissão)
-  - Link compartilhável para visualização
-- [ ] Gerenciamento básico da transmissão (iniciar/parar)
+Desenvolver uma plataforma de streaming de vídeo ao vivo que permita avaliar e comparar o desempenho de diferentes tecnologias e bibliotecas para as mesmas funcionalidades, fornecendo análise quantitativa e qualitativa para escolha de tecnologias em projetos de streaming.
 
-### Para os Espectadores
-- [ ] Visualização da transmissão ao vivo via link compartilhado
-- [ ] Sem necessidade de login
-- [ ] Player de vídeo responsivo
-- [ ] Indicador de viewers online (opcional)
+## 📅 Roadmap de Desenvolvimento
 
-## 🏗️ Arquitetura do Sistema
+### 📦 Fase 1: Setup e Estruturação (Semana 1-2)
+**Objetivo**: Preparar ambiente de desenvolvimento e estrutura base do projeto
 
-### Componentes Principais
+#### 1.1 Configuração do Ambiente
+- [ ] Instalar Docker e Docker Compose
+- [ ] Instalar Java 21 JDK
+- [ ] Instalar Node.js 20+ e npm
+- [ ] Instalar Maven
+- [ ] Configurar VS Code
+- [ ] Instalar OBS Studio para testes
 
-#### 1. Ingestão de Vídeo (RTMP)
-**Opção A (Principal)**:
-- Nginx-RTMP Module
+#### 1.2 Estrutura do Projeto
+- [ ] Criar estrutura de pastas completa
+  ```
+  tcc/
+  ├── app/
+  │   ├── backend/
+  │   │   ├── stream-service/
+  │   │   ├── consumer-service/
+  │   │   ├── metrics-service/
+  │   │   └── common/
+  │   ├── frontend/
+  │   │   └── web/
+  │   └── config/
+  │       ├── nginx/
+  │       ├── prometheus/
+  │       └── grafana/
+  ├── docker/
+  │   ├── nginx-rtmp/
+  │   ├── rabbitmq/
+  │   ├── redis/
+  │   ├── postgres/
+  │   └── monitoring/
+  ├── docs/
+  ├── scripts/
+  └── docker-compose/
+  ```
+- [ ] Inicializar repositório Git
+- [ ] Criar arquivo `.gitignore`
+- [ ] Criar README.md inicial
+- [ ] Documentar estrutura de pastas
 
-**Alternativas para Comparação**:
-- SRS (Simple Realtime Server)
-- Node-Media-Server
+#### 1.3 Docker Base
+- [ ] Criar `docker-compose.yml` base
+- [ ] Configurar rede Docker (`streaming-network`)
+- [ ] Definir volumes persistentes
+- [ ] Testar comunicação entre containers
 
-#### 2. Processamento de Vídeo
-**Opção A (Principal)**:
-- FFmpeg
+### 🔧 Fase 2: Backend - Stream Service (Semana 3-4)
+**Objetivo**: Implementar serviço principal de gerenciamento de streams
 
-**Alternativas para Comparação**:
-- GStreamer
-- Jitsi Video Bridge (para cenários específicos)
+#### 2.1 Projeto Spring Boot
+- [ ] Criar projeto Spring Boot 3.x com Maven/Gradle
+- [ ] Adicionar dependências:
+  - [ ] Spring Web
+  - [ ] Spring Data JPA
+  - [ ] Spring Data Redis
+  - [ ] Spring AMQP (RabbitMQ)
+  - [ ] Spring WebSocket
+  - [ ] Spring Boot Actuator
+  - [ ] PostgreSQL Driver
+  - [ ] Lombok
+  - [ ] Validation API
+- [ ] Configurar `application.yml`
+- [ ] Configurar perfis (dev, prod)
 
-#### 3. Message Broker / Event Streaming
-**Opção A (Principal)**:
-- RabbitMQ
+#### 2.2 Modelagem de Dados
+- [ ] Criar entidade `Stream`
+  - [ ] id (UUID)
+  - [ ] title
+  - [ ] description
+  - [ ] streamKey (unique)
+  - [ ] status (enum: WAITING, LIVE, PAUSED, ENDED, ERROR, EXPIRED)
+  - [ ] createdAt
+  - [ ] startedAt
+  - [ ] endedAt
+  - [ ] viewersPeak
+- [ ] Criar entidade `StreamEvent`
+  - [ ] id
+  - [ ] streamId
+  - [ ] eventType (enum)
+  - [ ] metadata (JSON)
+  - [ ] timestamp
+- [ ] Criar entidade `ViewerSession`
+  - [ ] id
+  - [ ] streamId
+  - [ ] viewerId (session)
+  - [ ] joinedAt
+  - [ ] leftAt
+- [ ] Criar repositórios JPA
+- [ ] Adicionar índices no banco de dados
 
-**Alternativas para Comparação**:
-- Redis Streams
-- NATS
+#### 2.3 API REST
+- [ ] **POST /api/streams/create**
+  - [ ] Validar entrada (título, descrição)
+  - [ ] Gerar stream key única (UUID)
+  - [ ] Salvar no PostgreSQL
+  - [ ] Cachear no Redis
+  - [ ] Publicar evento `stream_created`
+  - [ ] Retornar credenciais RTMP
+- [ ] **GET /api/streams/{id}**
+  - [ ] Buscar stream por ID
+  - [ ] Retornar detalhes completos
+  - [ ] Cachear resposta
+- [ ] **GET /api/streams/{id}/status**
+  - [ ] Retornar status atual
+  - [ ] Retornar contador de viewers
+  - [ ] Consultar Redis (cache)
+- [ ] **DELETE /api/streams/{id}**
+  - [ ] Validar permissão
+  - [ ] Marcar como ENDED
+  - [ ] Limpar cache
+  - [ ] Publicar evento `stream_ended`
+- [ ] **POST /api/streams/callback/publish** (Nginx-RTMP callback)
+  - [ ] Receber stream key
+  - [ ] Validar no banco/cache
+  - [ ] Retornar 200 (aceita) ou 403 (rejeita)
+- [ ] **POST /api/streams/callback/publish_done** (Nginx-RTMP callback)
+  - [ ] Atualizar status para LIVE
+  - [ ] Publicar evento `stream_started`
+  - [ ] Notificar via WebSocket
+- [ ] **POST /api/streams/callback/done** (Nginx-RTMP callback)
+  - [ ] Atualizar status para ENDED
+  - [ ] Calcular duração
+  - [ ] Publicar evento `stream_ended`
 
-#### 4. Servidor de Vídeo (HLS/DASH)
-**Opção A (Principal)**:
-- Nginx (HLS serving)
+#### 2.4 Configuração Redis
+- [ ] Configurar conexão com Redis
+- [ ] Implementar cache de streams ativas
+- [ ] Implementar cache de sessões de viewers
+- [ ] Definir TTL apropriado (2 horas para streams WAITING)
+- [ ] Criar serviço de gerenciamento de cache
 
-**Alternativas para Comparação**:
-- Caddy Server
-- Apache HTTP Server
+#### 2.5 Configuração RabbitMQ
+- [ ] Configurar conexão com RabbitMQ
+- [ ] Criar exchange `streaming.events` (topic)
+- [ ] Criar filas:
+  - [ ] `stream.events.all` (todos os eventos)
+  - [ ] `stream.events.started` (stream iniciada)
+  - [ ] `stream.events.ended` (stream encerrada)
+  - [ ] `stream.events.viewers` (viewers entraram/saíram)
+- [ ] Implementar Producer de eventos
+- [ ] Adicionar serialização JSON
+- [ ] Configurar Dead Letter Queue
 
-#### 5. Cache
-**Opção A (Principal)**:
-- Redis
+#### 2.6 WebSocket
+- [ ] Configurar STOMP over WebSocket
+- [ ] Endpoint: `/ws`
+- [ ] Criar tópico: `/topic/stream/{streamId}/status`
+- [ ] Criar tópico: `/topic/stream/{streamId}/viewers`
+- [ ] Implementar lógica de broadcast de eventos
+- [ ] Registrar/desregistrar viewers
 
-**Alternativas para Comparação**:
-- Memcached
-- Hazelcast
+### 📹 Fase 3: Infraestrutura de Streaming (Semana 5-6)
+**Objetivo**: Configurar ingestão RTMP, transcodificação e serving HLS
 
-#### 6. Banco de Dados
-**Opção A (Principal)**:
-- PostgreSQL
+#### 3.1 Nginx-RTMP
+- [ ] Criar Dockerfile para Nginx-RTMP
+- [ ] Configurar `nginx.conf`:
+  - [ ] Porta RTMP: 1935
+  - [ ] Application: `live`
+  - [ ] Callbacks HTTP para Stream Service
+  - [ ] Exec FFmpeg on publish
+- [ ] Configurar autenticação via callback
+- [ ] Adicionar ao docker-compose.yml
+- [ ] Testar conexão RTMP com OBS
 
-**Alternativas para Comparação**:
-- MySQL
-- MongoDB (para dados de sessão)
+#### 3.2 FFmpeg Transcodificação
+- [ ] Criar script de transcodificação
+- [ ] Configurar presets de qualidade:
+  - [ ] 1080p: 1920x1080, 5000kbps, H.264 medium
+  - [ ] 720p: 1280x720, 2800kbps, H.264 medium
+  - [ ] 480p: 854x480, 1400kbps, H.264 fast
+  - [ ] 360p: 640x360, 800kbps, H.264 faster
+- [ ] Gerar segmentos HLS (.ts)
+- [ ] Gerar playlists HLS (.m3u8)
+- [ ] Configurar duração de segmentos (6 segundos)
+- [ ] Criar master playlist com variantes
+- [ ] Configurar logging de FFmpeg
 
-#### 7. Monitoramento e Métricas
-- Prometheus (coleta de métricas)
-- Grafana (visualização)
-- Exporters customizados
+#### 3.3 Nginx HLS Server
+- [ ] Configurar Nginx para servir HLS
+- [ ] Porta: 8081
+- [ ] Location `/hls/` aponta para pasta de segmentos
+- [ ] Configurar headers CORS
+- [ ] Configurar cache headers
+- [ ] Testar acesso a playlists
 
-#### 8. Backend
-- Java Spring Boot
-  - API REST
-  - WebSocket para eventos em tempo real
-  - Serviços de gerenciamento de streams
+#### 3.4 PostgreSQL
+- [ ] Criar Dockerfile para PostgreSQL
+- [ ] Configurar banco de dados `streaming_db`
+- [ ] Criar usuário e senha
+- [ ] Configurar volume persistente
+- [ ] Criar scripts de inicialização (schema)
+- [ ] Adicionar ao docker-compose.yml
 
-#### 9. Frontend
-- React
-  - Interface de criação de streaming
-  - Player de vídeo (Video.js ou HLS.js)
-  - Gerenciamento de sessões
+#### 3.5 Redis
+- [ ] Configurar Redis container
+- [ ] Porta: 6379
+- [ ] Configurar persistência (RDB)
+- [ ] Configurar maxmemory policy
+- [ ] Adicionar ao docker-compose.yml
 
-## 📁 Estrutura do Projeto
+#### 3.6 RabbitMQ
+- [ ] Configurar RabbitMQ container
+- [ ] Porta AMQP: 5672
+- [ ] Porta Management: 15672
+- [ ] Configurar credenciais
+- [ ] Habilitar management plugin
+- [ ] Adicionar ao docker-compose.yml
 
-```
-tcc/
-├── app/
-│   ├── backend/
-│   │   ├── stream-service/          # Serviço principal de streaming
-│   │   ├── consumer-service/        # Consumidor de eventos
-│   │   ├── metrics-service/         # Serviço de métricas
-│   │   └── common/                  # Bibliotecas compartilhadas
-│   ├── frontend/
-│   │   ├── web/                     # React application
-│   │   └── public/
-│   └── config/
-│       ├── nginx/
-│       ├── prometheus/
-│       └── grafana/
-├── docker/
-│   ├── nginx-rtmp/
-│   ├── rabbitmq/
-│   ├── redis/
-│   ├── postgres/
-│   └── monitoring/
-├── docs/
-│   ├── todo.md                      # Este arquivo
-│   ├── architecture.md              # Diagramas de arquitetura
-│   ├── setup.md                     # Guia de setup
-│   ├── testing-scenarios.md         # Cenários de teste
-│   └── performance-results.md       # Resultados dos testes
-├── scripts/
-│   ├── setup.sh
-│   ├── start-services.sh
-│   └── monitoring/
-└── docker-compose/
-    ├── docker-compose.yml           # Setup principal (RabbitMQ)
-    ├── docker-compose.redis-streams.yml  # Variante com Redis Streams
-    ├── docker-compose.nats.yml      # Variante com NATS
-    └── docker-compose.srs.yml       # Variante com SRS
-```
+### 🎨 Fase 4: Frontend React (Semana 7-8)
+**Objetivo**: Criar interface web para streamers e espectadores
 
-## 🔄 Fluxo de Dados
+#### 4.1 Setup React
+- [ ] Criar projeto React com Vite
+- [ ] Configurar TypeScript
+- [ ] Adicionar dependências:
+  - [ ] React Router
+  - [ ] Axios
+  - [ ] Video.js ou HLS.js
+  - [ ] STOMP client (WebSocket)
+  - [ ] Tailwind CSS ou Material-UI
+  - [ ] React Icons
+- [ ] Configurar estrutura de pastas
+- [ ] Configurar proxy para backend
 
-### 1. Iniciar Streaming
-```
-Usuário → Frontend → Backend API → Gera Stream Key → Salva no DB → 
-Retorna URL RTMP + Key → Exibe no painel
-```
+#### 4.2 Página Inicial
+- [ ] Criar componente `HomePage`
+- [ ] Botão "Iniciar Streaming" destacado
+- [ ] Seção de explicação sobre a plataforma
+- [ ] Design responsivo
 
-### 2. Transmissão de Vídeo
-```
-OBS → RTMP Server (Nginx/SRS) → FFmpeg (transcodificação) → 
-HLS Segments → Nginx (serving) → Message Broker (notificação) → 
-Consumer Service (métricas/processamento)
-```
-
-### 3. Visualização
-```
-Espectador → Frontend → Requisita playlist.m3u8 → 
-Nginx serve HLS → Player renderiza vídeo
-```
-
-## 📊 Métricas a Serem Coletadas
-
-### Performance
-- [ ] Latência de ingestão (RTMP)
-- [ ] Tempo de transcodificação
-- [ ] Latência de entrega (HLS)
-- [ ] Taxa de quadros (FPS)
-- [ ] Bitrate de entrada e saída
-
-### Recursos
-- [ ] Uso de CPU por componente
-- [ ] Uso de memória
-- [ ] I/O de disco
-- [ ] Uso de rede (bandwidth)
-
-### Qualidade
-- [ ] Qualidade do vídeo (PSNR, SSIM)
-- [ ] Dropped frames
-- [ ] Buffer underruns
-
-### Escalabilidade
-- [ ] Número de viewers simultâneos
-- [ ] Número de streams simultâneos
-- [ ] Throughput do message broker
-
-## 🚀 Roadmap de Implementação
-
-### Fase 1: Setup Inicial (Semana 1-2)
-- [ ] Configurar ambiente de desenvolvimento
-- [ ] Criar estrutura de pastas do projeto
-- [ ] Setup Docker e Docker Compose
-- [ ] Configurar repositório Git
-- [ ] Documentação inicial (README.md)
-
-### Fase 2: Backend Base (Semana 3-4)
-- [ ] Criar projeto Spring Boot (stream-service)
-- [ ] Implementar API REST básica
-  - [ ] POST /api/streams/create - Criar nova stream
-  - [ ] GET /api/streams/:id - Obter informações da stream
-  - [ ] DELETE /api/streams/:id - Encerrar stream
-  - [ ] GET /api/streams/:id/status - Status da stream
-- [ ] Configurar PostgreSQL
-- [ ] Implementar models/entities (Stream, StreamSession)
-- [ ] Configurar Redis para cache
-
-### Fase 3: Ingestão de Vídeo (Semana 5-6)
-- [ ] Configurar Nginx-RTMP no Docker
-- [ ] Implementar callbacks do Nginx-RTMP
-  - [ ] on_publish
-  - [ ] on_publish_done
-  - [ ] on_play
-  - [ ] on_record_done
-- [ ] Integrar FFmpeg para transcodificação
-  - [ ] Configurar presets (1080p, 720p, 480p, 360p)
-  - [ ] Gerar HLS playlists
-- [ ] Armazenar segments HLS
-
-### Fase 4: Frontend (Semana 7-8)
-- [ ] Criar aplicação React
-- [ ] Implementar tela inicial
-  - [ ] Botão "Iniciar Streaming"
-  - [ ] Modal/página de configuração
-- [ ] Implementar painel do streamer
-  - [ ] Exibir URL RTMP e Stream Key
-  - [ ] Botão copiar credenciais
-  - [ ] Exibir link compartilhável
-  - [ ] Controles (parar streaming)
-- [ ] Implementar player de vídeo
-  - [ ] Integrar HLS.js ou Video.js
-  - [ ] Player responsivo
-  - [ ] Controles de reprodução
-- [ ] Implementar contador de viewers (WebSocket)
-
-### Fase 5: Message Broker e Eventos (Semana 9-10)
-- [ ] Configurar RabbitMQ no Docker
-- [ ] Implementar Producer no stream-service
-  - [ ] Eventos: stream_started, stream_ended, viewer_joined, viewer_left
-  - [ ] Configurar exchanges e queues
-- [ ] Criar consumer-service
-  - [ ] Processar eventos do RabbitMQ
-  - [ ] Atualizar métricas em tempo real
-  - [ ] Persistir eventos no banco
-  - [ ] Configurar Dead Letter Queue
-- [ ] Implementar WebSocket no backend
-  - [ ] Notificar frontend sobre eventos
-
-### Fase 6: Monitoramento (Semana 11-12)
-- [ ] Configurar Prometheus
-  - [ ] Scrape targets (Spring Boot Actuator)
-  - [ ] Custom metrics
-- [ ] Configurar Grafana
-  - [ ] Dashboards de monitoramento
-  - [ ] Painéis de comparação
-- [ ] Implementar metrics-service
-  - [ ] Coletar métricas do FFmpeg
-  - [ ] Coletar métricas do Nginx
-  - [ ] Expor métricas para Prometheus
-
-### Fase 7: Implementação de Alternativas (Semana 13-15)
-- [ ] **Alternativa 1: Redis Streams (Message Broker)**
-  - [ ] Configurar Redis Streams
-  - [ ] Criar docker-compose.redis-streams.yml
-  - [ ] Implementar adapter para Redis Streams
-  - [ ] Testar e coletar métricas
-  
-- [ ] **Alternativa 2: NATS (Message Broker)**
-  - [ ] Configurar NATS no Docker
-  - [ ] Criar docker-compose.nats.yml
-  - [ ] Implementar adapter para NATS
-  - [ ] Testar e coletar métricas
-  
-- [ ] **Alternativa 3: SRS (RTMP Server)**
-  - [ ] Configurar SRS no Docker
-  - [ ] Adaptar callbacks para SRS
-  - [ ] Testar e coletar métricas
-  
-- [ ] **Alternativa 4: GStreamer (Transcodificação)**
-  - [ ] Configurar GStreamer
-  - [ ] Implementar pipeline de transcodificação
-  - [ ] Testar e coletar métricas
-
-### Fase 8: Testes e Otimização (Semana 16-17)
-- [ ] Criar cenários de teste
-  - [ ] 1 streamer, 10 viewers
-  - [ ] 1 streamer, 100 viewers
-  - [ ] 1 streamer, 1000 viewers
-  - [ ] 5 streamers simultâneos
-- [ ] Executar testes de carga (JMeter, K6)
-- [ ] Coletar todas as métricas
-- [ ] Analisar resultados
-- [ ] Otimizações necessárias
-
-### Fase 9: Documentação e TCC (Semana 18-20)
-- [ ] Escrever documentação técnica completa
-- [ ] Criar gráficos comparativos
-- [ ] Escrever TCC
-  - [ ] Introdução
-  - [ ] Referencial teórico
-  - [ ] Metodologia
-  - [ ] Implementação
-  - [ ] Resultados
-  - [ ] Conclusão
-- [ ] Preparar apresentação
-
-## 🛠️ Tecnologias e Ferramentas
-
-### Backend
-- Java 21
-- Spring Boot 3.x
-  - Spring Web
-  - Spring WebSocket
-  - Spring Data JPA
-  - Spring Boot Actuator
-- Maven ou Gradle
-
-### Frontend
-- React 18+
-- TypeScript
-- Video.js ou HLS.js
-- Axios
-- WebSocket client
-- Tailwind CSS ou Material-UI
-
-### Infraestrutura
-- Docker
-- Docker Compose
-- Nginx
-- Nginx-RTMP Module
-- FFmpeg
-- PostgreSQL
-- Redis
-- RabbitMQ
-- Prometheus
-- Grafana
-
-### Ferramentas de Desenvolvimento
-- Git
-- Postman/Insomnia (teste de APIs)
-- OBS Studio (testes de streaming)
-- Chrome DevTools
-
-## 📝 Arquivos de Configuração Necessários
-
-### Docker Compose
-- [ ] `docker-compose.yml` (setup principal)
-- [ ] Variantes para cada alternativa tecnológica
-
-### Nginx
-- [ ] `nginx.conf` (configuração base)
-- [ ] `nginx-rtmp.conf` (módulo RTMP)
-- [ ] `nginx-hls.conf` (serving HLS)
-
-### Spring Boot
-- [ ] `application.yml` (configurações principais)
-- [ ] `application-dev.yml` (ambiente de desenvolvimento)
-- [ ] `application-prod.yml` (ambiente de produção - mesmo que local)
-
-### Prometheus
-- [ ] `prometheus.yml` (configuração de scraping)
-
-### Grafana
-- [ ] Dashboards em JSON
-- [ ] Datasources configuration
-
-## 🔍 Pontos Adicionais Sugeridos
-
-### Segurança
-- [ ] Validação de Stream Keys
-- [ ] Rate limiting para criação de streams
-- [ ] CORS configurado corretamente
-- [ ] Sanitização de inputs
-
-### Resiliência
-- [ ] Health checks para todos os serviços
-- [ ] Retry policies
-- [ ] Circuit breakers
-- [ ] Graceful shutdown
-
-### Logging
-- [ ] Logging estruturado (JSON)
-- [ ] Diferentes níveis de log
-- [ ] Rotação de logs
-- [ ] Centralização (opcional: ELK stack)
-
-### Qualidade de Código
-- [ ] Testes unitários (backend)
-- [ ] Testes de integração
-- [ ] Testes E2E (frontend)
-- [ ] Code coverage > 70%
-- [ ] SonarQube analysis (opcional)
-
-### Melhorias de UX
+#### 4.3 Criação de Stream
+- [ ] Criar componente `CreateStreamModal`
+- [ ] Formulário: título e descrição
+- [ ] Validação de inputs
+- [ ] Integração com API: POST /api/streams/create
 - [ ] Loading states
-- [ ] Error handling e feedback
-- [ ] Responsive design
-- [ ] Instruções claras para configurar OBS
-- [ ] Preview da stream no painel do streamer
+- [ ] Error handling
+- [ ] Redirecionamento para painel após criação
 
-### Features Extras (Se houver tempo)
-- [ ] Gravação automática das streams
-- [ ] VOD (Video on Demand) das streams passadas
-- [ ] Chat básico (usando WebSocket)
-- [ ] Estatísticas em tempo real para o streamer
-- [ ] Suporte a múltiplas qualidades (ABR - Adaptive Bitrate)
-- [ ] Thumbnail automático da stream
+#### 4.4 Painel do Streamer
+- [ ] Criar componente `StreamerDashboard`
+- [ ] Exibir URL RTMP: `rtmp://localhost:1935/live`
+- [ ] Exibir Stream Key (com botão copiar)
+- [ ] Exibir link compartilhável
+- [ ] Instruções de configuração do OBS
+- [ ] Status da stream (WAITING, LIVE, ENDED)
+- [ ] Contador de viewers online
+- [ ] Botão "Encerrar Stream"
+- [ ] WebSocket connection para atualizações
 
-## 📊 Critérios de Comparação
+#### 4.5 Player de Vídeo
+- [ ] Criar componente `VideoPlayer`
+- [ ] Integrar HLS.js
+- [ ] Configurar player responsivo
+- [ ] Adaptive Bitrate Streaming (ABR)
+- [ ] Controles de reprodução
+- [ ] Indicador de qualidade atual
+- [ ] Tratamento de erros (stream offline)
+- [ ] Loading states
 
-Para cada tecnologia alternativa, avaliar:
+#### 4.6 Página de Visualização
+- [ ] Criar componente `WatchPage`
+- [ ] Rota: `/watch/:streamId`
+- [ ] Carregar informações da stream
+- [ ] Renderizar VideoPlayer
+- [ ] Exibir título e descrição
+- [ ] Contador de viewers
+- [ ] Mensagem se stream ainda não iniciou
+- [ ] Mensagem se stream encerrou
+- [ ] WebSocket para atualizações
 
-1. **Performance**
-   - Throughput
-   - Latência
-   - Uso de recursos
+#### 4.7 WebSocket Integration
+- [ ] Configurar STOMP client
+- [ ] Conectar ao endpoint `/ws`
+- [ ] Subscrever a tópicos de stream
+- [ ] Enviar evento `viewer_joined` ao entrar
+- [ ] Enviar evento `viewer_left` ao sair
+- [ ] Atualizar UI baseado em eventos recebidos
+- [ ] Reconexão automática
 
-2. **Facilidade de Uso**
-   - Complexidade de configuração
-   - Documentação disponível
-   - Curva de aprendizado
+### 🔄 Fase 5: Consumer Service (Semana 9-10)
+**Objetivo**: Processar eventos assíncronos do message broker
 
-3. **Escalabilidade**
-   - Capacidade de lidar com carga
-   - Horizontal scaling
+#### 5.1 Projeto Spring Boot
+- [ ] Criar projeto consumer-service
+- [ ] Adicionar dependências (AMQP, JPA, Redis)
+- [ ] Configurar conexão com RabbitMQ
+- [ ] Configurar conexão com PostgreSQL
 
-4. **Confiabilidade**
-   - Taxa de erros
-   - Recuperação de falhas
+#### 5.2 Event Consumers
+- [ ] Criar Consumer para `stream_created`
+  - [ ] Registrar métricas iniciais
+  - [ ] Log do evento
+- [ ] Criar Consumer para `stream_started`
+  - [ ] Atualizar estatísticas
+  - [ ] Iniciar coleta de métricas detalhadas
+  - [ ] Registrar timestamp exato
+- [ ] Criar Consumer para `stream_ended`
+  - [ ] Calcular duração total
+  - [ ] Calcular estatísticas finais
+  - [ ] Limpar cache de sessão
+  - [ ] Persistir histórico
+- [ ] Criar Consumer para `viewer_joined`
+  - [ ] Incrementar contador
+  - [ ] Registrar evento
+  - [ ] Atualizar pico se necessário
+- [ ] Criar Consumer para `viewer_left`
+  - [ ] Decrementar contador
+  - [ ] Registrar evento
+- [ ] Configurar concorrência de consumers
+- [ ] Implementar retry policy
+- [ ] Implementar error handling
 
-5. **Comunidade e Suporte**
-   - Atividade do projeto
-   - Issues/PRs
-   - Última atualização
+#### 5.3 Tarefas Agendadas
+- [ ] Criar scheduled task para limpar streams expiradas
+  - [ ] Buscar streams WAITING há mais de 30 minutos
+  - [ ] Marcar como EXPIRED
+  - [ ] Limpar cache
+- [ ] Criar scheduled task para limpar arquivos HLS antigos
+  - [ ] Remover segmentos de streams encerradas (após 6 horas)
+  - [ ] Liberar espaço em disco
+- [ ] Criar scheduled task para agregação de métricas
+  - [ ] Calcular médias diárias
+  - [ ] Persistir estatísticas agregadas
 
-## 🎓 Entregáveis do TCC
+### 📊 Fase 6: Monitoramento (Semana 11-12)
+**Objetivo**: Implementar observabilidade completa do sistema
 
-- [ ] Código-fonte completo (GitHub)
-- [ ] Documentação técnica
-- [ ] Relatório de testes e comparações
-- [ ] Artigo/Monografia
+#### 6.1 Prometheus
+- [ ] Configurar Prometheus container
+- [ ] Criar `prometheus.yml`:
+  - [ ] Scrape stream-service (Spring Boot Actuator)
+  - [ ] Scrape consumer-service
+  - [ ] Scrape metrics-service
+  - [ ] Intervalo: 15 segundos
+- [ ] Adicionar ao docker-compose.yml
+- [ ] Testar acesso à UI (porta 9090)
+
+#### 6.2 Grafana
+- [ ] Configurar Grafana container
+- [ ] Porta: 3000
+- [ ] Configurar datasource Prometheus
+- [ ] Criar dashboard: **Visão Geral do Sistema**
+  - [ ] Total de streams ativas
+  - [ ] Total de viewers online
+  - [ ] CPU e memória por serviço
+  - [ ] Latência de APIs
+- [ ] Criar dashboard: **Métricas de Streaming**
+  - [ ] FPS médio
+  - [ ] Bitrate de entrada/saída
+  - [ ] Latência RTMP → HLS
+  - [ ] Taxa de transcodificação
+- [ ] Criar dashboard: **Recursos de Infraestrutura**
+  - [ ] Uso de CPU/memória por container
+  - [ ] I/O de disco
+  - [ ] Uso de rede
+- [ ] Exportar dashboards para JSON
+- [ ] Adicionar ao docker-compose.yml
+
+#### 6.3 Metrics Service
+- [ ] Criar projeto metrics-service
+- [ ] Implementar coleta de métricas do FFmpeg
+  - [ ] Parsear logs do FFmpeg
+  - [ ] Extrair FPS, bitrate, frame drops
+  - [ ] Expor para Prometheus
+- [ ] Implementar coleta de métricas do Nginx-RTMP
+  - [ ] Consultar módulo de stats
+  - [ ] Extrair conexões ativas, bandwidth
+  - [ ] Expor para Prometheus
+- [ ] Criar métricas customizadas:
+  - [ ] `streaming_latency_seconds` (RTMP to HLS)
+  - [ ] `transcoding_fps`
+  - [ ] `active_viewers_count`
+  - [ ] `stream_duration_seconds`
+  - [ ] `peak_viewers`
+- [ ] Configurar Spring Boot Actuator
+- [ ] Expor endpoint `/actuator/prometheus`
+
+#### 6.4 Logging
+- [ ] Configurar Logback para JSON logging
+- [ ] Diferentes níveis por ambiente (dev: DEBUG, prod: INFO)
+- [ ] Centralizar logs (opcional: ELK Stack)
+- [ ] Rotação de logs
+
+### 🔄 Fase 7: Alternativas Tecnológicas (Semana 13-15)
+**Objetivo**: Implementar variantes com diferentes tecnologias
+
+#### 7.1 Alternativa: Redis Streams (Message Broker)
+- [ ] Criar `docker-compose.redis-streams.yml`
+- [ ] Implementar Producer com Redis Streams
+- [ ] Implementar Consumer com Redis Streams
+- [ ] Configurar consumer groups
+- [ ] Testar funcionamento completo
+- [ ] Coletar métricas de performance
+- [ ] Documentar diferenças
+
+#### 7.2 Alternativa: NATS (Message Broker)
+- [ ] Criar `docker-compose.nats.yml`
+- [ ] Configurar NATS container
+- [ ] Implementar Producer com NATS
+- [ ] Implementar Consumer com NATS
+- [ ] Configurar JetStream para persistência
+- [ ] Testar funcionamento completo
+- [ ] Coletar métricas de performance
+- [ ] Documentar diferenças
+
+#### 7.3 Alternativa: SRS (RTMP Server)
+- [ ] Criar `docker-compose.srs.yml`
+- [ ] Configurar SRS container
+- [ ] Configurar callbacks HTTP
+- [ ] Adaptar transcodificação
+- [ ] Testar com OBS
+- [ ] Coletar métricas de performance
+- [ ] Comparar com Nginx-RTMP
+- [ ] Documentar diferenças
+
+#### 7.4 Alternativa: GStreamer (Transcodificação)
+- [ ] Criar pipeline GStreamer
+- [ ] Configurar presets de qualidade
+- [ ] Gerar segmentos HLS
+- [ ] Integrar com Nginx-RTMP
+- [ ] Testar funcionamento
+- [ ] Coletar métricas de performance
+- [ ] Comparar com FFmpeg
+- [ ] Documentar diferenças
+
+### 🧪 Fase 8: Testes e Otimização (Semana 16-17)
+**Objetivo**: Validar sistema e coletar dados para análise comparativa
+
+#### 8.1 Testes Funcionais
+- [ ] Testar criação de stream
+- [ ] Testar transmissão RTMP
+- [ ] Testar visualização HLS
+- [ ] Testar contador de viewers
+- [ ] Testar encerramento de stream
+- [ ] Testar reconexão
+- [ ] Testar expiração de streams
+
+#### 8.2 Cenários de Teste de Carga
+- [ ] **Cenário 1: Baseline**
+  - [ ] 1 streamer, 10 viewers
+  - [ ] Coletar todas as métricas
+- [ ] **Cenário 2: Média Carga**
+  - [ ] 1 streamer, 100 viewers
+  - [ ] Coletar todas as métricas
+- [ ] **Cenário 3: Alta Carga**
+  - [ ] 1 streamer, 500 viewers
+  - [ ] Coletar todas as métricas
+- [ ] **Cenário 4: Múltiplas Streams**
+  - [ ] 5 streamers simultâneos, 20 viewers cada
+  - [ ] Coletar todas as métricas
+- [ ] **Cenário 5: Stress Test**
+  - [ ] 1 streamer, 1000 viewers
+  - [ ] Identificar limites do sistema
+
+#### 8.3 Ferramentas de Teste
+- [ ] Configurar JMeter ou K6 para testes de carga
+- [ ] Criar scripts de teste automatizados
+- [ ] Simular múltiplos viewers
+- [ ] Coletar logs durante testes
+
+#### 8.4 Análise Comparativa
+- [ ] Executar cada cenário com:
+  - [ ] RabbitMQ vs Redis Streams vs NATS
+  - [ ] Nginx-RTMP vs SRS
+  - [ ] FFmpeg vs GStreamer
+- [ ] Coletar dados de:
+  - [ ] Latência (RTMP → HLS)
+  - [ ] Throughput do message broker
+  - [ ] Uso de CPU e memória
+  - [ ] I/O de disco
+  - [ ] FPS e qualidade de vídeo
+- [ ] Gerar gráficos comparativos
+- [ ] Documentar resultados
+
+#### 8.5 Otimizações
+- [ ] Otimizar queries do banco de dados
+- [ ] Ajustar configurações de cache
+- [ ] Tunar FFmpeg presets
+- [ ] Ajustar configurações de JVM
+- [ ] Otimizar tamanho de segmentos HLS
+- [ ] Revisar configuração de RabbitMQ/alternativas
+
+### 📖 Fase 9: Documentação Final e TCC (Semana 18-20)
+**Objetivo**: Documentar projeto e escrever TCC
+
+#### 9.1 Documentação Técnica
+- [ ] Atualizar README.md
+- [ ] Criar guia de instalação detalhado
+- [ ] Criar guia de configuração
+- [ ] Documentar APIs (Swagger/OpenAPI)
+- [ ] Documentar arquitetura completa
+- [ ] Criar diagramas finais
+- [ ] Documentar decisões técnicas
+- [ ] Criar troubleshooting guide
+
+#### 9.2 Redação do TCC
+- [ ] **Introdução**
+  - [ ] Contextualização
+  - [ ] Motivação
+  - [ ] Objetivos
+  - [ ] Justificativa
+- [ ] **Referencial Teórico**
+  - [ ] Streaming de vídeo (conceitos)
+  - [ ] Protocolos (RTMP, HLS)
+  - [ ] Transcodificação de vídeo
+  - [ ] Arquitetura de microserviços
+  - [ ] Message brokers
+  - [ ] Trabalhos relacionados
+- [ ] **Metodologia**
+  - [ ] Arquitetura proposta
+  - [ ] Tecnologias utilizadas
+  - [ ] Métricas definidas
+  - [ ] Cenários de teste
+  - [ ] Processo de coleta de dados
+- [ ] **Implementação**
+  - [ ] Descrição dos componentes
+  - [ ] Decisões técnicas
+  - [ ] Desafios enfrentados
+  - [ ] Soluções implementadas
+- [ ] **Resultados**
+  - [ ] Análise quantitativa
+  - [ ] Gráficos comparativos
+  - [ ] Análise qualitativa
+  - [ ] Trade-offs identificados
+  - [ ] Recomendações
+- [ ] **Conclusão**
+  - [ ] Objetivos alcançados
+  - [ ] Aprendizados
+  - [ ] Trabalhos futuros
+  - [ ] Contribuições
+
+#### 9.3 Apresentação
+- [ ] Criar slides (PowerPoint/Google Slides)
+- [ ] Preparar demonstração ao vivo
+- [ ] Criar vídeo de demonstração (backup)
+- [ ] Ensaiar apresentação
+- [ ] Preparar para perguntas
+
+#### 9.4 Entregáveis Finais
+- [ ] Código-fonte no GitHub (público ou privado)
+- [ ] Documentação completa
+- [ ] TCC escrito (PDF)
 - [ ] Apresentação (slides)
 - [ ] Vídeo demonstrativo (opcional)
+- [ ] Dados e gráficos de análise
 
-## 📅 Timeline Estimado
+## 🎯 Critérios de Comparação
 
-**Total: ~20 semanas (5 meses)**
+Para cada tecnologia alternativa testada, avaliar:
 
-- Desenvolvimento: 17 semanas
-- Testes e refinamento: 2 semanas
-- Documentação final: 1 semana
+### Performance
+- [ ] Throughput (mensagens/segundo para brokers, FPS para transcodificação)
+- [ ] Latência (end-to-end: RTMP → visualização)
+- [ ] Uso de CPU (por container e total)
+- [ ] Uso de memória (por container e total)
+- [ ] I/O de disco (leitura/escrita)
+- [ ] Uso de rede (bandwidth)
 
-## 🎯 Próximos Passos Imediatos
+### Escalabilidade
+- [ ] Capacidade máxima de viewers simultâneos
+- [ ] Degradação de performance com carga crescente
+- [ ] Possibilidade de escalamento horizontal
 
-1. Criar diagramas de arquitetura (Mermaid)
-2. Criar arquivo `architecture.md` com diagramas
-3. Criar arquivo `setup.md` com instruções de instalação
-4. Inicializar projeto Spring Boot
-5. Inicializar projeto React
-6. Criar primeiro docker-compose.yml
+### Confiabilidade
+- [ ] Taxa de erros
+- [ ] Comportamento sob falhas
+- [ ] Tempo de recuperação
+- [ ] Perda de mensagens/frames
+
+### Facilidade de Uso
+- [ ] Complexidade de configuração
+- [ ] Qualidade da documentação
+- [ ] Curva de aprendizado
+- [ ] Ferramentas de debugging disponíveis
+
+### Comunidade e Suporte
+- [ ] Atividade do projeto (commits recentes)
+- [ ] Tamanho da comunidade
+- [ ] Disponibilidade de recursos (tutoriais, exemplos)
+- [ ] Última atualização
+
+## 🛡️ Aspectos Adicionais
+
+### Segurança
+- [ ] Validação rigorosa de stream keys
+- [ ] Rate limiting em APIs críticas
+- [ ] Sanitização de inputs
+- [ ] CORS configurado corretamente
+- [ ] Secrets management (environment variables)
+
+### Resiliência
+- [ ] Health checks em todos os serviços
+- [ ] Retry policies configuradas
+- [ ] Circuit breakers (opcional)
+- [ ] Graceful shutdown
+- [ ] Dead letter queues
+
+### Qualidade de Código
+- [ ] Testes unitários (cobertura > 70%)
+- [ ] Testes de integração
+- [ ] Testes E2E para frontend
+- [ ] Code review
+- [ ] Análise estática de código (SonarQube - opcional)
+
+### UX/UI
+- [ ] Design responsivo (mobile, tablet, desktop)
+- [ ] Loading states em todas as operações assíncronas
+- [ ] Error handling com mensagens claras
+- [ ] Feedback visual para ações do usuário
+- [ ] Acessibilidade (ARIA labels, contraste)
+
+## 📚 Recursos e Referências
+
+### Documentação Técnica
+- [Nginx-RTMP Module](https://github.com/arut/nginx-rtmp-module)
+- [SRS Documentation](https://github.com/ossrs/srs)
+- [FFmpeg Documentation](https://ffmpeg.org/documentation.html)
+- [GStreamer Documentation](https://gstreamer.freedesktop.org/documentation/)
+- [HLS Specification (RFC 8216)](https://tools.ietf.org/html/rfc8216)
+- [Spring Boot Docs](https://spring.io/projects/spring-boot)
+- [React Docs](https://react.dev/)
+- [RabbitMQ Docs](https://www.rabbitmq.com/documentation.html)
+- [Redis Streams](https://redis.io/docs/data-types/streams/)
+- [NATS Docs](https://docs.nats.io/)
+- [Prometheus Docs](https://prometheus.io/docs/)
+- [Grafana Docs](https://grafana.com/docs/)
+
+### Tutoriais e Artigos
+- HLS Streaming with FFmpeg
+- Building Microservices with Spring Boot
+- WebSocket with STOMP
+- Load Testing with K6
+
+## 🚀 Próximos Passos Imediatos
+
+### Sprint 1 (Esta Semana)
+1. [ ] Criar estrutura completa de pastas do projeto
+2. [ ] Inicializar repositório Git
+3. [ ] Criar `docker-compose.yml` base com PostgreSQL, Redis e RabbitMQ
+4. [ ] Inicializar projeto Spring Boot (stream-service)
+5. [ ] Inicializar projeto React (frontend)
+6. [ ] Testar comunicação básica entre containers
+
+### Sprint 2 (Próxima Semana)
+1. [ ] Implementar models e repositórios JPA
+2. [ ] Implementar API REST básica (criar stream)
+3. [ ] Configurar Nginx-RTMP container
+4. [ ] Criar página inicial do frontend
+5. [ ] Testar criação de stream ponta a ponta
+
+## 📈 Acompanhamento
+
+**Última Atualização**: 02/02/2026  
+**Progresso Geral**: 0% (0/400+ tarefas)  
+**Fase Atual**: Fase 1 - Setup e Estruturação  
+**Prazo Final**: Junho/2026
 
 ---
 
-**Data de Início**: Janeiro 2026  
-**Data Prevista de Conclusão**: Junho 2026  
-**Última Atualização**: 20/01/2026
+💡 **Dica**: Marque os checkboxes conforme completar as tarefas e mantenha este documento atualizado semanalmente!

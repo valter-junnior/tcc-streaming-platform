@@ -16,7 +16,7 @@ architecture-beta
     
     service postgres[PostgreSQL] in data
     service redis[Redis Cache] in data
-    service kafka[Kafka] in data
+    service rabbitmq[RabbitMQ] in data
     
     service prometheus[Prometheus] in monitoring
     service grafana[Grafana] in monitoring
@@ -24,8 +24,8 @@ architecture-beta
     react:R -- L:api
     api:R -- L:postgres
     api:R -- L:redis
-    api:B -- T:kafka
-    consumer:T -- B:kafka
+    api:B -- T:rabbitmq
+    consumer:T -- B:rabbitmq
     nginx_rtmp:R -- L:ffmpeg
     ffmpeg:R -- L:nginx_hls
     nginx_hls:T -- B:react
