@@ -3,11 +3,13 @@ package com.tcc.streaming.stream.application.services;
 import com.tcc.streaming.common.infrastructure.events.EventPublisher;
 import com.tcc.streaming.stream.core.dtos.stream.CreateStreamDto;
 import com.tcc.streaming.stream.core.dtos.stream.StreamDto;
+import com.tcc.streaming.stream.core.dtos.stream.StreamStatusDto;
 import com.tcc.streaming.stream.core.entities.Stream;
 import com.tcc.streaming.stream.core.exceptions.StreamNotFoundException;
 import com.tcc.streaming.stream.core.repositories.StreamRepository;
 import com.tcc.streaming.stream.core.usecases.CreateStreamUseCase;
 import com.tcc.streaming.stream.core.usecases.DeleteStreamUseCase;
+import com.tcc.streaming.stream.core.usecases.GetStreamStatusUseCase;
 import com.tcc.streaming.stream.core.usecases.GetStreamUseCase;
 import com.tcc.streaming.stream.core.usecases.ValidateStreamKeyUseCase;
 import org.springframework.cache.annotation.CacheEvict;
@@ -18,7 +20,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.UUID;
 
 @Service
-public class StreamService implements CreateStreamUseCase, GetStreamUseCase, DeleteStreamUseCase, ValidateStreamKeyUseCase {
+public class StreamService implements CreateStreamUseCase, GetStreamUseCase, GetStreamStatusUseCase, DeleteStreamUseCase, ValidateStreamKeyUseCase {
 
     private final StreamRepository streamRepository;
     private final EventPublisher eventPublisher;
@@ -52,6 +54,22 @@ public class StreamService implements CreateStreamUseCase, GetStreamUseCase, Del
             .orElseThrow(() -> new StreamNotFoundException(id));
         
         return toDto(stream);
+    }
+
+    @Override
+    @Cacheable(value = "streamStatus", key = "#id")
+    @Transactional(readOnly = true)
+    public StreamStatusDto getStatus(UUID id) {
+        Stream stream = streamRepository.findById(id)
+            .orElseThrow(() -> new StreamNotFoundException(id));
+        
+        return new StreamStatusDto(
+            stream.getId(),
+            stream.getStatus(),
+            stream.getCurrentViewers(),
+            stream.getViewersPeak(),
+            stream.getWatchUrl()
+        );
     }
 
     @Override

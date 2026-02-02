@@ -3,9 +3,11 @@ package com.tcc.streaming.stream.infrastructure.http.controllers;
 import com.tcc.streaming.stream.core.dtos.stream.CreateStreamDto;
 import com.tcc.streaming.stream.core.usecases.CreateStreamUseCase;
 import com.tcc.streaming.stream.core.usecases.DeleteStreamUseCase;
+import com.tcc.streaming.stream.core.usecases.GetStreamStatusUseCase;
 import com.tcc.streaming.stream.core.usecases.GetStreamUseCase;
 import com.tcc.streaming.stream.core.usecases.ValidateStreamKeyUseCase;
 import com.tcc.streaming.stream.infrastructure.http.presenters.StreamPresenter;
+import com.tcc.streaming.stream.infrastructure.http.presenters.StreamStatusPresenter;
 import com.tcc.streaming.stream.infrastructure.http.requests.CreateStreamRequest;
 import com.tcc.streaming.stream.infrastructure.http.requests.ValidateStreamKeyRequest;
 import io.swagger.v3.oas.annotations.Operation;
@@ -29,17 +31,20 @@ public class StreamController {
 
     private final CreateStreamUseCase createStreamUseCase;
     private final GetStreamUseCase getStreamUseCase;
+    private final GetStreamStatusUseCase getStreamStatusUseCase;
     private final DeleteStreamUseCase deleteStreamUseCase;
     private final ValidateStreamKeyUseCase validateStreamKeyUseCase;
 
     public StreamController(
         CreateStreamUseCase createStreamUseCase,
         GetStreamUseCase getStreamUseCase,
+        GetStreamStatusUseCase getStreamStatusUseCase,
         DeleteStreamUseCase deleteStreamUseCase,
         ValidateStreamKeyUseCase validateStreamKeyUseCase
     ) {
         this.createStreamUseCase = createStreamUseCase;
         this.getStreamUseCase = getStreamUseCase;
+        this.getStreamStatusUseCase = getStreamStatusUseCase;
         this.deleteStreamUseCase = deleteStreamUseCase;
         this.validateStreamKeyUseCase = validateStreamKeyUseCase;
     }
@@ -77,6 +82,23 @@ public class StreamController {
         @PathVariable UUID id) {
         var result = getStreamUseCase.execute(id);
         return ResponseEntity.ok(StreamPresenter.from(result));
+    }
+
+    @GetMapping("/{id}/status")
+    @Operation(
+        summary = "Buscar status da stream",
+        description = "Retorna o status atual da stream e contador de viewers (dados cacheados)"
+    )
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Status obtido com sucesso",
+            content = @Content(schema = @Schema(implementation = StreamStatusPresenter.class))),
+        @ApiResponse(responseCode = "404", description = "Stream não encontrada")
+    })
+    public ResponseEntity<StreamStatusPresenter> getStreamStatus(
+        @Parameter(description = "ID único da stream (UUID)")
+        @PathVariable UUID id) {
+        var result = getStreamStatusUseCase.getStatus(id);
+        return ResponseEntity.ok(StreamStatusPresenter.from(result));
     }
 
     @DeleteMapping("/{id}")

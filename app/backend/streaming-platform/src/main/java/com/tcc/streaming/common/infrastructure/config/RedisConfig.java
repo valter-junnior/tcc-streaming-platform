@@ -31,7 +31,7 @@ public class RedisConfig {
 
     @Bean
     public CacheManager cacheManager(RedisConnectionFactory connectionFactory) {
-        RedisCacheConfiguration config = RedisCacheConfiguration.defaultCacheConfig()
+        RedisCacheConfiguration defaultConfig = RedisCacheConfiguration.defaultCacheConfig()
             .entryTtl(Duration.ofMinutes(10))
             .serializeKeysWith(
                 RedisSerializationContext.SerializationPair.fromSerializer(new StringRedisSerializer())
@@ -40,8 +40,19 @@ public class RedisConfig {
                 RedisSerializationContext.SerializationPair.fromSerializer(new GenericJackson2JsonRedisSerializer())
             );
 
+        // Configuração específica para streamStatus com TTL menor (1 minuto)
+        RedisCacheConfiguration statusConfig = RedisCacheConfiguration.defaultCacheConfig()
+            .entryTtl(Duration.ofMinutes(1))
+            .serializeKeysWith(
+                RedisSerializationContext.SerializationPair.fromSerializer(new StringRedisSerializer())
+            )
+            .serializeValuesWith(
+                RedisSerializationContext.SerializationPair.fromSerializer(new GenericJackson2JsonRedisSerializer())
+            );
+
         return RedisCacheManager.builder(connectionFactory)
-            .cacheDefaults(config)
+            .cacheDefaults(defaultConfig)
+            .withCacheConfiguration("streamStatus", statusConfig)
             .build();
     }
 }

@@ -81,7 +81,7 @@ Desenvolver uma plataforma de streaming de vídeo ao vivo que permita avaliar e 
   - [x] Lombok
   - [x] Validation API
 - [x] Configurar `application.yml`
-- [ ] Configurar perfis (dev, prod)
+- [x] Configurar perfis (dev, prod)
 
 #### 2.2 Modelagem de Dados
 - [x] Criar entidade `Stream`
@@ -122,10 +122,10 @@ Desenvolver uma plataforma de streaming de vídeo ao vivo que permita avaliar e 
   - [x] Buscar stream por ID
   - [x] Retornar detalhes completos
   - [x] Cachear resposta
-- [ ] **GET /api/streams/{id}/status** ⏳ Opcional
-  - [ ] Retornar status atual
-  - [ ] Retornar contador de viewers
-  - [ ] Consultar Redis (cache)
+- [ ] **GET /api/streams/{id}/status**
+  - [x] Retornar status atual
+  - [x] Retornar contador de viewers
+  - [x] Consultar Redis (cache)
 - [x] **DELETE /api/streams/{id}**
   - [x] Validar permissão (sem auth por enquanto)
   - [x] Marcar como ENDED
