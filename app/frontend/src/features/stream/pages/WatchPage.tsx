@@ -13,6 +13,7 @@ import { useViewerId } from "../../../app/hooks/useViewerId";
 import { HLS_URL } from "../../../app/config/env";
 import { routes } from "../../../app/routes";
 import { VideoPlayerPlyr as VideoPlayer } from "../components/VideoPlayerPlyr";
+import { StreamingTime } from "../components/StreamingTime";
 import type { Stream, StreamStatus } from "../../../app/types/stream";
 import { logger } from "../../../shared/lib/logger";
 import { getErrorMessage } from "../../../shared/utils/errorHandler";
@@ -309,6 +310,12 @@ export function WatchPage() {
                   <>
                     <div className="w-3 h-3 bg-red-500 rounded-full animate-pulse" />
                     <span className="text-white font-semibold">AO VIVO</span>
+                    <StreamingTime
+                      startedAt={stream.startedAt}
+                      status={stream.status}
+                      size="small"
+                      showIcon={false}
+                    />
                   </>
                 ) : stream.status === "WAITING" ? (
                   <>
@@ -347,6 +354,25 @@ export function WatchPage() {
                     </p>
                   </div>
                 </div>
+
+                {stream.status === "LIVE" && (
+                  <div className="flex items-center gap-3">
+                    <Clock className="w-5 h-5 text-purple-400" />
+                    <div>
+                      <p className="text-sm text-slate-400">
+                        Tempo de Transmissão
+                      </p>
+                      <div className="text-xl font-bold text-white">
+                        <StreamingTime
+                          startedAt={stream.startedAt}
+                          status={stream.status}
+                          size="medium"
+                          showIcon={false}
+                        />
+                      </div>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
 

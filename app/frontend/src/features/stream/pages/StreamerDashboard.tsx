@@ -17,6 +17,7 @@ import { websocketService } from "../../../app/services/websocketService";
 import { RTMP_URL, APP_URL } from "../../../app/config/env";
 import { routes } from "../../../app/routes";
 import { useUserId } from "../../../shared/hooks/useUserId";
+import { StreamingTime } from "../components/StreamingTime";
 import type { Stream, StreamStatus } from "../../../app/types/stream";
 import { logger } from "../../../shared/lib/logger";
 
@@ -262,10 +263,20 @@ export function StreamerDashboard() {
         >
           {getStatusIcon(stream.status)}
           <span className="font-semibold">{getStatusText(stream.status)}</span>
+          {stream.status === "LIVE" && (
+            <span className="ml-2">
+              <StreamingTime
+                startedAt={stream.startedAt}
+                status={stream.status}
+                size="small"
+                showIcon={false}
+              />
+            </span>
+          )}
         </div>
 
         {/* Stats */}
-        <div className="grid grid-cols-2 gap-4 mb-8">
+        <div className="grid grid-cols-3 gap-4 mb-8">
           <div className="bg-slate-800 rounded-lg p-6 border border-slate-700">
             <div className="flex items-center gap-3 mb-2">
               <Eye className="w-5 h-5 text-purple-400" />
@@ -287,6 +298,26 @@ export function StreamerDashboard() {
             <p className="text-3xl font-bold text-white">
               {stream.viewersPeak}
             </p>
+          </div>
+          <div className="bg-slate-800 rounded-lg p-6 border border-slate-700">
+            <div className="flex items-center gap-3 mb-2">
+              <Clock className="w-5 h-5 text-purple-400" />
+              <span className="text-slate-400 text-sm">
+                Tempo de Transmissão
+              </span>
+            </div>
+            <div className="text-3xl font-bold text-white">
+              {stream.status === "LIVE" ? (
+                <StreamingTime
+                  startedAt={stream.startedAt}
+                  status={stream.status}
+                  size="large"
+                  showIcon={false}
+                />
+              ) : (
+                "--:--:--"
+              )}
+            </div>
           </div>
         </div>
 

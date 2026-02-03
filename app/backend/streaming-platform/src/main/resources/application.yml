@@ -8,6 +8,12 @@ spring:
   profiles:
     active: ${SPRING_PROFILES_ACTIVE:dev}
   
+  # Configuração de timezone
+  jackson:
+    time-zone: ${TZ:America/Sao_Paulo}
+    serialization:
+      write-dates-as-timestamps: false
+  
   datasource:
     url: jdbc:postgresql://${DB_HOST:postgres}:${DB_PORT:5432}/${DB_NAME:streaming_db}
     username: ${DB_USER:streaming_user}

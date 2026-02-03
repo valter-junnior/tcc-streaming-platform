@@ -25,6 +25,9 @@ public class JacksonConfig {
         // Configure to write dates as ISO-8601 strings instead of timestamps
         mapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
         
+        // Set timezone to system default to ensure consistent date handling
+        mapper.setTimeZone(java.util.TimeZone.getDefault());
+        
         return mapper;
     }
 }
