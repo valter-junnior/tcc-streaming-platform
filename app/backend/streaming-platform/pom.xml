@@ -91,6 +91,16 @@
             <artifactId>micrometer-registry-prometheus</artifactId>
         </dependency>
 
+        <!-- Spring Retry for Optimistic Locking -->
+        <dependency>
+            <groupId>org.springframework.retry</groupId>
+            <artifactId>spring-retry</artifactId>
+        </dependency>
+        <dependency>
+            <groupId>org.springframework</groupId>
+            <artifactId>spring-aspects</artifactId>
+        </dependency>
+
         <!-- Springdoc OpenAPI (Swagger) -->
         <dependency>
             <groupId>org.springdoc</groupId>

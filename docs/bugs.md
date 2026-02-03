@@ -1,9 +1,6 @@
-pedi que fosse verificado a feature que mostra os viewers em tempo real no frontend mas ele ta chamando     
+verifique:
 
-const pollInterval = setInterval(() => {
-      if (streamId) {
-        loadStream();
-      }
-    }, 1000); 
-    
-que faz que a pagina atualize por completo e bugando tudo implemente da forma mais correta essa atualizacao de viewers e alis mesmo assim a quantidade de viewers tem continuado 0 sendo que eu abrir a pagina em dois navegadorees diferente e no guia anonima veifique toda essa feature por completo
+todas tarefas do code review foram feita, ou pelo menos todas criticas?
+o redis é necessario para o viewer cleanup? por que eu tirei o redis por enquanto do projeto mas caso seja necessario configure se for apenas por escalabilidade entao refatore pra nao precisar do redis no momento por que eu to só testando com dois usuarios
+
+revise as implemetações para ver se nao tem nada faltando

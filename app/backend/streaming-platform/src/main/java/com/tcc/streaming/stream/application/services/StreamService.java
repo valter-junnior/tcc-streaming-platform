@@ -1,6 +1,5 @@
 package com.tcc.streaming.stream.application.services;
 
-import com.tcc.streaming.common.infrastructure.events.EventPublisher;
 import com.tcc.streaming.common.infrastructure.rtmp.RtmpServerGateway;
 import com.tcc.streaming.stream.core.dtos.stream.CreateStreamDto;
 import com.tcc.streaming.stream.core.dtos.stream.StreamDto;
@@ -19,8 +18,14 @@ import com.tcc.streaming.stream.core.usecases.ListLiveStreamsUseCase;
 import com.tcc.streaming.stream.core.usecases.ListUserStreamsUseCase;
 import com.tcc.streaming.stream.core.usecases.UpdateStreamUseCase;
 import com.tcc.streaming.stream.core.usecases.ValidateStreamKeyUseCase;
+import com.tcc.streaming.stream.core.events.StreamCreatedEvent;
+import com.tcc.streaming.stream.core.events.StreamEndedEvent;
+import com.tcc.streaming.stream.core.events.StreamStartedEvent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.dao.OptimisticLockingFailureException;
+import org.springframework.retry.annotation.Retryable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -33,16 +38,16 @@ public class StreamService implements CreateStreamUseCase, GetStreamUseCase, Get
 
     private static final Logger log = LoggerFactory.getLogger(StreamService.class);
     private final StreamRepository streamRepository;
-    private final EventPublisher eventPublisher;
     private final RtmpServerGateway rtmpServerGateway;
+    private final ApplicationEventPublisher applicationEventPublisher;
 
     public StreamService(
             StreamRepository streamRepository, 
-            EventPublisher eventPublisher,
-            RtmpServerGateway rtmpServerGateway) {
+            RtmpServerGateway rtmpServerGateway,
+            ApplicationEventPublisher applicationEventPublisher) {
         this.streamRepository = streamRepository;
-        this.eventPublisher = eventPublisher;
         this.rtmpServerGateway = rtmpServerGateway;
+        this.applicationEventPublisher = applicationEventPublisher;
     }
 
     @Override
@@ -57,8 +62,10 @@ public class StreamService implements CreateStreamUseCase, GetStreamUseCase, Get
         Stream saved = streamRepository.save(stream);
         log.debug("[StreamService] Stream persisted - ID: {}", saved.getId());
         
-        // Publicar evento stream_created no RabbitMQ
-        eventPublisher.publishStreamCreated(saved.getId(), saved.getStreamKey(), saved.getTitle());
+        // Publicar evento de domínio (será processado após commit)
+        applicationEventPublisher.publishEvent(
+            new StreamCreatedEvent(saved.getId(), saved.getStreamKey(), saved.getTitle())
+        );
         
         return toDto(saved);
     }
@@ -114,11 +121,13 @@ public class StreamService implements CreateStreamUseCase, GetStreamUseCase, Get
             streamRepository.save(stream);
         }
         
-        // Publicar evento stream_ended no RabbitMQ
-        eventPublisher.publishStreamEnded(stream.getId(), stream.getStreamKey(), stream.getViewersPeak());
-        
         // Deletar fisicamente
         streamRepository.deleteById(id);
+        
+        // Publicar evento de domínio (será processado após commit)
+        applicationEventPublisher.publishEvent(
+            new StreamEndedEvent(stream.getId(), stream.getStreamKey(), stream.getViewersPeak())
+        );
         log.info("[StreamService] Stream deleted permanently - ID: {}", id);
     }
 
@@ -129,6 +138,7 @@ public class StreamService implements CreateStreamUseCase, GetStreamUseCase, Get
     }
 
     @Transactional
+    @Retryable(retryFor = OptimisticLockingFailureException.class, maxAttempts = 3)
     public UUID startStream(String streamKey) {
         Stream stream = streamRepository.findByStreamKey(streamKey)
             .orElseThrow(() -> new StreamNotFoundException(streamKey));
@@ -142,13 +152,16 @@ public class StreamService implements CreateStreamUseCase, GetStreamUseCase, Get
         log.info("[StreamService] Stream started - ID: {}, New Status: {}", 
                  stream.getId(), stream.getStatus());
         
-        // Publicar evento stream_started no RabbitMQ
-        eventPublisher.publishStreamStarted(stream.getId(), stream.getStreamKey());
+        // Publicar evento de domínio (será processado após commit)
+        applicationEventPublisher.publishEvent(
+            new StreamStartedEvent(stream.getId(), stream.getStreamKey())
+        );
         
         return stream.getId();
     }
 
     @Transactional
+    @Retryable(retryFor = OptimisticLockingFailureException.class, maxAttempts = 3)
     public UUID endStream(String streamKey) {
         Stream stream = streamRepository.findByStreamKey(streamKey)
             .orElseThrow(() -> new StreamNotFoundException(streamKey));
@@ -162,8 +175,10 @@ public class StreamService implements CreateStreamUseCase, GetStreamUseCase, Get
         log.info("[StreamService] Stream ended - ID: {}, Peak viewers: {}", 
                  stream.getId(), stream.getViewersPeak());
         
-        // Publicar evento stream_ended no RabbitMQ
-        eventPublisher.publishStreamEnded(stream.getId(), stream.getStreamKey(), stream.getViewersPeak());
+        // Publicar evento de domínio (será processado após commit)
+        applicationEventPublisher.publishEvent(
+            new StreamEndedEvent(stream.getId(), stream.getStreamKey(), stream.getViewersPeak())
+        );
         
         return stream.getId();
     }
@@ -188,8 +203,10 @@ public class StreamService implements CreateStreamUseCase, GetStreamUseCase, Get
         log.info("[StreamService] Stream restarted - ID: {}, New Status: {}", 
                  stream.getId(), stream.getStatus());
         
-        // Publicar evento stream_restarted no RabbitMQ
-        eventPublisher.publishStreamCreated(stream.getId(), stream.getStreamKey(), stream.getTitle());
+        // Publicar evento de domínio (será processado após commit)
+        applicationEventPublisher.publishEvent(
+            new StreamCreatedEvent(stream.getId(), stream.getStreamKey(), stream.getTitle())
+        );
     }
 
     private StreamDto toDto(Stream stream) {
@@ -284,8 +301,10 @@ public class StreamService implements CreateStreamUseCase, GetStreamUseCase, Get
                 stream.forceEnd();
                 streamRepository.save(stream);
                 
-                // Publicar evento stream_ended
-                eventPublisher.publishStreamEnded(stream.getId(), stream.getStreamKey(), stream.getViewersPeak());
+                // Publicar evento de domínio (será processado após commit)
+                applicationEventPublisher.publishEvent(
+                    new StreamEndedEvent(stream.getId(), stream.getStreamKey(), stream.getViewersPeak())
+                );
                 
                 cleanedCount++;
             } catch (Exception e) {
@@ -295,6 +314,46 @@ public class StreamService implements CreateStreamUseCase, GetStreamUseCase, Get
         
         log.info("[StreamService] Cleanup completed - {} streams cleaned up", cleanedCount);
         return cleanedCount;
+    }
+
+    /**
+     * Increment viewer count for a stream
+     * @param streamId Stream ID
+     * @return Updated stream with new viewer count
+     */
+    @Transactional
+    public StreamDto incrementViewers(UUID streamId) {
+        Stream stream = streamRepository.findById(streamId)
+            .orElseThrow(() -> new StreamNotFoundException(streamId));
+        
+        stream.incrementViewers();
+        stream.setUpdatedAt(java.time.LocalDateTime.now());
+        Stream updated = streamRepository.save(stream);
+        
+        log.debug("[StreamService] Viewers incremented - Stream: {}, Current: {}, Peak: {}", 
+                 streamId, updated.getCurrentViewers(), updated.getViewersPeak());
+        
+        return toDto(updated);
+    }
+
+    /**
+     * Decrement viewer count for a stream
+     * @param streamId Stream ID
+     * @return Updated stream with new viewer count
+     */
+    @Transactional
+    public StreamDto decrementViewers(UUID streamId) {
+        Stream stream = streamRepository.findById(streamId)
+            .orElseThrow(() -> new StreamNotFoundException(streamId));
+        
+        stream.decrementViewers();
+        stream.setUpdatedAt(java.time.LocalDateTime.now());
+        Stream updated = streamRepository.save(stream);
+        
+        log.debug("[StreamService] Viewers decremented - Stream: {}, Current: {}", 
+                 streamId, updated.getCurrentViewers());
+        
+        return toDto(updated);
     }
 }
 

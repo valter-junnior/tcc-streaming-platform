@@ -28,6 +28,7 @@ export function StreamerDashboard() {
   const [stream, setStream] = useState<Stream | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  // @ts-expect-error - Used in commented code for future implementation
   const [isEnding, setIsEnding] = useState(false);
   const [isRestarting, setIsRestarting] = useState(false);
   const [copiedField, setCopiedField] = useState<string | null>(null);
@@ -41,16 +42,8 @@ export function StreamerDashboard() {
     loadStream();
     connectWebSocket();
 
-    // Polling a cada 5 segundos para atualizar viewers (backup do WebSocket)
-    const pollInterval = setInterval(() => {
-      if (streamId) {
-        loadStream();
-      }
-    }, 1000);
-
     return () => {
       websocketService.disconnect();
-      clearInterval(pollInterval);
     };
   }, [streamId]);
 
@@ -105,8 +98,8 @@ export function StreamerDashboard() {
             prev
               ? {
                   ...prev,
-                  currentViewers: message.data.currentViewers,
-                  viewersPeak: message.data.viewersPeak,
+                  currentViewers: message.currentViewers ?? prev.currentViewers,
+                  viewersPeak: message.viewersPeak ?? prev.viewersPeak,
                 }
               : null,
           );
@@ -123,6 +116,7 @@ export function StreamerDashboard() {
     setTimeout(() => setCopiedField(null), 2000);
   };
 
+  // @ts-expect-error - Used in commented code for future implementation
   const handleEndStream = async () => {
     if (!confirm("Tem certeza que deseja encerrar esta transmissão?")) {
       return;

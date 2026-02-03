@@ -9,8 +9,21 @@ class WebSocketService {
   private client: Client | null = null;
   private subscribers: Map<string, MessageCallback[]> = new Map();
   private connected = false;
+  private connectionRefCount = 0;
 
   connect(): Promise<void> {
+    this.connectionRefCount++;
+
+    // Se já está conectado, retornar promise resolvida
+    if (this.client?.connected) {
+      return Promise.resolve();
+    }
+
+    // Se já há conexão em andamento, aguardar
+    if (this.connected) {
+      return Promise.resolve();
+    }
+
     return new Promise((resolve, reject) => {
       this.client = new Client({
         webSocketFactory: () => new SockJS(WS_URL),
@@ -42,10 +55,22 @@ class WebSocketService {
   }
 
   disconnect(): void {
-    if (this.client) {
-      this.client.deactivate();
-      this.connected = false;
-      this.subscribers.clear();
+    this.connectionRefCount--;
+
+    // Só desconectar quando não houver mais referências
+    if (this.connectionRefCount <= 0) {
+      this.connectionRefCount = 0;
+
+      if (this.client) {
+        console.log("WebSocket disconnecting (ref count reached 0)");
+        this.client.deactivate();
+        this.connected = false;
+        this.subscribers.clear();
+      }
+    } else {
+      console.log(
+        `WebSocket kept alive (ref count: ${this.connectionRefCount})`,
+      );
     }
   }
 

@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import {
   Eye,
@@ -14,6 +14,7 @@ import { routes } from "../../../app/routes";
 import { VideoPlayer } from "../components/VideoPlayer";
 import type { Stream, StreamStatus } from "../../../app/types/stream";
 import { logger } from "../../../shared/lib/logger";
+import { getErrorMessage } from "../../../shared/utils/errorHandler";
 
 export function WatchPage() {
   const { streamId } = useParams<{ streamId: string }>();
@@ -26,6 +27,7 @@ export function WatchPage() {
   const [viewerId] = useState(
     () => `viewer_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
   );
+  const hasJoinedRef = useRef(false);
 
   useEffect(() => {
     if (!streamId) {
@@ -36,36 +38,33 @@ export function WatchPage() {
     loadStream();
     connectWebSocket();
 
-    // Polling a cada 5 segundos para atualizar viewers (backup do WebSocket)
-    const pollInterval = setInterval(() => {
-      if (streamId) {
-        loadStream();
-      }
-    }, 1000);
-
     return () => {
       if (stream && websocketService.isConnected()) {
         websocketService.sendViewerLeft(streamId, viewerId);
       }
       websocketService.disconnect();
-      clearInterval(pollInterval);
     };
   }, [streamId]);
 
   useEffect(() => {
-    if (stream && stream.status === "LIVE" && websocketService.isConnected()) {
+    if (
+      stream?.status === "LIVE" &&
+      websocketService.isConnected() &&
+      !hasJoinedRef.current
+    ) {
       websocketService.sendViewerJoined(streamId!, viewerId);
+      hasJoinedRef.current = true;
     }
-  }, [stream?.status]);
+  }, [stream?.status, streamId, viewerId]);
 
   const loadStream = async () => {
     try {
       setIsLoading(true);
       const data = await apiService.getStream(streamId!);
       setStream(data);
-    } catch (err: any) {
-      console.error("Error loading stream:", err);
-      setError("Stream não encontrada");
+    } catch (error) {
+      logger.error("Error loading stream", error);
+      setError(getErrorMessage(error));
     } finally {
       setIsLoading(false);
     }
@@ -103,8 +102,8 @@ export function WatchPage() {
             prev
               ? {
                   ...prev,
-                  currentViewers: message.data.currentViewers,
-                  viewersPeak: message.data.viewersPeak,
+                  currentViewers: message.currentViewers ?? prev.currentViewers,
+                  viewersPeak: message.viewersPeak ?? prev.viewersPeak,
                 }
               : null,
           );
