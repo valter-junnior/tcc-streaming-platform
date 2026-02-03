@@ -23,8 +23,6 @@ import com.tcc.streaming.stream.core.events.StreamStartedEvent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.context.ApplicationEventPublisher;
-import org.springframework.dao.OptimisticLockingFailureException;
-import org.springframework.retry.annotation.Retryable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -111,19 +109,8 @@ public class StreamService implements CreateStreamUseCase, GetStreamUseCase, Get
             throw new IllegalStateException("Não é possível deletar uma stream ao vivo. Finalize a transmissão primeiro.");
         }
         
-        // Forçar status ENDED se necessário
-        if (stream.getStatus() != StreamStatus.ENDED) {
-            stream.forceEnd();
-            streamRepository.save(stream);
-        }
-        
-        // Deletar fisicamente
         streamRepository.deleteById(id);
         
-        // Publicar evento de domínio (será processado após commit)
-        applicationEventPublisher.publishEvent(
-            new StreamEndedEvent(stream.getId(), stream.getStreamKey(), stream.getViewersPeak())
-        );
         log.info("[StreamService] Stream deleted permanently - ID: {}", id);
     }
 
@@ -134,7 +121,6 @@ public class StreamService implements CreateStreamUseCase, GetStreamUseCase, Get
     }
 
     @Transactional
-    @Retryable(retryFor = OptimisticLockingFailureException.class, maxAttempts = 3)
     public UUID startStream(String streamKey) {
         Stream stream = streamRepository.findByStreamKey(streamKey)
             .orElseThrow(() -> new StreamNotFoundException(streamKey));
@@ -157,7 +143,6 @@ public class StreamService implements CreateStreamUseCase, GetStreamUseCase, Get
     }
 
     @Transactional
-    @Retryable(retryFor = OptimisticLockingFailureException.class, maxAttempts = 3)
     public UUID endStream(String streamKey) {
         Stream stream = streamRepository.findByStreamKey(streamKey)
             .orElseThrow(() -> new StreamNotFoundException(streamKey));
@@ -313,43 +298,49 @@ public class StreamService implements CreateStreamUseCase, GetStreamUseCase, Get
     }
 
     /**
-     * Increment viewer count for a stream
+     * Increment viewer count for a stream (atomic operation)
      * @param streamId Stream ID
      * @return Updated stream with new viewer count
      */
     @Transactional
     public StreamDto incrementViewers(UUID streamId) {
+        int updated = streamRepository.incrementViewersAtomic(streamId);
+        
+        if (updated == 0) {
+            throw new StreamNotFoundException(streamId);
+        }
+        
+        // Buscar stream atualizada para retornar
         Stream stream = streamRepository.findById(streamId)
             .orElseThrow(() -> new StreamNotFoundException(streamId));
         
-        stream.incrementViewers();
-        stream.setUpdatedAt(java.time.LocalDateTime.now());
-        Stream updated = streamRepository.save(stream);
+        log.debug("[StreamService] Viewers incremented atomically - Stream: {}, Current: {}, Peak: {}", 
+                 streamId, stream.getCurrentViewers(), stream.getViewersPeak());
         
-        log.debug("[StreamService] Viewers incremented - Stream: {}, Current: {}, Peak: {}", 
-                 streamId, updated.getCurrentViewers(), updated.getViewersPeak());
-        
-        return toDto(updated);
+        return toDto(stream);
     }
 
     /**
-     * Decrement viewer count for a stream
+     * Decrement viewer count for a stream (atomic operation)
      * @param streamId Stream ID
      * @return Updated stream with new viewer count
      */
     @Transactional
     public StreamDto decrementViewers(UUID streamId) {
+        int updated = streamRepository.decrementViewersAtomic(streamId);
+        
+        if (updated == 0) {
+            throw new StreamNotFoundException(streamId);
+        }
+        
+        // Buscar stream atualizada para retornar
         Stream stream = streamRepository.findById(streamId)
             .orElseThrow(() -> new StreamNotFoundException(streamId));
         
-        stream.decrementViewers();
-        stream.setUpdatedAt(java.time.LocalDateTime.now());
-        Stream updated = streamRepository.save(stream);
+        log.debug("[StreamService] Viewers decremented atomically - Stream: {}, Current: {}", 
+                 streamId, stream.getCurrentViewers());
         
-        log.debug("[StreamService] Viewers decremented - Stream: {}, Current: {}", 
-                 streamId, updated.getCurrentViewers());
-        
-        return toDto(updated);
+        return toDto(stream);
     }
 }
 

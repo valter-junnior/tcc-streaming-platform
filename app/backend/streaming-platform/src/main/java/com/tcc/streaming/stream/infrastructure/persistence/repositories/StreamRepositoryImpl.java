@@ -67,4 +67,14 @@ public class StreamRepositoryImpl implements StreamRepository {
     public void deleteById(UUID id) {
         jpaRepository.deleteById(id);
     }
+
+    @Override
+    public int incrementViewersAtomic(UUID id) {
+        return jpaRepository.incrementViewersAtomic(id);
+    }
+
+    @Override
+    public int decrementViewersAtomic(UUID id) {
+        return jpaRepository.decrementViewersAtomic(id);
+    }
 }

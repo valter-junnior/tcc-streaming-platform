@@ -3,12 +3,14 @@ package com.tcc.streaming.stream.infrastructure.websocket.controllers;
 import com.tcc.streaming.common.infrastructure.events.EventPublisher;
 import com.tcc.streaming.stream.application.services.StreamService;
 import com.tcc.streaming.stream.core.dtos.stream.StreamDto;
+import com.tcc.streaming.stream.infrastructure.websocket.listeners.WebSocketEventListener;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.messaging.handler.annotation.DestinationVariable;
 import org.springframework.messaging.handler.annotation.MessageMapping;
 import org.springframework.messaging.handler.annotation.Payload;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
+import org.springframework.messaging.simp.stomp.StompHeaderAccessor;
 import org.springframework.stereotype.Controller;
 
 import java.util.Map;
@@ -21,20 +23,27 @@ public class StreamWebSocketController {
     private final SimpMessagingTemplate messagingTemplate;
     private final StreamService streamService;
     private final EventPublisher eventPublisher;
+    private final WebSocketEventListener webSocketEventListener;
 
     public StreamWebSocketController(SimpMessagingTemplate messagingTemplate,
                                      StreamService streamService,
-                                     EventPublisher eventPublisher) {
+                                     EventPublisher eventPublisher,
+                                     WebSocketEventListener webSocketEventListener) {
         this.messagingTemplate = messagingTemplate;
         this.streamService = streamService;
         this.eventPublisher = eventPublisher;
+        this.webSocketEventListener = webSocketEventListener;
     }
 
     @MessageMapping("/stream/{streamId}/join")
-    public void joinStream(@DestinationVariable UUID streamId, @Payload Map<String, String> payload) {
+    public void joinStream(@DestinationVariable UUID streamId, @Payload Map<String, String> payload, StompHeaderAccessor headerAccessor) {
         String viewerId = payload.get("viewerId");
+        String sessionId = headerAccessor.getSessionId();
         
-        log.debug("[WebSocket] Viewer joining - Stream: {}, Viewer: {}", streamId, viewerId);
+        log.info("[WebSocket] Viewer joining - Stream: {}, Viewer: {}, Session: {}", streamId, viewerId, sessionId);
+        
+        // Registrar sessão para auto-cleanup em caso de desconexão
+        webSocketEventListener.registerViewerSession(sessionId, streamId, viewerId);
         
         // Incrementar viewers
         StreamDto stream = streamService.incrementViewers(streamId);
@@ -47,10 +56,14 @@ public class StreamWebSocketController {
     }
 
     @MessageMapping("/stream/{streamId}/leave")
-    public void leaveStream(@DestinationVariable UUID streamId, @Payload Map<String, String> payload) {
+    public void leaveStream(@DestinationVariable UUID streamId, @Payload Map<String, String> payload, StompHeaderAccessor headerAccessor) {
         String viewerId = payload.get("viewerId");
+        String sessionId = headerAccessor.getSessionId();
         
-        log.debug("[WebSocket] Viewer leaving - Stream: {}, Viewer: {}", streamId, viewerId);
+        log.info("[WebSocket] Viewer leaving - Stream: {}, Viewer: {}, Session: {}", streamId, viewerId, sessionId);
+        
+        // Desregistrar sessão (para não decrementar duas vezes se disconnect event disparar)
+        webSocketEventListener.unregisterViewerSession(sessionId);
         
         // Decrementar viewers
         StreamDto stream = streamService.decrementViewers(streamId);

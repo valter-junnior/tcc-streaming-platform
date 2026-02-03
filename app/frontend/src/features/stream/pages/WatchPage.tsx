@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 import { apiService } from "../../../app/services/apiService";
 import { websocketService } from "../../../app/services/websocketService";
+import { useViewerId } from "../../../app/hooks/useViewerId";
 import { HLS_URL } from "../../../app/config/env";
 import { routes } from "../../../app/routes";
 import { VideoPlayer } from "../components/VideoPlayer";
@@ -24,9 +25,7 @@ export function WatchPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [playerReady, setPlayerReady] = useState(false);
-  const [viewerId] = useState(
-    () => `viewer_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
-  );
+  const viewerId = useViewerId(); // Persistente no localStorage
   const hasJoinedRef = useRef(false);
 
   useEffect(() => {
@@ -38,24 +37,27 @@ export function WatchPage() {
     loadStream();
     connectWebSocket();
 
+    // Garantir que viewer_left seja enviado ao fechar aba/navegador
+    const handleBeforeUnload = () => {
+      console.log(`[WatchPage] beforeunload - Sending viewer_left`);
+      if (websocketService.isConnected()) {
+        websocketService.sendViewerLeft(streamId, viewerId);
+      }
+    };
+
+    window.addEventListener("beforeunload", handleBeforeUnload);
+
     return () => {
-      if (stream && websocketService.isConnected()) {
+      window.removeEventListener("beforeunload", handleBeforeUnload);
+
+      console.log(`[WatchPage] Component unmount - Sending viewer_left`);
+      if (websocketService.isConnected()) {
         websocketService.sendViewerLeft(streamId, viewerId);
       }
       websocketService.disconnect();
+      hasJoinedRef.current = false;
     };
-  }, [streamId]);
-
-  useEffect(() => {
-    if (
-      stream?.status === "LIVE" &&
-      websocketService.isConnected() &&
-      !hasJoinedRef.current
-    ) {
-      websocketService.sendViewerJoined(streamId!, viewerId);
-      hasJoinedRef.current = true;
-    }
-  }, [stream?.status, streamId, viewerId]);
+  }, [streamId, viewerId]);
 
   const loadStream = async () => {
     try {
@@ -72,6 +74,9 @@ export function WatchPage() {
 
   const connectWebSocket = async () => {
     try {
+      console.log(
+        `[WatchPage] Connecting WebSocket - StreamID: ${streamId}, ViewerID: ${viewerId}`,
+      );
       await websocketService.connect();
 
       websocketService.subscribeToStreamStatus(streamId!, (message) => {
@@ -109,6 +114,15 @@ export function WatchPage() {
           );
         }
       });
+
+      // Enviar viewer_joined logo após conectar e subscrever
+      if (!hasJoinedRef.current) {
+        console.log(
+          `[WatchPage] Sending viewer_joined - StreamID: ${streamId}, ViewerID: ${viewerId}`,
+        );
+        websocketService.sendViewerJoined(streamId!, viewerId);
+        hasJoinedRef.current = true;
+      }
     } catch (err) {
       logger.error("WebSocket connection failed", err);
     }

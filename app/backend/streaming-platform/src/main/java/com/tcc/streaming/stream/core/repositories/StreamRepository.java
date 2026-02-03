@@ -16,4 +16,18 @@ public interface StreamRepository {
     List<Stream> findByOwnerId(String ownerId);
     List<Stream> findInactiveStreams(LocalDateTime thresholdDate);
     void deleteById(UUID id);
+    
+    /**
+     * Incrementa viewers de forma atômica no banco de dados
+     * @param id Stream ID
+     * @return número de linhas afetadas (1 se sucesso, 0 se stream não existe)
+     */
+    int incrementViewersAtomic(UUID id);
+    
+    /**
+     * Decrementa viewers de forma atômica no banco de dados
+     * @param id Stream ID
+     * @return número de linhas afetadas (1 se sucesso, 0 se stream não existe)
+     */
+    int decrementViewersAtomic(UUID id);
 }

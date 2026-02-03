@@ -13,9 +13,6 @@ public class StreamJpaEntity {
     @Id
     private UUID id;
 
-    @Version
-    private Long version;
-
     @Column(nullable = false, length = 200)
     private String title;
 
@@ -67,7 +64,6 @@ public class StreamJpaEntity {
         this.endedAt = endedAt;
         this.currentViewers = currentViewers;
         this.viewersPeak = viewersPeak;
-        this.version = 0L;
     }
 
     public UUID getId() {
@@ -164,13 +160,5 @@ public class StreamJpaEntity {
 
     public void setViewersPeak(Integer viewersPeak) {
         this.viewersPeak = viewersPeak;
-    }
-
-    public Long getVersion() {
-        return version;
-    }
-
-    public void setVersion(Long version) {
-        this.version = version;
     }
 }
