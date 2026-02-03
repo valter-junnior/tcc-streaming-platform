@@ -74,6 +74,17 @@ public class Stream {
         }
     }
 
+    public void restart() {
+        if (this.status != StreamStatus.ENDED) {
+            throw new IllegalStateException("Only ENDED streams can be restarted, current status: " + this.status);
+        }
+        this.status = StreamStatus.WAITING;
+        this.startedAt = null;
+        this.endedAt = null;
+        this.currentViewers = 0;
+        this.viewersPeak = 0;
+    }
+
     public void incrementViewers() {
         this.currentViewers++;
         if (this.currentViewers > this.viewersPeak) {

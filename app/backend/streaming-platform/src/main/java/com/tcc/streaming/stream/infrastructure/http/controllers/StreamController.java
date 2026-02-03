@@ -1,5 +1,6 @@
 package com.tcc.streaming.stream.infrastructure.http.controllers;
 
+import com.tcc.streaming.stream.application.services.StreamService;
 import com.tcc.streaming.stream.core.dtos.stream.CreateStreamDto;
 import com.tcc.streaming.stream.core.usecases.CreateStreamUseCase;
 import com.tcc.streaming.stream.core.usecases.DeleteStreamUseCase;
@@ -34,19 +35,22 @@ public class StreamController {
     private final GetStreamStatusUseCase getStreamStatusUseCase;
     private final DeleteStreamUseCase deleteStreamUseCase;
     private final ValidateStreamKeyUseCase validateStreamKeyUseCase;
+    private final StreamService streamService;
 
     public StreamController(
         CreateStreamUseCase createStreamUseCase,
         GetStreamUseCase getStreamUseCase,
         GetStreamStatusUseCase getStreamStatusUseCase,
         DeleteStreamUseCase deleteStreamUseCase,
-        ValidateStreamKeyUseCase validateStreamKeyUseCase
+        ValidateStreamKeyUseCase validateStreamKeyUseCase,
+        StreamService streamService
     ) {
         this.createStreamUseCase = createStreamUseCase;
         this.getStreamUseCase = getStreamUseCase;
         this.getStreamStatusUseCase = getStreamStatusUseCase;
         this.deleteStreamUseCase = deleteStreamUseCase;
         this.validateStreamKeyUseCase = validateStreamKeyUseCase;
+        this.streamService = streamService;
     }
 
     @PostMapping
@@ -131,5 +135,24 @@ public class StreamController {
         @Valid @RequestBody ValidateStreamKeyRequest request) {
         boolean valid = validateStreamKeyUseCase.execute(request.streamKey());
         return ResponseEntity.ok(valid);
+    }
+
+    @PostMapping("/{id}/restart")
+    @Operation(
+        summary = "Reiniciar stream encerrada",
+        description = "Permite reiniciar uma stream com status ENDED, resetando métricas de viewers mas mantendo a stream key"
+    )
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Stream reiniciada com sucesso",
+            content = @Content(schema = @Schema(implementation = StreamPresenter.class))),
+        @ApiResponse(responseCode = "404", description = "Stream não encontrada"),
+        @ApiResponse(responseCode = "400", description = "Stream não pode ser reiniciada (status diferente de ENDED)")
+    })
+    public ResponseEntity<StreamPresenter> restartStream(
+        @Parameter(description = "ID único da stream (UUID)")
+        @PathVariable UUID id) {
+        streamService.restartStream(id);
+        var result = getStreamUseCase.execute(id);
+        return ResponseEntity.ok(StreamPresenter.from(result));
     }
 }

@@ -154,6 +154,30 @@ public class StreamService implements CreateStreamUseCase, GetStreamUseCase, Get
         return stream.getId();
     }
 
+    @Transactional
+    @CacheEvict(value = {"streams", "streamStatus"}, key = "#id")
+    public void restartStream(UUID id) {
+        Stream stream = streamRepository.findById(id)
+            .orElseThrow(() -> new StreamNotFoundException(id));
+        
+        log.info("[RESTART] Attempting to restart stream - ID: {}, Title: '{}', Current Status: {}", 
+                 stream.getId(), stream.getTitle(), stream.getStatus());
+        
+        // Permitir reiniciar apenas streams ENDED
+        if (stream.getStatus() != StreamStatus.ENDED) {
+            throw new IllegalStateException("Only ENDED streams can be restarted");
+        }
+        
+        stream.restart();
+        streamRepository.save(stream);
+        
+        log.info("[RESTART] Stream restarted successfully - ID: {}, Title: '{}', New Status: {}", 
+                 stream.getId(), stream.getTitle(), stream.getStatus());
+        
+        // Publicar evento stream_restarted no RabbitMQ
+        eventPublisher.publishStreamCreated(stream.getId(), stream.getStreamKey(), stream.getTitle());
+    }
+
     private StreamDto toDto(Stream stream) {
         return new StreamDto(
             stream.getId(),

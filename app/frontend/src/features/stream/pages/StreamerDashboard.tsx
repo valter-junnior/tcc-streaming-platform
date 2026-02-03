@@ -10,6 +10,7 @@ import {
   Loader2,
   Share2,
   XCircle,
+  Play,
 } from "lucide-react";
 import { apiService } from "../../../app/services/apiService";
 import { websocketService } from "../../../app/services/websocketService";
@@ -25,6 +26,7 @@ export function StreamerDashboard() {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [isEnding, setIsEnding] = useState(false);
+  const [isRestarting, setIsRestarting] = useState(false);
   const [copiedField, setCopiedField] = useState<string | null>(null);
 
   useEffect(() => {
@@ -132,6 +134,27 @@ export function StreamerDashboard() {
       alert("Erro ao encerrar stream");
     } finally {
       setIsEnding(false);
+    }
+  };
+
+  const handleRestartStream = async () => {
+    if (
+      !confirm(
+        "Deseja reiniciar esta transmissão? As métricas de viewers serão resetadas.",
+      )
+    ) {
+      return;
+    }
+
+    setIsRestarting(true);
+    try {
+      const data = await apiService.restartStream(streamId!);
+      setStream(data);
+    } catch (err: any) {
+      console.error("Error restarting stream:", err);
+      alert("Erro ao reiniciar transmissão");
+    } finally {
+      setIsRestarting(false);
     }
   };
 
@@ -386,14 +409,34 @@ export function StreamerDashboard() {
               Transmissão Encerrada
             </h3>
             <p className="text-slate-400 mb-6">
-              Esta transmissão foi finalizada.
+              Esta transmissão foi finalizada. Você pode reiniciá-la usando a
+              mesma stream key ou criar uma nova.
             </p>
-            <button
-              onClick={() => navigate(routes.home)}
-              className="px-6 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-colors"
-            >
-              Criar Nova Stream
-            </button>
+            <div className="flex gap-4 justify-center">
+              <button
+                onClick={handleRestartStream}
+                disabled={isRestarting}
+                className="px-6 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors disabled:opacity-50 flex items-center gap-2"
+              >
+                {isRestarting ? (
+                  <>
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                    Reiniciando...
+                  </>
+                ) : (
+                  <>
+                    <Play className="w-5 h-5" />
+                    Reiniciar Stream
+                  </>
+                )}
+              </button>
+              <button
+                onClick={() => navigate(routes.home)}
+                className="px-6 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-colors"
+              >
+                Criar Nova Stream
+              </button>
+            </div>
           </div>
         )}
       </div>
