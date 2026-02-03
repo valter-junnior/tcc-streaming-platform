@@ -32,6 +32,9 @@ public class StreamJpaEntity {
     @Column(name = "created_at", nullable = false)
     private LocalDateTime createdAt;
 
+    @Column(name = "updated_at", nullable = false)
+    private LocalDateTime updatedAt;
+
     @Column(name = "started_at")
     private LocalDateTime startedAt;
 
@@ -48,7 +51,7 @@ public class StreamJpaEntity {
     }
 
     public StreamJpaEntity(UUID id, String title, String description, String streamKey, String ownerId, StreamStatus status,
-                           LocalDateTime createdAt, LocalDateTime startedAt, LocalDateTime endedAt, Integer currentViewers, Integer viewersPeak) {
+                           LocalDateTime createdAt, LocalDateTime updatedAt, LocalDateTime startedAt, LocalDateTime endedAt, Integer currentViewers, Integer viewersPeak) {
         this.id = id;
         this.title = title;
         this.description = description;
@@ -56,6 +59,7 @@ public class StreamJpaEntity {
         this.ownerId = ownerId;
         this.status = status;
         this.createdAt = createdAt;
+        this.updatedAt = updatedAt;
         this.startedAt = startedAt;
         this.endedAt = endedAt;
         this.currentViewers = currentViewers;
@@ -116,6 +120,14 @@ public class StreamJpaEntity {
 
     public void setCreatedAt(LocalDateTime createdAt) {
         this.createdAt = createdAt;
+    }
+
+    public LocalDateTime getUpdatedAt() {
+        return updatedAt;
+    }
+
+    public void setUpdatedAt(LocalDateTime updatedAt) {
+        this.updatedAt = updatedAt;
     }
 
     public LocalDateTime getStartedAt() {

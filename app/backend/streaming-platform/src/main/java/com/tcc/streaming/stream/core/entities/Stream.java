@@ -11,6 +11,7 @@ public class Stream {
     private String ownerId;
     private StreamStatus status;
     private LocalDateTime createdAt;
+    private LocalDateTime updatedAt;
     private LocalDateTime startedAt;
     private LocalDateTime endedAt;
     private Integer currentViewers;
@@ -21,14 +22,15 @@ public class Stream {
         this.id = UUID.randomUUID();
         this.status = StreamStatus.WAITING;
         this.createdAt = LocalDateTime.now();
+        this.updatedAt = LocalDateTime.now();
         this.currentViewers = 0;
         this.viewersPeak = 0;
     }
 
     // Constructor completo para mapeamento
     public Stream(UUID id, String title, String description, String streamKey, String ownerId,
-                  StreamStatus status, LocalDateTime createdAt, LocalDateTime startedAt,
-                  LocalDateTime endedAt, Integer currentViewers, Integer viewersPeak) {
+                  StreamStatus status, LocalDateTime createdAt, LocalDateTime updatedAt,
+                  LocalDateTime startedAt, LocalDateTime endedAt, Integer currentViewers, Integer viewersPeak) {
         this.id = id;
         this.title = title;
         this.description = description;
@@ -36,6 +38,7 @@ public class Stream {
         this.ownerId = ownerId;
         this.status = status;
         this.createdAt = createdAt;
+        this.updatedAt = updatedAt;
         this.startedAt = startedAt;
         this.endedAt = endedAt;
         this.currentViewers = currentViewers;
@@ -56,11 +59,13 @@ public class Stream {
     public void start() {
         this.status = StreamStatus.LIVE;
         this.startedAt = LocalDateTime.now();
+        this.updatedAt = LocalDateTime.now();
     }
 
     public void end() {
         this.status = StreamStatus.ENDED;
         this.endedAt = LocalDateTime.now();
+        this.updatedAt = LocalDateTime.now();
     }
 
     public void forceEnd() {
@@ -69,6 +74,7 @@ public class Stream {
         if (this.endedAt == null) {
             this.endedAt = LocalDateTime.now();
         }
+        this.updatedAt = LocalDateTime.now();
     }
 
     public void restart() {
@@ -80,6 +86,7 @@ public class Stream {
         this.endedAt = null;
         this.currentViewers = 0;
         this.viewersPeak = 0;
+        this.updatedAt = LocalDateTime.now();
     }
 
     public void incrementViewers() {
@@ -163,6 +170,14 @@ public class Stream {
 
     public void setCreatedAt(LocalDateTime createdAt) {
         this.createdAt = createdAt;
+    }
+
+    public LocalDateTime getUpdatedAt() {
+        return updatedAt;
+    }
+
+    public void setUpdatedAt(LocalDateTime updatedAt) {
+        this.updatedAt = updatedAt;
     }
 
     public LocalDateTime getStartedAt() {

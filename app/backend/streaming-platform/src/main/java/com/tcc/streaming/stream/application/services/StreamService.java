@@ -280,6 +280,7 @@ public class StreamService implements CreateStreamUseCase, GetStreamUseCase, Get
         // Atualizar campos
         stream.setTitle(dto.title());
         stream.setDescription(dto.description());
+        stream.setUpdatedAt(java.time.LocalDateTime.now());
         
         Stream updated = streamRepository.save(stream);
         log.debug("[StreamService] Stream {} updated successfully", dto.streamId());
@@ -288,6 +289,44 @@ public class StreamService implements CreateStreamUseCase, GetStreamUseCase, Get
         evictCacheAfterCommit();
         
         return toDto(updated);
+    }
+    
+    /**
+     * Cleanup inactive streams that haven't been updated for more than the specified threshold
+     * @param thresholdDays Number of days of inactivity before cleanup
+     * @return Number of streams cleaned up
+     */
+    @Transactional
+    @CacheEvict(value = {"streams", "streamStatus", "liveStreams"}, allEntries = true)
+    public int cleanupInactiveStreams(int thresholdDays) {
+        java.time.LocalDateTime thresholdDate = java.time.LocalDateTime.now().minusDays(thresholdDays);
+        log.info("[StreamService] Starting cleanup of inactive streams (threshold: {} days, date: {})", 
+                 thresholdDays, thresholdDate);
+        
+        List<Stream> inactiveStreams = streamRepository.findInactiveStreams(thresholdDate);
+        log.info("[StreamService] Found {} inactive streams to cleanup", inactiveStreams.size());
+        
+        int cleanedCount = 0;
+        for (Stream stream : inactiveStreams) {
+            try {
+                log.info("[StreamService] Cleaning up inactive stream - ID: {}, Title: {}, Status: {}, LastUpdate: {}", 
+                         stream.getId(), stream.getTitle(), stream.getStatus(), stream.getUpdatedAt());
+                
+                // Force end the stream
+                stream.forceEnd();
+                streamRepository.save(stream);
+                
+                // Publicar evento stream_ended
+                eventPublisher.publishStreamEnded(stream.getId(), stream.getStreamKey(), stream.getViewersPeak());
+                
+                cleanedCount++;
+            } catch (Exception e) {
+                log.error("[StreamService] Error cleaning up stream {}: {}", stream.getId(), e.getMessage(), e);
+            }
+        }
+        
+        log.info("[StreamService] Cleanup completed - {} streams cleaned up", cleanedCount);
+        return cleanedCount;
     }
 }
 

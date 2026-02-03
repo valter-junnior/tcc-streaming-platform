@@ -57,6 +57,14 @@ public class StreamRepositoryImpl implements StreamRepository {
     }
 
     @Override
+    public List<Stream> findInactiveStreams(java.time.LocalDateTime thresholdDate) {
+        return jpaRepository.findInactiveStreams(thresholdDate)
+            .stream()
+            .map(mapper::toDomain)
+            .collect(java.util.stream.Collectors.toList());
+    }
+
+    @Override
     public void deleteById(UUID id) {
         jpaRepository.deleteById(id);
     }

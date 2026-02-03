@@ -3,6 +3,7 @@ package com.tcc.streaming.stream.core.repositories;
 import com.tcc.streaming.stream.core.entities.Stream;
 import com.tcc.streaming.stream.core.entities.StreamStatus;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -13,5 +14,6 @@ public interface StreamRepository {
     Optional<Stream> findByStreamKey(String streamKey);
     List<Stream> findByStatus(StreamStatus status);
     List<Stream> findByOwnerId(String ownerId);
+    List<Stream> findInactiveStreams(LocalDateTime thresholdDate);
     void deleteById(UUID id);
 }

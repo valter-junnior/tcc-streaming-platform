@@ -99,6 +99,11 @@ streaming:
   metrics:
     collection-interval-seconds: 15
   cleanup:
+    # Cleanup inactive streams (WAITING or LIVE) not updated for X days
+    threshold-days: 1
+    # Cron schedule: run daily at 3 AM (0 0 3 * * *)
+    cron: "0 0 3 * * *"
+    # Other cleanup tasks
     expired-streams-cron: "0 */5 * * * *"  # Every 5 minutes
     old-hls-files-cron: "0 0 * * * *"      # Every hour
 

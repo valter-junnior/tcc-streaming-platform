@@ -389,7 +389,7 @@ export function StreamerDashboard() {
         )}
 
         {/* End Stream Button */}
-        {stream.status !== "ENDED" && (
+        {/*stream.status !== "ENDED" && (
           <button
             onClick={handleEndStream}
             disabled={isEnding}
@@ -407,7 +407,7 @@ export function StreamerDashboard() {
               </>
             )}
           </button>
-        )}
+        ) */}
 
         {/* Stream Ended Message */}
         {stream.status === "ENDED" && (
