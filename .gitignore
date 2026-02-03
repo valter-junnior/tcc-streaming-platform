@@ -16,9 +16,11 @@ Thumbs.db
 # Logs
 *.log
 
-# HLS Files
-*.ts
-*.m3u8
+# HLS Files (Transport Stream video segments, NOT TypeScript)
+**/hls/**/*.ts
+**/hls/**/*.m3u8
+storage/**/*.ts
+storage/**/*.m3u8
 
 # Build artifacts
 target/
