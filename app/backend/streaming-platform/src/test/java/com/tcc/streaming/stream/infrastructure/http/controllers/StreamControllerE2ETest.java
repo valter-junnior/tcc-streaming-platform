@@ -159,13 +159,13 @@ class StreamControllerE2ETest extends AbstractE2ETest {
         String streamId = objectMapper.readTree(responseBody).get("id").asText();
 
         // When - delete the stream
-        mockMvc.perform(delete("/api/streams/" + streamId))
+        mockMvc.perform(delete("/api/streams/" + streamId)
+                .param("ownerId", "test-owner-123"))
             .andExpect(status().isNoContent());
 
-        // Then - verify it was marked as ENDED
+        // Then - verify it was deleted (should return 404 since it's physically deleted)
         mockMvc.perform(get("/api/streams/" + streamId))
-            .andExpect(status().isOk())
-            .andExpect(jsonPath("$.status").value("ENDED"));
+            .andExpect(status().isNotFound());
     }
 
     @Test
@@ -175,7 +175,8 @@ class StreamControllerE2ETest extends AbstractE2ETest {
         UUID nonExistentId = UUID.randomUUID();
 
         // When & Then
-        mockMvc.perform(delete("/api/streams/" + nonExistentId))
+        mockMvc.perform(delete("/api/streams/" + nonExistentId)
+                .param("ownerId", "test-owner-123"))
             .andExpect(status().isNotFound());
     }
 
@@ -276,12 +277,12 @@ class StreamControllerE2ETest extends AbstractE2ETest {
             .andExpect(content().string("true"));
 
         // 5. Delete stream
-        mockMvc.perform(delete("/api/streams/" + streamId))
+        mockMvc.perform(delete("/api/streams/" + streamId)
+                .param("ownerId", "test-owner-123"))
             .andExpect(status().isNoContent());
 
-        // 6. Verify it's ended
+        // 6. Verify it's deleted
         mockMvc.perform(get("/api/streams/" + streamId))
-            .andExpect(status().isOk())
-            .andExpect(jsonPath("$.status").value("ENDED"));
+            .andExpect(status().isNotFound());
     }
 }
