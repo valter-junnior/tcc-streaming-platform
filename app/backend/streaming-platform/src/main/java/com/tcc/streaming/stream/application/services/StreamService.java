@@ -1,6 +1,5 @@
 package com.tcc.streaming.stream.application.services;
 
-import com.tcc.streaming.common.infrastructure.rtmp.RtmpServerGateway;
 import com.tcc.streaming.stream.core.dtos.stream.CreateStreamDto;
 import com.tcc.streaming.stream.core.dtos.stream.StreamDto;
 import com.tcc.streaming.stream.core.dtos.stream.StreamStatusDto;
@@ -38,15 +37,12 @@ public class StreamService implements CreateStreamUseCase, GetStreamUseCase, Get
 
     private static final Logger log = LoggerFactory.getLogger(StreamService.class);
     private final StreamRepository streamRepository;
-    private final RtmpServerGateway rtmpServerGateway;
     private final ApplicationEventPublisher applicationEventPublisher;
 
     public StreamService(
-            StreamRepository streamRepository, 
-            RtmpServerGateway rtmpServerGateway,
+            StreamRepository streamRepository,
             ApplicationEventPublisher applicationEventPublisher) {
         this.streamRepository = streamRepository;
-        this.rtmpServerGateway = rtmpServerGateway;
         this.applicationEventPublisher = applicationEventPublisher;
     }
 
