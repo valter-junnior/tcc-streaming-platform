@@ -21,9 +21,6 @@ import com.tcc.streaming.stream.core.usecases.UpdateStreamUseCase;
 import com.tcc.streaming.stream.core.usecases.ValidateStreamKeyUseCase;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.cache.CacheManager;
-import org.springframework.cache.annotation.CacheEvict;
-import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -38,22 +35,18 @@ public class StreamService implements CreateStreamUseCase, GetStreamUseCase, Get
     private final StreamRepository streamRepository;
     private final EventPublisher eventPublisher;
     private final RtmpServerGateway rtmpServerGateway;
-    private final CacheManager cacheManager;
 
     public StreamService(
             StreamRepository streamRepository, 
             EventPublisher eventPublisher,
-            RtmpServerGateway rtmpServerGateway,
-            CacheManager cacheManager) {
+            RtmpServerGateway rtmpServerGateway) {
         this.streamRepository = streamRepository;
         this.eventPublisher = eventPublisher;
         this.rtmpServerGateway = rtmpServerGateway;
-        this.cacheManager = cacheManager;
     }
 
     @Override
     @Transactional
-    @CacheEvict(value = "streams", key = "#result.id")
     public StreamDto execute(CreateStreamDto dto) {
         log.debug("[StreamService] Creating stream entity - Title: {}, OwnerId: {}", dto.title(), dto.ownerId());
         
@@ -71,7 +64,6 @@ public class StreamService implements CreateStreamUseCase, GetStreamUseCase, Get
     }
 
     @Override
-    @Cacheable(value = "streams", key = "#id")
     @Transactional(readOnly = true)
     public StreamDto execute(UUID id) {
         log.debug("[StreamService] Fetching stream - ID: {}", id);
@@ -82,7 +74,6 @@ public class StreamService implements CreateStreamUseCase, GetStreamUseCase, Get
     }
 
     @Override
-    @Cacheable(value = "streamStatus", key = "#id")
     @Transactional(readOnly = true)
     public StreamStatusDto getStatus(UUID id) {
         Stream stream = streamRepository.findById(id)
@@ -129,21 +120,6 @@ public class StreamService implements CreateStreamUseCase, GetStreamUseCase, Get
         // Deletar fisicamente
         streamRepository.deleteById(id);
         log.info("[StreamService] Stream deleted permanently - ID: {}", id);
-        
-        // Cache eviction após transação bem-sucedida (via TransactionSynchronization)
-        evictCacheAfterCommit();
-    }
-    
-    private void evictCacheAfterCommit() {
-        org.springframework.transaction.support.TransactionSynchronizationManager.registerSynchronization(
-            new org.springframework.transaction.support.TransactionSynchronization() {
-                @Override
-                public void afterCommit() {
-                    cacheManager.getCache("streams").clear();
-                    cacheManager.getCache("liveStreams").clear();
-                }
-            }
-        );
     }
 
     @Override
@@ -153,7 +129,6 @@ public class StreamService implements CreateStreamUseCase, GetStreamUseCase, Get
     }
 
     @Transactional
-    @CacheEvict(value = {"streams", "streamStatus", "liveStreams"}, allEntries = true)
     public UUID startStream(String streamKey) {
         Stream stream = streamRepository.findByStreamKey(streamKey)
             .orElseThrow(() -> new StreamNotFoundException(streamKey));
@@ -174,7 +149,6 @@ public class StreamService implements CreateStreamUseCase, GetStreamUseCase, Get
     }
 
     @Transactional
-    @CacheEvict(value = {"streams", "streamStatus", "liveStreams"}, allEntries = true)
     public UUID endStream(String streamKey) {
         Stream stream = streamRepository.findByStreamKey(streamKey)
             .orElseThrow(() -> new StreamNotFoundException(streamKey));
@@ -195,7 +169,6 @@ public class StreamService implements CreateStreamUseCase, GetStreamUseCase, Get
     }
 
     @Transactional
-    @CacheEvict(value = {"streams", "streamStatus", "liveStreams"}, allEntries = true)
     public void restartStream(UUID id) {
         Stream stream = streamRepository.findById(id)
             .orElseThrow(() -> new StreamNotFoundException(id));
@@ -238,7 +211,6 @@ public class StreamService implements CreateStreamUseCase, GetStreamUseCase, Get
     }
 
     @Override
-    @Cacheable(value = "liveStreams")
     @Transactional(readOnly = true)
     public List<StreamDto> execute() {
         log.debug("[StreamService] Fetching all LIVE streams");
@@ -285,9 +257,6 @@ public class StreamService implements CreateStreamUseCase, GetStreamUseCase, Get
         Stream updated = streamRepository.save(stream);
         log.debug("[StreamService] Stream {} updated successfully", dto.streamId());
         
-        // Cache eviction após transação bem-sucedida (via TransactionSynchronization)
-        evictCacheAfterCommit();
-        
         return toDto(updated);
     }
     
@@ -297,7 +266,6 @@ public class StreamService implements CreateStreamUseCase, GetStreamUseCase, Get
      * @return Number of streams cleaned up
      */
     @Transactional
-    @CacheEvict(value = {"streams", "streamStatus", "liveStreams"}, allEntries = true)
     public int cleanupInactiveStreams(int thresholdDays) {
         java.time.LocalDateTime thresholdDate = java.time.LocalDateTime.now().minusDays(thresholdDays);
         log.info("[StreamService] Starting cleanup of inactive streams (threshold: {} days, date: {})", 

@@ -1,3 +1,19 @@
-o redis na aplicação tem servido apenas para cache? isso afeta alguma coisa na hora de fazer o streaming? caso só afete as rotas normais de list e etc sem ser a parte do stream do video ao video retire toda a configuração de cache do redis por que só adiciona complexidade e no momento nao quero isso alem disso exclua os testes de redis tambem.
+# Bugs Resolvidos
 
-alem disto como funciona o application.yml e o application-docker.yml, so quero saber por que vi que o docker nao tem todas configuracoes ai queria saber se aplicação ler os dois e faz meio que um merge se for isso ta tudo ok
+## ✅ Redis Removido (03/02/2026)
+- Removido Redis cache da aplicação (apenas adicionava complexidade desnecessária)
+- Redis não afetava streaming de vídeo, apenas cacheava rotas REST
+- Arquivos deletados:
+  - RedisConfig.java
+  - StreamControllerRedisE2ETest.java
+  - AbstractE2ETestWithRedis.java
+- Removidas anotações @Cacheable, @CacheEvict do StreamService
+- Removida dependência spring-boot-starter-data-redis do pom.xml
+- Removido serviço Redis do docker-compose.yml
+- Compilação e testes funcionando corretamente
+
+## ℹ️ Sobre application.yml e application-docker.yml
+- Spring Boot faz **merge automático** dos arquivos
+- `application.yml` = configurações base (sempre carregado)
+- `application-docker.yml` = sobrescreve apenas valores diferentes quando profile `docker` está ativo
+- No Docker: `SPRING_PROFILES_ACTIVE=docker` → carrega ambos com docker tendo prioridade ✅
