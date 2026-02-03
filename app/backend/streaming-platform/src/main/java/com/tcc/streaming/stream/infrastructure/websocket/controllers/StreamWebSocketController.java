@@ -52,14 +52,15 @@ public class StreamWebSocketController {
 
     public void broadcastStreamStarted(UUID streamId) {
         messagingTemplate.convertAndSend("/topic/stream/" + streamId + "/status", 
-            new StatusUpdateMessage("LIVE"));
+            new WebSocketMessage("STREAM_STARTED", streamId.toString(), new StatusData("LIVE")));
     }
 
     public void broadcastStreamEnded(UUID streamId) {
         messagingTemplate.convertAndSend("/topic/stream/" + streamId + "/status", 
-            new StatusUpdateMessage("ENDED"));
+            new WebSocketMessage("STREAM_ENDED", streamId.toString(), new StatusData("ENDED")));
     }
 
     public record ViewerUpdateMessage(String action, int currentViewers) {}
-    public record StatusUpdateMessage(String status) {}
+    public record StatusData(String status) {}
+    public record WebSocketMessage(String type, String streamId, StatusData data) {}
 }

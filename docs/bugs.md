@@ -1,3 +1,8 @@
-faça um review code nos arquivos NginxCallbackController, StreamController, StreamService e Stream e verfique se a lógica está consistente e se não tem metodos implementados que não são usados
+# Bugs Conhecidos
 
-Melhore a questão dos logs nos arquivos NginxCallbackController, StreamController e StreamService, deixe um padrão no inicio dos logs como [Stream] ou [NginxCallback]
+_Nenhum bug reportado no momento._
+
+## Bugs Resolvidos
+
+- ✅ **[2026-02-03 13:48]** WebSocket não atualizava WatchPage quando stream iniciava
+- ✅ **[2026-02-03 14:20]** WatchPage mostra "Aguardando Transmissão" até HLS estar pronto (sem tela preta)

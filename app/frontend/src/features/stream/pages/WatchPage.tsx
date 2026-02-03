@@ -21,6 +21,7 @@ export function WatchPage() {
   const [stream, setStream] = useState<Stream | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [playerReady, setPlayerReady] = useState(false);
   const [viewerId] = useState(
     () => `viewer_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`,
   );
@@ -73,6 +74,7 @@ export function WatchPage() {
           setStream((prev) =>
             prev ? { ...prev, status: message.data.status } : null,
           );
+          setPlayerReady(false); // Reset player ready state when status changes
         } else if (message.type === "STREAM_ENDED") {
           setStream((prev) =>
             prev
@@ -149,8 +151,35 @@ export function WatchPage() {
         <div className="grid lg:grid-cols-3 gap-6">
           {/* Video Player */}
           <div className="lg:col-span-2">
-            {stream.status === "LIVE" ? (
-              <VideoPlayer hlsUrl={hlsUrl} />
+            {stream.status === "LIVE" && playerReady ? (
+              <VideoPlayer
+                hlsUrl={hlsUrl}
+                onReady={() => setPlayerReady(true)}
+              />
+            ) : stream.status === "LIVE" && !playerReady ? (
+              <>
+                <div
+                  className="relative w-full bg-slate-800 rounded-lg flex items-center justify-center border border-slate-700"
+                  style={{ aspectRatio: "16/9" }}
+                >
+                  <div className="text-center p-8">
+                    <Clock className="w-16 h-16 text-yellow-500 mx-auto mb-4 animate-pulse" />
+                    <h3 className="text-2xl font-bold text-white mb-2">
+                      Aguardando Transmissão
+                    </h3>
+                    <p className="text-slate-400">
+                      Processando stream... aguarde alguns segundos.
+                    </p>
+                  </div>
+                </div>
+                {/* Load VideoPlayer hidden to start HLS connection */}
+                <div className="hidden">
+                  <VideoPlayer
+                    hlsUrl={hlsUrl}
+                    onReady={() => setPlayerReady(true)}
+                  />
+                </div>
+              </>
             ) : stream.status === "WAITING" ? (
               <div
                 className="relative w-full bg-slate-800 rounded-lg flex items-center justify-center border border-slate-700"

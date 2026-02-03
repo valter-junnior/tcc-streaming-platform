@@ -1,33 +1,55 @@
 import { useEffect, useRef, useState } from "react";
 import Hls from "hls.js";
-import { Play, AlertCircle, Loader2 } from "lucide-react";
+import { Play, AlertCircle } from "lucide-react";
 
 interface VideoPlayerProps {
   hlsUrl: string;
   autoPlay?: boolean;
+  onReady?: () => void;
 }
 
-export function VideoPlayer({ hlsUrl, autoPlay = true }: VideoPlayerProps) {
+export function VideoPlayer({
+  hlsUrl,
+  autoPlay = true,
+  onReady,
+}: VideoPlayerProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const hlsRef = useRef<Hls | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const retryTimeoutRef = useRef<number | null>(null);
+  const retryCountRef = useRef(0);
+  const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [needsInteraction, setNeedsInteraction] = useState(false);
   const [currentQuality, setCurrentQuality] = useState<string>("auto");
+  const [isReady, setIsReady] = useState(false);
 
-  useEffect(() => {
+  const MAX_RETRIES = 10;
+  const RETRY_DELAY = 5000; // 5 seconds
+
+  const loadHlsStream = () => {
     const video = videoRef.current;
     if (!video) return;
 
-    setIsLoading(true);
     setError(null);
 
     // Check HLS support
     if (Hls.isSupported()) {
+      // Destroy previous instance if exists
+      if (hlsRef.current) {
+        hlsRef.current.destroy();
+      }
+
       const hls = new Hls({
         enableWorker: true,
         lowLatencyMode: true,
         backBufferLength: 90,
+        manifestLoadingTimeOut: 10000,
+        manifestLoadingMaxRetry: 0,
+        manifestLoadingRetryDelay: 0,
+        levelLoadingTimeOut: 10000,
+        levelLoadingMaxRetry: 0,
+        fragLoadingTimeOut: 20000,
+        fragLoadingMaxRetry: 0,
       });
 
       hlsRef.current = hls;
@@ -36,13 +58,15 @@ export function VideoPlayer({ hlsUrl, autoPlay = true }: VideoPlayerProps) {
       hls.attachMedia(video);
 
       hls.on(Hls.Events.MANIFEST_PARSED, () => {
-        console.log("HLS manifest loaded");
+        console.log("HLS manifest loaded successfully");
+        setIsReady(true);
         setIsLoading(false);
+        retryCountRef.current = 0;
+        onReady?.();
 
         if (autoPlay) {
           video.play().catch((err) => {
             console.error("Autoplay failed:", err);
-            // Navegadores bloqueiam autoplay - requer interação do usuário
             setNeedsInteraction(true);
             setIsLoading(false);
           });
@@ -50,13 +74,32 @@ export function VideoPlayer({ hlsUrl, autoPlay = true }: VideoPlayerProps) {
       });
 
       hls.on(Hls.Events.ERROR, (_event, data) => {
-        console.error("HLS error:", data);
+        console.log("HLS error:", data);
 
         if (data.fatal) {
           switch (data.type) {
             case Hls.ErrorTypes.NETWORK_ERROR:
-              setError("Erro de rede. Tentando reconectar...");
-              setTimeout(() => hls.startLoad(), 1000);
+              if (data.response?.code === 404) {
+                // HLS files not ready yet - retry with delay
+                if (retryCountRef.current < MAX_RETRIES) {
+                  retryCountRef.current++;
+                  console.log(
+                    `HLS 404 - Retry ${retryCountRef.current}/${MAX_RETRIES} in ${RETRY_DELAY}ms`,
+                  );
+
+                  retryTimeoutRef.current = setTimeout(() => {
+                    loadHlsStream();
+                  }, RETRY_DELAY);
+                } else {
+                  setError(
+                    "Stream não disponível. A transmissão pode não ter iniciado ainda.",
+                  );
+                  setIsLoading(false);
+                }
+              } else {
+                setError("Erro de rede. Tentando reconectar...");
+                setTimeout(() => hls.startLoad(), 1000);
+              }
               break;
             case Hls.ErrorTypes.MEDIA_ERROR:
               setError("Erro de mídia. Tentando recuperar...");
@@ -82,6 +125,7 @@ export function VideoPlayer({ hlsUrl, autoPlay = true }: VideoPlayerProps) {
 
       video.addEventListener("loadedmetadata", () => {
         setIsLoading(false);
+        retryCountRef.current = 0;
         if (autoPlay) {
           video.play().catch((err) => {
             console.error("Autoplay failed:", err);
@@ -91,15 +135,36 @@ export function VideoPlayer({ hlsUrl, autoPlay = true }: VideoPlayerProps) {
       });
 
       video.addEventListener("error", () => {
-        setError("Erro ao carregar stream");
-        setIsLoading(false);
+        if (retryCountRef.current < MAX_RETRIES) {
+          retryCountRef.current++;
+          console.log(
+            `Native HLS error - Retry ${retryCountRef.current}/${MAX_RETRIES} in ${RETRY_DELAY}ms`,
+          );
+
+          retryTimeoutRef.current = setTimeout(() => {
+            loadHlsStream();
+          }, RETRY_DELAY);
+        } else {
+          setError("Erro ao carregar stream");
+          setIsLoading(false);
+        }
       });
     } else {
       setError("Navegador não suporta HLS");
       setIsLoading(false);
     }
+  };
+
+  useEffect(() => {
+    retryCountRef.current = 0;
+    setIsReady(false);
+
+    loadHlsStream();
 
     return () => {
+      if (retryTimeoutRef.current) {
+        clearTimeout(retryTimeoutRef.current);
+      }
       if (hlsRef.current) {
         hlsRef.current.destroy();
         hlsRef.current = null;
@@ -122,22 +187,26 @@ export function VideoPlayer({ hlsUrl, autoPlay = true }: VideoPlayerProps) {
     }
   };
 
+  const handleRetry = () => {
+    retryCountRef.current = 0;
+    setError(null);
+    setIsReady(false);
+    loadHlsStream();
+  };
+
   return (
     <div
       className="relative w-full bg-black rounded-lg overflow-hidden"
       style={{ aspectRatio: "16/9" }}
     >
-      <video ref={videoRef} controls className="w-full h-full" playsInline />
+      <video
+        ref={videoRef}
+        controls
+        className={`w-full h-full ${!isReady ? "hidden" : ""}`}
+        playsInline
+      />
 
-      {/* Loading Overlay */}
-      {isLoading && (
-        <div className="absolute inset-0 flex items-center justify-center bg-black/80">
-          <div className="text-center">
-            <Loader2 className="w-12 h-12 text-purple-500 animate-spin mx-auto mb-2" />
-            <p className="text-white">Carregando stream...</p>
-          </div>
-        </div>
-      )}
+      {/* Loading Overlay - removed, handled by WatchPage */}
 
       {/* Needs Interaction Overlay */}
       {needsInteraction && !isLoading && !error && (
@@ -166,7 +235,7 @@ export function VideoPlayer({ hlsUrl, autoPlay = true }: VideoPlayerProps) {
             <AlertCircle className="w-12 h-12 text-red-500 mx-auto mb-2" />
             <p className="text-white mb-2">{error}</p>
             <button
-              onClick={handlePlayClick}
+              onClick={handleRetry}
               className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-colors inline-flex items-center gap-2"
             >
               <Play className="w-4 h-4" />
