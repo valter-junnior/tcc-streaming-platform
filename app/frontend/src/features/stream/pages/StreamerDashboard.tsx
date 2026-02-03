@@ -41,8 +41,16 @@ export function StreamerDashboard() {
     loadStream();
     connectWebSocket();
 
+    // Polling a cada 5 segundos para atualizar viewers (backup do WebSocket)
+    const pollInterval = setInterval(() => {
+      if (streamId) {
+        loadStream();
+      }
+    }, 1000);
+
     return () => {
       websocketService.disconnect();
+      clearInterval(pollInterval);
     };
   }, [streamId]);
 

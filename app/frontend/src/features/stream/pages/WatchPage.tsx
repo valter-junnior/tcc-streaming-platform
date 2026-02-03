@@ -36,11 +36,19 @@ export function WatchPage() {
     loadStream();
     connectWebSocket();
 
+    // Polling a cada 5 segundos para atualizar viewers (backup do WebSocket)
+    const pollInterval = setInterval(() => {
+      if (streamId) {
+        loadStream();
+      }
+    }, 1000);
+
     return () => {
       if (stream && websocketService.isConnected()) {
         websocketService.sendViewerLeft(streamId, viewerId);
       }
       websocketService.disconnect();
+      clearInterval(pollInterval);
     };
   }, [streamId]);
 

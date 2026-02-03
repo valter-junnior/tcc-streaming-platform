@@ -94,6 +94,8 @@ services:
     ports:
       - "${RTMP_PORT}:1935"    # RTMP
       - "${HLS_PORT}:8081"     # HLS HTTP Server
+    environment:
+      HLS_RETENTION_HOURS: 6
     depends_on:
       - streaming-platform
     restart: unless-stopped

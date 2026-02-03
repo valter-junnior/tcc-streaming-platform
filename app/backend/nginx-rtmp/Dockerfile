@@ -14,6 +14,7 @@ RUN apt-get update && apt-get install -y \
     git \
     ffmpeg \
     netcat \
+    cron \
     && rm -rf /var/lib/apt/lists/*
 
 # Download Nginx and RTMP module
@@ -46,8 +47,20 @@ COPY nginx.conf /usr/local/nginx/conf/nginx.conf
 COPY transcode.sh /usr/local/bin/transcode.sh
 RUN chmod +x /usr/local/bin/transcode.sh
 
+# Copy HLS cleanup script
+COPY cleanup-hls.sh /usr/local/bin/cleanup-hls.sh
+RUN chmod +x /usr/local/bin/cleanup-hls.sh
+
+# Setup cron job (every hour at minute 0)
+RUN echo "0 * * * * /usr/local/bin/cleanup-hls.sh >> /var/log/nginx/hls-cleanup.log 2>&1" > /etc/cron.d/hls-cleanup && \
+    chmod 0644 /etc/cron.d/hls-cleanup && \
+    crontab /etc/cron.d/hls-cleanup
+
+# Create log file
+RUN touch /var/log/nginx/hls-cleanup.log
+
 # Expose ports
 EXPOSE 1935 8081
 
-# Start Nginx
-CMD ["/usr/local/nginx/sbin/nginx", "-g", "daemon off;"]
+# Start cron and Nginx
+CMD service cron start && /usr/local/nginx/sbin/nginx -g "daemon off;"
