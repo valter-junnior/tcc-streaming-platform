@@ -78,7 +78,7 @@ services:
       mvn spring-boot:run -Dspring-boot.run.jvmArguments='-Dspring.devtools.restart.enabled=true'
       "
     volumes:
-      - ./app/backend/streaming-platform:/app
+      - ./backend/streaming-platform:/app
       - ~/.m2:/root/.m2
     ports:
       - "${BACKEND_PORT}:8080"
@@ -106,7 +106,7 @@ services:
   # Nginx-RTMP Server
   nginx-rtmp:
     build:
-      context: ./docker/nginx-rtmp
+      context: ./backend/nginx-rtmp
       dockerfile: Dockerfile
     container_name: streaming-nginx-rtmp
     networks:

@@ -12,13 +12,17 @@ Plataforma de streaming de vídeo ao vivo que permite avaliar e comparar o desem
 ```
 tcc/
 ├── app/
-│   ├── backend/streaming-platform/    # Backend Spring Boot
-│   ├── frontend/web/                  # Frontend React
-│   └── config/                        # Configurações (Nginx, Prometheus, Grafana)
-├── docker/                            # Dockerfiles customizados
-├── docs/                              # Documentação
-├── scripts/                           # Scripts utilitários
-└── docker-compose.yml                 # Orquestração de containers
+│   ├── backend/
+│   │   ├── streaming-platform/    # Backend Spring Boot
+│   │   └── nginx-rtmp/            # Servidor RTMP/HLS
+│   ├── frontend/                  # Frontend React
+│   ├── config/                    # Configurações (Nginx, Prometheus, Grafana)
+│   ├── docker-compose.yml         # Orquestração de containers
+│   ├── .env                       # Variáveis de ambiente
+│   └── .env.example               # Template de variáveis
+├── docker/                        # Dockerfiles customizados
+├── docs/                          # Documentação
+└── scripts/                       # Scripts utilitários
 ```
 
 ## 🚀 Quick Start
@@ -32,10 +36,13 @@ tcc/
 ### Setup Inicial
 
 ```bash
-# 1. Copiar variáveis de ambiente
+# 1. Navegar para a pasta app
+cd app/
+
+# 2. Copiar variáveis de ambiente
 cp .env.example .env
 
-# 2. (Opcional) Editar .env com suas configurações
+# 3. (Opcional) Editar .env com suas configurações
 nano .env
 ```
 
@@ -43,16 +50,18 @@ nano .env
 
 ```bash
 # Subir todos os serviços (PostgreSQL, Redis, RabbitMQ, Backend)
-docker-compose up -d
+cd app/
+docker compose up -d
 
 # Ver logs
-docker-compose logs -f
+docker compose logs -f
 ```
 
 ### Verificar Status
 
 ```bash
-docker-compose ps
+cd app/
+docker compose ps
 ```
 
 ## 🔗 Acessos

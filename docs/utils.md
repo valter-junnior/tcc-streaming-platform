@@ -74,6 +74,7 @@ domain/
 
 ### Setup
 ```bash
+cd app/
 cp .env.example .env
 docker compose up -d
 docker compose logs -f streaming-platform
@@ -85,6 +86,7 @@ docker compose logs -f streaming-platform
 
 ### Testes
 ```bash
+cd app/
 docker compose up -d postgres redis rabbitmq
 docker compose exec streaming-platform mvn test
 ```
