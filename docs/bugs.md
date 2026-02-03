@@ -1,1 +1,1 @@
-melhore o estilo do button de play do player  vjs-big-play-button
+configure o videoplayerplr.tsx corretamente quero tirar a barra de progresso esiga o exemplo do videoplayer.tsx

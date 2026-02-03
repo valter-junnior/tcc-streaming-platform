@@ -12,7 +12,7 @@ import { websocketService } from "../../../app/services/websocketService";
 import { useViewerId } from "../../../app/hooks/useViewerId";
 import { HLS_URL } from "../../../app/config/env";
 import { routes } from "../../../app/routes";
-import { VideoPlayer } from "../components/VideoPlayer";
+import { VideoPlayerPlyr as VideoPlayer } from "../components/VideoPlayerPlyr";
 import type { Stream, StreamStatus } from "../../../app/types/stream";
 import { logger } from "../../../shared/lib/logger";
 import { getErrorMessage } from "../../../shared/utils/errorHandler";

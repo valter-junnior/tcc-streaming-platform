@@ -162,21 +162,55 @@ export function VideoPlayer({
         
         /* Custom big play button */
         .vjs-big-play-button {
-          border: none;
-          background-color: rgba(139, 92, 246, 0.9);
-          width: 80px;
-          height: 80px;
+          position: absolute;
+          top: 50%;
+          left: 50%;
+          transform: translate(-50%, -50%);
+          width: 96px;
+          height: 96px;
           border-radius: 50%;
-          transition: all 0.3s;
+          border: 3px solid rgba(255, 255, 255, 0.9);
+          background: rgba(17, 24, 39, 0.75);
+          backdrop-filter: blur(12px) saturate(180%);
+          transition: all 0.25s ease;
+          box-shadow: 0 0 0 0 rgba(139, 92, 246, 0.6),
+                      0 8px 32px rgba(0, 0, 0, 0.6);
         }
         
         .vjs-big-play-button:hover {
-          background-color: rgba(139, 92, 246, 1);
-          transform: scale(1.1);
+          border-color: rgba(139, 92, 246, 1);
+          background: rgba(139, 92, 246, 0.25);
+          transform: translate(-50%, -50%) scale(1.08);
+          box-shadow: 0 0 0 8px rgba(139, 92, 246, 0.15),
+                      0 12px 40px rgba(139, 92, 246, 0.4),
+                      0 4px 16px rgba(0, 0, 0, 0.5);
+        }
+        
+        .vjs-big-play-button:active {
+          transform: translate(-50%, -50%) scale(0.96);
+          transition: all 0.1s ease;
+        }
+        
+        .vjs-big-play-button .vjs-icon-placeholder {
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          width: 100%;
+          height: 100%;
         }
         
         .vjs-big-play-button .vjs-icon-placeholder:before {
-          font-size: 3em;
+          font-size: 3.5em;
+          color: #ffffff;
+          text-shadow: 0 2px 12px rgba(0, 0, 0, 0.4);
+          position: relative;
+          left: 3px;
+        }
+        
+        .vjs-big-play-button:hover .vjs-icon-placeholder:before {
+          color: #ffffff;
+          text-shadow: 0 0 20px rgba(139, 92, 246, 0.8),
+                       0 2px 12px rgba(0, 0, 0, 0.5);
         }
         
         /* Control bar styling */
