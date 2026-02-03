@@ -35,6 +35,8 @@ class StreamControllerE2ETest extends AbstractE2ETest {
         CreateStreamRequest request = new CreateStreamRequest(
             "Test Stream",
             "Test description for streaming"
+        ,
+            "test-owner-123"
         );
 
         // When & Then
@@ -58,7 +60,7 @@ class StreamControllerE2ETest extends AbstractE2ETest {
     @DisplayName("POST /api/streams - Should fail with invalid data")
     void shouldFailToCreateStreamWithInvalidData() throws Exception {
         // Given - empty title
-        CreateStreamRequest request = new CreateStreamRequest("", "Description");
+        CreateStreamRequest request = new CreateStreamRequest("", "Description", "test-owner-123");
 
         // When & Then
         mockMvc.perform(post("/api/streams")
@@ -74,6 +76,8 @@ class StreamControllerE2ETest extends AbstractE2ETest {
         CreateStreamRequest createRequest = new CreateStreamRequest(
             "Retrieval Test Stream",
             "Test retrieving stream by ID"
+        ,
+            "test-owner-123"
         );
 
         MvcResult createResult = mockMvc.perform(post("/api/streams")
@@ -111,6 +115,8 @@ class StreamControllerE2ETest extends AbstractE2ETest {
         CreateStreamRequest createRequest = new CreateStreamRequest(
             "Status Test Stream",
             "Test retrieving stream status"
+        ,
+            "test-owner-123"
         );
 
         MvcResult createResult = mockMvc.perform(post("/api/streams")
@@ -139,6 +145,8 @@ class StreamControllerE2ETest extends AbstractE2ETest {
         CreateStreamRequest createRequest = new CreateStreamRequest(
             "Delete Test Stream",
             "Test deleting stream"
+        ,
+            "test-owner-123"
         );
 
         MvcResult createResult = mockMvc.perform(post("/api/streams")
@@ -178,6 +186,8 @@ class StreamControllerE2ETest extends AbstractE2ETest {
         CreateStreamRequest createRequest = new CreateStreamRequest(
             "Validate Test Stream",
             "Test validating stream key"
+        ,
+            "test-owner-123"
         );
 
         MvcResult createResult = mockMvc.perform(post("/api/streams")
@@ -233,6 +243,8 @@ class StreamControllerE2ETest extends AbstractE2ETest {
         CreateStreamRequest createRequest = new CreateStreamRequest(
             "Lifecycle Test Stream",
             "Testing complete stream lifecycle"
+        ,
+            "test-owner-123"
         );
 
         MvcResult createResult = mockMvc.perform(post("/api/streams")

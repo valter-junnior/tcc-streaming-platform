@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Video, Play, TrendingUp, Eye, Loader2 } from "lucide-react";
+import { Video, Play, TrendingUp, Eye, Loader2, ListVideo } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { CreateStreamModal } from "../components/CreateStreamModal";
 import { useLiveStreams } from "../../../app/hooks/useLiveStreams";
@@ -14,7 +14,16 @@ export function HomePage() {
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
       <div className="container mx-auto px-4 py-16">
         {/* Header */}
-        <header className="text-center mb-16">
+        <header className="text-center mb-16 relative">
+          <div className="absolute top-0 right-4">
+            <button
+              onClick={() => navigate(routes.myStreams())}
+              className="inline-flex items-center gap-2 bg-slate-800/70 hover:bg-slate-700/70 border border-slate-700 text-white px-4 py-2 rounded-lg transition-colors"
+            >
+              <ListVideo className="w-5 h-5" />
+              Minhas Lives
+            </button>
+          </div>
           <div className="flex items-center justify-center gap-3 mb-4">
             <Video className="w-12 h-12 text-purple-400" />
             <h1 className="text-5xl font-bold text-white">StreamLab</h1>

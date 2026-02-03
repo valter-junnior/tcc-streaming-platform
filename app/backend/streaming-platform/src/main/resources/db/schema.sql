@@ -10,6 +10,7 @@ CREATE TABLE IF NOT EXISTS streams (
     title VARCHAR(200) NOT NULL,
     description VARCHAR(1000),
     stream_key VARCHAR(16) UNIQUE NOT NULL,
+    owner_id VARCHAR(36) NOT NULL,
     status VARCHAR(20) NOT NULL CHECK (status IN ('WAITING', 'LIVE', 'ENDED')),
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     started_at TIMESTAMP,
@@ -22,6 +23,7 @@ CREATE TABLE IF NOT EXISTS streams (
 CREATE INDEX IF NOT EXISTS idx_streams_status ON streams(status);
 CREATE INDEX IF NOT EXISTS idx_streams_created_at ON streams(created_at DESC);
 CREATE INDEX IF NOT EXISTS idx_streams_stream_key ON streams(stream_key);
+CREATE INDEX IF NOT EXISTS idx_streams_owner_id ON streams(owner_id);
 CREATE INDEX IF NOT EXISTS idx_streams_status_created_at ON streams(status, created_at DESC);
 
 -- ============================================

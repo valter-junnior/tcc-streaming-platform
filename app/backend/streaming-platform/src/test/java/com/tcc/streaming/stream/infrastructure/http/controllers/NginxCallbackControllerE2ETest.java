@@ -33,6 +33,8 @@ class NginxCallbackControllerE2ETest extends AbstractE2ETest {
         CreateStreamRequest createRequest = new CreateStreamRequest(
             "Nginx Callback Test Stream",
             "Test Nginx callback authorization"
+        ,
+            "test-owner-123"
         );
 
         MvcResult createResult = mockMvc.perform(post("/api/streams")
@@ -69,6 +71,8 @@ class NginxCallbackControllerE2ETest extends AbstractE2ETest {
         CreateStreamRequest createRequest = new CreateStreamRequest(
             "Start Stream Test",
             "Test starting stream via callback"
+        ,
+            "test-owner-123"
         );
 
         MvcResult createResult = mockMvc.perform(post("/api/streams")
@@ -100,6 +104,8 @@ class NginxCallbackControllerE2ETest extends AbstractE2ETest {
         CreateStreamRequest createRequest = new CreateStreamRequest(
             "End Stream Test",
             "Test ending stream via callback"
+        ,
+            "test-owner-123"
         );
 
         MvcResult createResult = mockMvc.perform(post("/api/streams")
@@ -148,6 +154,8 @@ class NginxCallbackControllerE2ETest extends AbstractE2ETest {
         CreateStreamRequest createRequest = new CreateStreamRequest(
             "Full Nginx Flow Test",
             "Test complete Nginx callback flow"
+        ,
+            "test-owner-123"
         );
 
         MvcResult createResult = mockMvc.perform(post("/api/streams")
@@ -197,8 +205,8 @@ class NginxCallbackControllerE2ETest extends AbstractE2ETest {
     @DisplayName("Should handle multiple streams independently")
     void shouldHandleMultipleStreamsIndependently() throws Exception {
         // Given - create two streams
-        CreateStreamRequest request1 = new CreateStreamRequest("Stream 1", "First stream");
-        CreateStreamRequest request2 = new CreateStreamRequest("Stream 2", "Second stream");
+        CreateStreamRequest request1 = new CreateStreamRequest("Stream 1", "First stream", "test-owner-123");
+        CreateStreamRequest request2 = new CreateStreamRequest("Stream 2", "Second stream", "test-owner-123");
 
         MvcResult result1 = mockMvc.perform(post("/api/streams")
                 .contentType(MediaType.APPLICATION_JSON)

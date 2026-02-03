@@ -5,6 +5,7 @@ import type {
   CreateStreamRequest,
   CreateStreamResponse,
   StreamStatusResponse,
+  UpdateStreamRequest,
 } from "../types/stream";
 
 class ApiService {
@@ -40,8 +41,8 @@ class ApiService {
     return response.data;
   }
 
-  async endStream(id: string): Promise<void> {
-    await this.api.delete(`/streams/${id}`);
+  async endStream(id: string, ownerId: string): Promise<void> {
+    await this.api.delete(`/streams/${id}?ownerId=${ownerId}`);
   }
 
   async restartStream(id: string): Promise<Stream> {
@@ -52,6 +53,22 @@ class ApiService {
   async getLiveStreams(): Promise<Stream[]> {
     const response = await this.api.get<Stream[]>("/streams/live");
     return response.data;
+  }
+
+  async getMyStreams(ownerId: string): Promise<Stream[]> {
+    const response = await this.api.get<Stream[]>(
+      `/streams/my?ownerId=${ownerId}`,
+    );
+    return response.data;
+  }
+
+  async updateStream(id: string, data: UpdateStreamRequest): Promise<Stream> {
+    const response = await this.api.put<Stream>(`/streams/${id}`, data);
+    return response.data;
+  }
+
+  async deleteStream(id: string, ownerId: string): Promise<void> {
+    await this.api.delete(`/streams/${id}?ownerId=${ownerId}`);
   }
 }
 

@@ -21,6 +21,9 @@ public record StreamPresenter(
     @Schema(description = "Chave única para transmissão RTMP", example = "a1b2c3d4e5f6g7h8")
     String streamKey,
     
+    @Schema(description = "ID do usuário dono da stream", example = "550e8400-e29b-41d4-a716-446655440000")
+    String ownerId,
+    
     @Schema(description = "Status atual da stream", example = "LIVE")
     StreamStatus status,
     
@@ -51,6 +54,7 @@ public record StreamPresenter(
             dto.title(),
             dto.description(),
             dto.streamKey(),
+            dto.ownerId(),
             dto.status(),
             dto.createdAt(),
             dto.startedAt(),

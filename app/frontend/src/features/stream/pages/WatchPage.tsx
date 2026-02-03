@@ -28,7 +28,7 @@ export function WatchPage() {
 
   useEffect(() => {
     if (!streamId) {
-      navigate(routes.home);
+      navigate(routes.home());
       return;
     }
 
@@ -124,7 +124,7 @@ export function WatchPage() {
           </h2>
           <p className="text-slate-400 mb-6">{error}</p>
           <button
-            onClick={() => navigate(routes.home)}
+            onClick={() => navigate(routes.home())}
             className="px-6 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-colors"
           >
             Voltar ao Início
@@ -142,7 +142,7 @@ export function WatchPage() {
       <div className="container mx-auto px-4 py-8 max-w-6xl">
         {/* Back Button */}
         <button
-          onClick={() => navigate(routes.home)}
+          onClick={() => navigate(routes.home())}
           className="text-purple-400 hover:text-purple-300 mb-6 inline-flex items-center gap-2"
         >
           ← Voltar ao Início
@@ -303,7 +303,7 @@ export function WatchPage() {
                 Crie sua própria transmissão em segundos!
               </p>
               <button
-                onClick={() => navigate(routes.home)}
+                onClick={() => navigate(routes.home())}
                 className="w-full px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-colors font-semibold"
               >
                 Iniciar Minha Stream

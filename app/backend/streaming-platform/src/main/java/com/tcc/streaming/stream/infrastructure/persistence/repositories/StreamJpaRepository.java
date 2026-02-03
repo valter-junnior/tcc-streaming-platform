@@ -14,4 +14,6 @@ public interface StreamJpaRepository extends JpaRepository<StreamJpaEntity, UUID
     Optional<StreamJpaEntity> findByStreamKey(String streamKey);
     
     List<StreamJpaEntity> findByStatus(com.tcc.streaming.stream.core.entities.StreamStatus status);
+    
+    List<StreamJpaEntity> findByOwnerIdOrderByCreatedAtDesc(String ownerId);
 }

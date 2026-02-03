@@ -16,11 +16,13 @@ import { apiService } from "../../../app/services/apiService";
 import { websocketService } from "../../../app/services/websocketService";
 import { RTMP_URL, APP_URL } from "../../../app/config/env";
 import { routes } from "../../../app/routes";
+import { useUserId } from "../../../shared/hooks/useUserId";
 import type { Stream, StreamStatus } from "../../../app/types/stream";
 
 export function StreamerDashboard() {
   const { streamId } = useParams<{ streamId: string }>();
   const navigate = useNavigate();
+  const userId = useUserId();
 
   const [stream, setStream] = useState<Stream | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -31,7 +33,7 @@ export function StreamerDashboard() {
 
   useEffect(() => {
     if (!streamId) {
-      navigate(routes.home);
+      navigate(routes.home());
       return;
     }
 
@@ -117,9 +119,14 @@ export function StreamerDashboard() {
       return;
     }
 
+    if (!userId) {
+      alert("Erro de autenticação");
+      return;
+    }
+
     setIsEnding(true);
     try {
-      await apiService.endStream(streamId!);
+      await apiService.endStream(streamId!, userId);
       setStream((prev) =>
         prev
           ? {
@@ -176,7 +183,7 @@ export function StreamerDashboard() {
             {error || "Stream não encontrada"}
           </p>
           <button
-            onClick={() => navigate(routes.home)}
+            onClick={() => navigate(routes.home())}
             className="px-6 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-colors"
           >
             Voltar ao Início
@@ -235,7 +242,7 @@ export function StreamerDashboard() {
         {/* Header */}
         <div className="mb-8">
           <button
-            onClick={() => navigate(routes.home)}
+            onClick={() => navigate(routes.home())}
             className="text-purple-400 hover:text-purple-300 mb-4 inline-flex items-center gap-2"
           >
             ← Voltar ao Início
@@ -431,7 +438,7 @@ export function StreamerDashboard() {
                 )}
               </button>
               <button
-                onClick={() => navigate(routes.home)}
+                onClick={() => navigate(routes.home())}
                 className="px-6 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-colors"
               >
                 Criar Nova Stream

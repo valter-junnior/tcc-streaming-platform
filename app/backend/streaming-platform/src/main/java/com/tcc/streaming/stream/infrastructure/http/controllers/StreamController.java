@@ -2,15 +2,19 @@ package com.tcc.streaming.stream.infrastructure.http.controllers;
 
 import com.tcc.streaming.stream.application.services.StreamService;
 import com.tcc.streaming.stream.core.dtos.stream.CreateStreamDto;
+import com.tcc.streaming.stream.core.dtos.stream.UpdateStreamDto;
 import com.tcc.streaming.stream.core.usecases.CreateStreamUseCase;
 import com.tcc.streaming.stream.core.usecases.DeleteStreamUseCase;
 import com.tcc.streaming.stream.core.usecases.GetStreamStatusUseCase;
 import com.tcc.streaming.stream.core.usecases.GetStreamUseCase;
 import com.tcc.streaming.stream.core.usecases.ListLiveStreamsUseCase;
+import com.tcc.streaming.stream.core.usecases.ListUserStreamsUseCase;
+import com.tcc.streaming.stream.core.usecases.UpdateStreamUseCase;
 import com.tcc.streaming.stream.core.usecases.ValidateStreamKeyUseCase;
 import com.tcc.streaming.stream.infrastructure.http.presenters.StreamPresenter;
 import com.tcc.streaming.stream.infrastructure.http.presenters.StreamStatusPresenter;
 import com.tcc.streaming.stream.infrastructure.http.requests.CreateStreamRequest;
+import com.tcc.streaming.stream.infrastructure.http.requests.UpdateStreamRequest;
 import com.tcc.streaming.stream.infrastructure.http.requests.ValidateStreamKeyRequest;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -41,6 +45,8 @@ public class StreamController {
     private final DeleteStreamUseCase deleteStreamUseCase;
     private final ValidateStreamKeyUseCase validateStreamKeyUseCase;
     private final ListLiveStreamsUseCase listLiveStreamsUseCase;
+    private final ListUserStreamsUseCase listUserStreamsUseCase;
+    private final UpdateStreamUseCase updateStreamUseCase;
     private final StreamService streamService;
 
     public StreamController(
@@ -50,6 +56,8 @@ public class StreamController {
         DeleteStreamUseCase deleteStreamUseCase,
         ValidateStreamKeyUseCase validateStreamKeyUseCase,
         ListLiveStreamsUseCase listLiveStreamsUseCase,
+        ListUserStreamsUseCase listUserStreamsUseCase,
+        UpdateStreamUseCase updateStreamUseCase,
         StreamService streamService
     ) {
         this.createStreamUseCase = createStreamUseCase;
@@ -58,6 +66,8 @@ public class StreamController {
         this.deleteStreamUseCase = deleteStreamUseCase;
         this.validateStreamKeyUseCase = validateStreamKeyUseCase;
         this.listLiveStreamsUseCase = listLiveStreamsUseCase;
+        this.listUserStreamsUseCase = listUserStreamsUseCase;
+        this.updateStreamUseCase = updateStreamUseCase;
         this.streamService = streamService;
     }
 
@@ -74,8 +84,8 @@ public class StreamController {
     public ResponseEntity<StreamPresenter> createStream(
         @Parameter(description = "Dados da stream a ser criada")
         @Valid @RequestBody CreateStreamRequest request) {
-        log.info("[Stream] Creating new stream - Title: {}", request.title());
-        var dto = new CreateStreamDto(request.title(), request.description());
+        log.info("[Stream] Creating new stream - Title: {}, OwnerId: {}", request.title(), request.ownerId());
+        var dto = new CreateStreamDto(request.title(), request.description(), request.ownerId());
         var result = createStreamUseCase.execute(dto);
         log.info("[Stream] Stream created successfully - ID: {}, Key: {}", result.id(), result.streamKey());
         return ResponseEntity.status(HttpStatus.CREATED).body(StreamPresenter.from(result));
@@ -136,24 +146,6 @@ public class StreamController {
         return ResponseEntity.ok(StreamStatusPresenter.from(result));
     }
 
-    @DeleteMapping("/{id}")
-    @Operation(
-        summary = "Deletar stream",
-        description = "Finaliza uma stream, alterando seu status para ENDED"
-    )
-    @ApiResponses(value = {
-        @ApiResponse(responseCode = "204", description = "Stream deletada com sucesso"),
-        @ApiResponse(responseCode = "404", description = "Stream não encontrada")
-    })
-    public ResponseEntity<Void> deleteStream(
-        @Parameter(description = "ID único da stream (UUID)")
-        @PathVariable UUID id) {
-        log.info("[Stream] Deleting stream - ID: {}", id);
-        deleteStreamUseCase.deleteStream(id);
-        log.info("[Stream] Stream deleted successfully - ID: {}", id);
-        return ResponseEntity.noContent().build();
-    }
-
     @PostMapping("/validate")
     @Operation(
         summary = "Validar stream key",
@@ -191,5 +183,74 @@ public class StreamController {
         var result = getStreamUseCase.execute(id);
         log.info("[Stream] Stream restarted successfully - ID: {}", id);
         return ResponseEntity.ok(StreamPresenter.from(result));
+    }
+
+    @GetMapping("/my")
+    @Operation(
+        summary = "Listar minhas streams",
+        description = "Retorna todas as streams criadas por um usuário específico"
+    )
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Lista de streams retornada com sucesso",
+            content = @Content(schema = @Schema(implementation = StreamPresenter.class))),
+        @ApiResponse(responseCode = "400", description = "Owner ID inválido")
+    })
+    public ResponseEntity<List<StreamPresenter>> getMyStreams(
+        @Parameter(description = "ID do usuário dono das streams", required = true)
+        @RequestParam String ownerId) {
+        log.info("[Stream] Fetching streams for owner: {}", ownerId);
+        var result = listUserStreamsUseCase.listByOwner(ownerId);
+        log.info("[Stream] Found {} streams for owner: {}", result.size(), ownerId);
+        return ResponseEntity.ok(
+            result.stream()
+                .map(StreamPresenter::from)
+                .toList()
+        );
+    }
+
+    @PutMapping("/{id}")
+    @Operation(
+        summary = "Atualizar stream",
+        description = "Atualiza título e descrição de uma stream. Requer ownership."
+    )
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Stream atualizada com sucesso",
+            content = @Content(schema = @Schema(implementation = StreamPresenter.class))),
+        @ApiResponse(responseCode = "404", description = "Stream não encontrada"),
+        @ApiResponse(responseCode = "403", description = "Sem permissão para editar esta stream"),
+        @ApiResponse(responseCode = "400", description = "Dados inválidos")
+    })
+    public ResponseEntity<StreamPresenter> updateStream(
+        @Parameter(description = "ID único da stream (UUID)")
+        @PathVariable UUID id,
+        @Parameter(description = "Dados para atualização")
+        @Valid @RequestBody UpdateStreamRequest request) {
+        log.info("[Stream] Updating stream {} by owner {}", id, request.ownerId());
+        var dto = new UpdateStreamDto(id, request.ownerId(), request.title(), request.description());
+        var result = updateStreamUseCase.update(dto);
+        log.info("[Stream] Stream {} updated successfully", id);
+        return ResponseEntity.ok(StreamPresenter.from(result));
+    }
+
+    @DeleteMapping("/{id}")
+    @Operation(
+        summary = "Deletar stream",
+        description = "Deleta permanentemente uma stream. Requer ownership e que a stream não esteja LIVE."
+    )
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "204", description = "Stream deletada com sucesso"),
+        @ApiResponse(responseCode = "404", description = "Stream não encontrada"),
+        @ApiResponse(responseCode = "403", description = "Sem permissão para deletar esta stream"),
+        @ApiResponse(responseCode = "400", description = "Stream está ao vivo, finalize antes de deletar")
+    })
+    public ResponseEntity<Void> deleteStream(
+        @Parameter(description = "ID único da stream (UUID)")
+        @PathVariable UUID id,
+        @Parameter(description = "ID do usuário dono da stream", required = true)
+        @RequestParam String ownerId) {
+        log.info("[Stream] Deleting stream {} by owner {}", id, ownerId);
+        deleteStreamUseCase.deleteStream(id, ownerId);
+        log.info("[Stream] Stream {} deleted successfully", id);
+        return ResponseEntity.noContent().build();
     }
 }

@@ -12,6 +12,7 @@ export interface Stream {
   description: string;
   streamKey: string;
   status: StreamStatus;
+  ownerId: string;
   createdAt: string;
   startedAt: string | null;
   endedAt: string | null;
@@ -22,6 +23,7 @@ export interface Stream {
 export interface CreateStreamRequest {
   title: string;
   description: string;
+  ownerId: string;
 }
 
 export interface CreateStreamResponse {
@@ -52,4 +54,10 @@ export interface ViewerJoinedMessage {
 export interface ViewerLeftMessage {
   viewerId: string;
   totalViewers: number;
+}
+
+export interface UpdateStreamRequest {
+  title: string;
+  description: string;
+  ownerId: string;
 }

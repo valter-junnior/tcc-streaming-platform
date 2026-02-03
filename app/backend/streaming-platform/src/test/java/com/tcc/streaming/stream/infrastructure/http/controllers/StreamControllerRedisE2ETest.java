@@ -30,6 +30,8 @@ class StreamControllerRedisE2ETest extends AbstractE2ETestWithRedis {
         CreateStreamRequest request = new CreateStreamRequest(
             "Test Stream with Redis",
             "Testing Redis serialization"
+        ,
+            "test-owner-123"
         );
 
         // When - Create stream
@@ -72,6 +74,8 @@ class StreamControllerRedisE2ETest extends AbstractE2ETestWithRedis {
         CreateStreamRequest request = new CreateStreamRequest(
             "Status Cache Test",
             "Testing status endpoint with Redis"
+        ,
+            "test-owner-123"
         );
 
         MvcResult createResult = mockMvc.perform(post("/api/streams")
@@ -107,7 +111,8 @@ class StreamControllerRedisE2ETest extends AbstractE2ETestWithRedis {
         for (int i = 0; i < 3; i++) {
             CreateStreamRequest request = new CreateStreamRequest(
                 "Stream " + (i + 1),
-                "Description " + (i + 1)
+                "Description " + (i + 1),
+                "test-owner-123"
             );
 
             MvcResult result = mockMvc.perform(post("/api/streams")
@@ -146,6 +151,8 @@ class StreamControllerRedisE2ETest extends AbstractE2ETestWithRedis {
         CreateStreamRequest request = new CreateStreamRequest(
             "Stream to Delete",
             "Testing cache eviction"
+        ,
+            "test-owner-123"
         );
 
         MvcResult createResult = mockMvc.perform(post("/api/streams")
@@ -178,6 +185,8 @@ class StreamControllerRedisE2ETest extends AbstractE2ETestWithRedis {
         CreateStreamRequest request = new CreateStreamRequest(
             "DateTime Test",
             "Validating LocalDateTime serialization"
+        ,
+            "test-owner-123"
         );
 
         // When - Create stream
@@ -206,6 +215,8 @@ class StreamControllerRedisE2ETest extends AbstractE2ETestWithRedis {
         CreateStreamRequest request = new CreateStreamRequest(
             "Lifecycle Test",
             "Testing full lifecycle with Redis"
+        ,
+            "test-owner-123"
         );
 
         MvcResult createResult = mockMvc.perform(post("/api/streams")

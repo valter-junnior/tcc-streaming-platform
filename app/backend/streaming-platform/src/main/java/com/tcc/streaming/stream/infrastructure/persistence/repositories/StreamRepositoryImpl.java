@@ -49,6 +49,14 @@ public class StreamRepositoryImpl implements StreamRepository {
     }
 
     @Override
+    public List<Stream> findByOwnerId(String ownerId) {
+        return jpaRepository.findByOwnerIdOrderByCreatedAtDesc(ownerId)
+            .stream()
+            .map(mapper::toDomain)
+            .collect(java.util.stream.Collectors.toList());
+    }
+
+    @Override
     public void deleteById(UUID id) {
         jpaRepository.deleteById(id);
     }

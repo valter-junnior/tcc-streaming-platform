@@ -10,6 +10,7 @@ public record StreamDto(
     String title,
     String description,
     String streamKey,
+    String ownerId,
     StreamStatus status,
     LocalDateTime createdAt,
     LocalDateTime startedAt,

@@ -22,6 +22,9 @@ public class StreamJpaEntity {
     @Column(name = "stream_key", nullable = false, unique = true, length = 16)
     private String streamKey;
 
+    @Column(name = "owner_id", nullable = false, length = 36)
+    private String ownerId;
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 20)
     private StreamStatus status;
@@ -44,12 +47,13 @@ public class StreamJpaEntity {
     public StreamJpaEntity() {
     }
 
-    public StreamJpaEntity(UUID id, String title, String description, String streamKey, StreamStatus status,
+    public StreamJpaEntity(UUID id, String title, String description, String streamKey, String ownerId, StreamStatus status,
                            LocalDateTime createdAt, LocalDateTime startedAt, LocalDateTime endedAt, Integer currentViewers, Integer viewersPeak) {
         this.id = id;
         this.title = title;
         this.description = description;
         this.streamKey = streamKey;
+        this.ownerId = ownerId;
         this.status = status;
         this.createdAt = createdAt;
         this.startedAt = startedAt;
@@ -88,6 +92,14 @@ public class StreamJpaEntity {
 
     public void setStreamKey(String streamKey) {
         this.streamKey = streamKey;
+    }
+
+    public String getOwnerId() {
+        return ownerId;
+    }
+
+    public void setOwnerId(String ownerId) {
+        this.ownerId = ownerId;
     }
 
     public StreamStatus getStatus() {

@@ -21,6 +21,11 @@ const HomePage = lazy(() =>
     default: m.HomePage,
   })),
 );
+const MyStreamsPage = lazy(() =>
+  import("./features/stream/pages/MyStreamsPage").then((m) => ({
+    default: m.MyStreamsPage,
+  })),
+);
 const StreamerDashboard = lazy(() =>
   import("./features/stream/pages/StreamerDashboard").then((m) => ({
     default: m.StreamerDashboard,
@@ -48,6 +53,7 @@ function App() {
         <Suspense fallback={<LoadingFallback />}>
           <Routes>
             <Route path="/" element={<HomePage />} />
+            <Route path="/my-streams" element={<MyStreamsPage />} />
             <Route
               path="/dashboard/:streamId"
               element={<StreamerDashboard />}

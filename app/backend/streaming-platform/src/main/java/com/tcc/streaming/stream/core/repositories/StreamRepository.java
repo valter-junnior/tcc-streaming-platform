@@ -12,5 +12,6 @@ public interface StreamRepository {
     Optional<Stream> findById(UUID id);
     Optional<Stream> findByStreamKey(String streamKey);
     List<Stream> findByStatus(StreamStatus status);
+    List<Stream> findByOwnerId(String ownerId);
     void deleteById(UUID id);
 }

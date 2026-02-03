@@ -2,6 +2,7 @@ package com.tcc.streaming.common.infrastructure.http.handlers;
 
 import com.tcc.streaming.common.core.exceptions.BusinessException;
 import com.tcc.streaming.common.core.exceptions.NotFoundException;
+import com.tcc.streaming.stream.core.exceptions.UnauthorizedException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.FieldError;
@@ -32,6 +33,28 @@ public class GlobalExceptionHandler {
         var error = new ErrorResponse(
             HttpStatus.BAD_REQUEST.value(),
             "Erro de negócio",
+            ex.getMessage(),
+            Instant.now()
+        );
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(error);
+    }
+
+    @ExceptionHandler(UnauthorizedException.class)
+    public ResponseEntity<ErrorResponse> handleUnauthorizedException(UnauthorizedException ex) {
+        var error = new ErrorResponse(
+            HttpStatus.FORBIDDEN.value(),
+            "Acesso negado",
+            ex.getMessage(),
+            Instant.now()
+        );
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(error);
+    }
+
+    @ExceptionHandler(IllegalStateException.class)
+    public ResponseEntity<ErrorResponse> handleIllegalStateException(IllegalStateException ex) {
+        var error = new ErrorResponse(
+            HttpStatus.BAD_REQUEST.value(),
+            "Operação inválida",
             ex.getMessage(),
             Instant.now()
         );

@@ -8,6 +8,7 @@ public class Stream {
     private String title;
     private String description;
     private String streamKey;
+    private String ownerId;
     private StreamStatus status;
     private LocalDateTime createdAt;
     private LocalDateTime startedAt;
@@ -25,13 +26,14 @@ public class Stream {
     }
 
     // Constructor completo para mapeamento
-    public Stream(UUID id, String title, String description, String streamKey,
+    public Stream(UUID id, String title, String description, String streamKey, String ownerId,
                   StreamStatus status, LocalDateTime createdAt, LocalDateTime startedAt,
                   LocalDateTime endedAt, Integer currentViewers, Integer viewersPeak) {
         this.id = id;
         this.title = title;
         this.description = description;
         this.streamKey = streamKey;
+        this.ownerId = ownerId;
         this.status = status;
         this.createdAt = createdAt;
         this.startedAt = startedAt;
@@ -41,10 +43,11 @@ public class Stream {
     }
 
     // Factory method
-    public static Stream create(String title, String description) {
+    public static Stream create(String title, String description, String ownerId) {
         Stream stream = new Stream();
         stream.title = title;
         stream.description = description;
+        stream.ownerId = ownerId;
         stream.streamKey = generateStreamKey();
         return stream;
     }
@@ -136,6 +139,14 @@ public class Stream {
 
     public void setStreamKey(String streamKey) {
         this.streamKey = streamKey;
+    }
+
+    public String getOwnerId() {
+        return ownerId;
+    }
+
+    public void setOwnerId(String ownerId) {
+        this.ownerId = ownerId;
     }
 
     public StreamStatus getStatus() {

@@ -5,15 +5,19 @@ import com.tcc.streaming.common.infrastructure.rtmp.RtmpServerGateway;
 import com.tcc.streaming.stream.core.dtos.stream.CreateStreamDto;
 import com.tcc.streaming.stream.core.dtos.stream.StreamDto;
 import com.tcc.streaming.stream.core.dtos.stream.StreamStatusDto;
+import com.tcc.streaming.stream.core.dtos.stream.UpdateStreamDto;
 import com.tcc.streaming.stream.core.entities.Stream;
 import com.tcc.streaming.stream.core.entities.StreamStatus;
 import com.tcc.streaming.stream.core.exceptions.StreamNotFoundException;
+import com.tcc.streaming.stream.core.exceptions.UnauthorizedException;
 import com.tcc.streaming.stream.core.repositories.StreamRepository;
 import com.tcc.streaming.stream.core.usecases.CreateStreamUseCase;
 import com.tcc.streaming.stream.core.usecases.DeleteStreamUseCase;
 import com.tcc.streaming.stream.core.usecases.GetStreamStatusUseCase;
 import com.tcc.streaming.stream.core.usecases.GetStreamUseCase;
 import com.tcc.streaming.stream.core.usecases.ListLiveStreamsUseCase;
+import com.tcc.streaming.stream.core.usecases.ListUserStreamsUseCase;
+import com.tcc.streaming.stream.core.usecases.UpdateStreamUseCase;
 import com.tcc.streaming.stream.core.usecases.ValidateStreamKeyUseCase;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -27,7 +31,7 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Service
-public class StreamService implements CreateStreamUseCase, GetStreamUseCase, GetStreamStatusUseCase, DeleteStreamUseCase, ValidateStreamKeyUseCase, ListLiveStreamsUseCase {
+public class StreamService implements CreateStreamUseCase, GetStreamUseCase, GetStreamStatusUseCase, DeleteStreamUseCase, ValidateStreamKeyUseCase, ListLiveStreamsUseCase, ListUserStreamsUseCase, UpdateStreamUseCase {
 
     private static final Logger log = LoggerFactory.getLogger(StreamService.class);
     private final StreamRepository streamRepository;
@@ -47,10 +51,10 @@ public class StreamService implements CreateStreamUseCase, GetStreamUseCase, Get
     @Transactional
     @CacheEvict(value = "streams", key = "#result.id")
     public StreamDto execute(CreateStreamDto dto) {
-        log.debug("[StreamService] Creating stream entity - Title: {}", dto.title());
+        log.debug("[StreamService] Creating stream entity - Title: {}, OwnerId: {}", dto.title(), dto.ownerId());
         
         // Criar entidade de domínio
-        Stream stream = Stream.create(dto.title(), dto.description());
+        Stream stream = Stream.create(dto.title(), dto.description(), dto.ownerId());
         
         // Persistir
         Stream saved = streamRepository.save(stream);
@@ -90,27 +94,38 @@ public class StreamService implements CreateStreamUseCase, GetStreamUseCase, Get
     }
 
     @Override
-    @CacheEvict(value = "streams", key = "#id")
+    @CacheEvict(value = {"streams", "liveStreams"}, allEntries = true)
     @Transactional
-    public void deleteStream(UUID id) {
+    public void deleteStream(UUID id, String ownerId) {
         Stream stream = streamRepository.findById(id)
             .orElseThrow(() -> new StreamNotFoundException(id));
         
-        log.info("[StreamService] Deleting stream - ID: {}, Current Status: {}", id, stream.getStatus());
+        log.info("[StreamService] Deleting stream - ID: {}, Owner: {}, Current Status: {}", id, ownerId, stream.getStatus());
         
-        // Only call end() if stream is LIVE, otherwise just mark as ENDED directly
-        if (stream.getStatus() == StreamStatus.LIVE) {
-            stream.end();
-        } else if (stream.getStatus() != StreamStatus.ENDED) {
-            // If not LIVE and not already ENDED, force status to ENDED
-            stream.forceEnd();
+        // Validar ownership
+        if (!stream.getOwnerId().equals(ownerId)) {
+            log.warn("[StreamService] Unauthorized delete attempt - Stream: {}, Owner: {}, Requester: {}", 
+                id, stream.getOwnerId(), ownerId);
+            throw new UnauthorizedException("Você não tem permissão para deletar esta stream");
         }
         
-        streamRepository.save(stream);
+        // Validar que stream não está LIVE
+        if (stream.getStatus() == StreamStatus.LIVE) {
+            throw new IllegalStateException("Não é possível deletar uma stream ao vivo. Finalize a transmissão primeiro.");
+        }
+        
+        // Forçar status ENDED se necessário
+        if (stream.getStatus() != StreamStatus.ENDED) {
+            stream.forceEnd();
+            streamRepository.save(stream);
+        }
         
         // Publicar evento stream_ended no RabbitMQ
         eventPublisher.publishStreamEnded(stream.getId(), stream.getStreamKey(), stream.getViewersPeak());
-        log.info("[StreamService] Stream deleted - ID: {}", id);
+        
+        // Deletar fisicamente
+        streamRepository.deleteById(id);
+        log.info("[StreamService] Stream deleted permanently - ID: {}", id);
     }
 
     @Override
@@ -192,6 +207,7 @@ public class StreamService implements CreateStreamUseCase, GetStreamUseCase, Get
             stream.getTitle(),
             stream.getDescription(),
             stream.getStreamKey(),
+            stream.getOwnerId(),
             stream.getStatus(),
             stream.getCreatedAt(),
             stream.getStartedAt(),
@@ -215,4 +231,43 @@ public class StreamService implements CreateStreamUseCase, GetStreamUseCase, Get
             .map(this::toDto)
             .collect(Collectors.toList());
     }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<StreamDto> listByOwner(String ownerId) {
+        log.debug("[StreamService] Fetching streams for owner: {}", ownerId);
+        List<Stream> userStreams = streamRepository.findByOwnerId(ownerId);
+        log.debug("[StreamService] Found {} streams for owner {}", userStreams.size(), ownerId);
+        
+        return userStreams.stream()
+            .map(this::toDto)
+            .collect(Collectors.toList());
+    }
+
+    @Override
+    @Transactional
+    @CacheEvict(value = {"streams", "liveStreams"}, allEntries = true)
+    public StreamDto update(UpdateStreamDto dto) {
+        log.debug("[StreamService] Updating stream {} for owner {}", dto.streamId(), dto.ownerId());
+        
+        Stream stream = streamRepository.findById(dto.streamId())
+            .orElseThrow(() -> new StreamNotFoundException(dto.streamId()));
+        
+        // Validar ownership
+        if (!stream.getOwnerId().equals(dto.ownerId())) {
+            log.warn("[StreamService] Unauthorized update attempt - Stream: {}, Owner: {}, Requester: {}", 
+                dto.streamId(), stream.getOwnerId(), dto.ownerId());
+            throw new UnauthorizedException("Você não tem permissão para editar esta stream");
+        }
+        
+        // Atualizar campos
+        stream.setTitle(dto.title());
+        stream.setDescription(dto.description());
+        
+        Stream updated = streamRepository.save(stream);
+        log.debug("[StreamService] Stream {} updated successfully", dto.streamId());
+        
+        return toDto(updated);
+    }
 }
+
