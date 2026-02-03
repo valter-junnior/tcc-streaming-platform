@@ -21,7 +21,7 @@ spring:
     properties:
       hibernate:
         dialect: org.hibernate.dialect.PostgreSQLDialect
-        format_sql: true
+        '[format_sql]': true
   
   rabbitmq:
     host: ${RABBITMQ_HOST:rabbitmq}
@@ -38,9 +38,9 @@ management:
     web:
       exposure:
         include: health,info,prometheus,metrics
-  metrics:
-    export:
-      prometheus:
+  prometheus:
+    metrics:
+      export:
         enabled: true
 
 streaming:

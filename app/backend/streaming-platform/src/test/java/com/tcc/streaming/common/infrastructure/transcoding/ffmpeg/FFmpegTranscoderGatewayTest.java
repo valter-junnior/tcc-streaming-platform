@@ -2,7 +2,6 @@ package com.tcc.streaming.common.infrastructure.transcoding.ffmpeg;
 
 import com.tcc.streaming.common.infrastructure.transcoding.TranscoderConfig;
 import com.tcc.streaming.common.infrastructure.transcoding.TranscoderGateway;
-import com.tcc.streaming.common.infrastructure.transcoding.TranscodingProperties;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
