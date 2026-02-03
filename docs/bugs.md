@@ -1,1 +1,1 @@
-analise o TODO O BACKEND corretamente por que deve ter alguns bugs e configs errado alem de metodos e arquivos initulizados corrija de acordo com o escopo e documentacao do projeto
+melhore o estilo do button de play do player  vjs-big-play-button

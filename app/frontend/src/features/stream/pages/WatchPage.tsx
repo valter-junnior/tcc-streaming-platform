@@ -24,9 +24,11 @@ export function WatchPage() {
   const [stream, setStream] = useState<Stream | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [playerReady, setPlayerReady] = useState(false);
+  const [isRetrying, setIsRetrying] = useState(false);
+  const [hlsAvailable, setHlsAvailable] = useState(false);
   const viewerId = useViewerId(); // Persistente no localStorage
   const hasJoinedRef = useRef(false);
+  const hlsCheckIntervalRef = useRef<number | null>(null);
 
   useEffect(() => {
     if (!streamId) {
@@ -72,6 +74,52 @@ export function WatchPage() {
     }
   };
 
+  const checkHlsAvailability = async (hlsUrl: string): Promise<boolean> => {
+    try {
+      const response = await fetch(hlsUrl, { method: "HEAD" });
+      return response.ok;
+    } catch (error) {
+      logger.debug("HLS not available yet", error);
+      return false;
+    }
+  };
+
+  const startHlsPolling = (hlsUrl: string) => {
+    setHlsAvailable(false);
+    setIsRetrying(true);
+
+    const poll = async () => {
+      logger.debug("Checking HLS availability...");
+      const isAvailable = await checkHlsAvailability(hlsUrl);
+
+      if (isAvailable) {
+        logger.info("HLS is available!");
+        setHlsAvailable(true);
+        setIsRetrying(false);
+        if (hlsCheckIntervalRef.current) {
+          clearInterval(hlsCheckIntervalRef.current);
+          hlsCheckIntervalRef.current = null;
+        }
+      } else {
+        logger.debug("HLS not available, will retry in 5s...");
+      }
+    };
+
+    // Check immediately
+    poll();
+
+    // Then check every 5 seconds
+    hlsCheckIntervalRef.current = window.setInterval(poll, 5000);
+  };
+
+  const stopHlsPolling = () => {
+    if (hlsCheckIntervalRef.current) {
+      clearInterval(hlsCheckIntervalRef.current);
+      hlsCheckIntervalRef.current = null;
+    }
+    setIsRetrying(false);
+  };
+
   const connectWebSocket = async () => {
     try {
       console.log(
@@ -87,7 +135,6 @@ export function WatchPage() {
           setStream((prev) =>
             prev ? { ...prev, status: message.data.status } : null,
           );
-          setPlayerReady(false); // Reset player ready state when status changes
         } else if (message.type === "STREAM_ENDED") {
           setStream((prev) =>
             prev
@@ -127,6 +174,24 @@ export function WatchPage() {
       logger.error("WebSocket connection failed", err);
     }
   };
+
+  // Monitor stream status and start HLS polling when LIVE
+  useEffect(() => {
+    if (!stream) return;
+
+    const hlsUrl = `${HLS_URL}/${stream.streamKey}/index.m3u8`;
+
+    if (stream.status === "LIVE") {
+      startHlsPolling(hlsUrl);
+    } else {
+      stopHlsPolling();
+      setHlsAvailable(false);
+    }
+
+    return () => {
+      stopHlsPolling();
+    };
+  }, [stream?.status, stream?.streamKey]);
 
   if (isLoading) {
     return (
@@ -173,35 +238,25 @@ export function WatchPage() {
         <div className="grid lg:grid-cols-3 gap-6">
           {/* Video Player */}
           <div className="lg:col-span-2">
-            {stream.status === "LIVE" && playerReady ? (
-              <VideoPlayer
-                hlsUrl={hlsUrl}
-                onReady={() => setPlayerReady(true)}
-              />
-            ) : stream.status === "LIVE" && !playerReady ? (
-              <>
-                <div
-                  className="relative w-full bg-slate-800 rounded-lg flex items-center justify-center border border-slate-700"
-                  style={{ aspectRatio: "16/9" }}
-                >
-                  <div className="text-center p-8">
-                    <Clock className="w-16 h-16 text-yellow-500 mx-auto mb-4 animate-pulse" />
-                    <h3 className="text-2xl font-bold text-white mb-2">
-                      Aguardando Transmissão
-                    </h3>
-                    <p className="text-slate-400">
-                      Processando stream... aguarde alguns segundos.
-                    </p>
-                  </div>
+            {stream.status === "LIVE" && hlsAvailable ? (
+              <VideoPlayer hlsUrl={hlsUrl} />
+            ) : stream.status === "LIVE" && !hlsAvailable ? (
+              <div
+                className="relative w-full bg-slate-800 rounded-lg flex items-center justify-center border border-slate-700"
+                style={{ aspectRatio: "16/9" }}
+              >
+                <div className="text-center p-8">
+                  <Clock className="w-16 h-16 text-yellow-500 mx-auto mb-4 animate-pulse" />
+                  <h3 className="text-2xl font-bold text-white mb-2">
+                    Aguardando Transmissão
+                  </h3>
+                  <p className="text-slate-400">
+                    {isRetrying
+                      ? "Conectando ao stream... tentando novamente."
+                      : "Processando stream... aguarde alguns segundos."}
+                  </p>
                 </div>
-                {/* Load VideoPlayer hidden to start HLS connection */}
-                <div className="hidden">
-                  <VideoPlayer
-                    hlsUrl={hlsUrl}
-                    onReady={() => setPlayerReady(true)}
-                  />
-                </div>
-              </>
+              </div>
             ) : stream.status === "WAITING" ? (
               <div
                 className="relative w-full bg-slate-800 rounded-lg flex items-center justify-center border border-slate-700"

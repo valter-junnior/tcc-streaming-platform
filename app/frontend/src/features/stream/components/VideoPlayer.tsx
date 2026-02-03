@@ -8,12 +8,16 @@ interface VideoPlayerProps {
   hlsUrl: string;
   autoPlay?: boolean;
   onReady?: () => void;
+  onRetrying?: (retryCount: number, maxRetries: number) => void;
+  onError?: (error: any) => void;
 }
 
 export function VideoPlayer({
   hlsUrl,
   autoPlay = true,
   onReady,
+  onRetrying,
+  onError,
 }: VideoPlayerProps) {
   const videoRef = useRef<HTMLDivElement>(null);
   const playerRef = useRef<Player | null>(null);
@@ -93,13 +97,15 @@ export function VideoPlayer({
         const error = player.error();
         logger.error("Video.js error", error);
 
-        if (error && error.code === 4) {
-          // MEDIA_ERR_SRC_NOT_SUPPORTED (404 or similar)
+        if (error && (error.code === 2 || error.code === 4)) {
+          // MEDIA_ERR_NETWORK (2) or MEDIA_ERR_SRC_NOT_SUPPORTED (4)
           if (retryCountRef.current < MAX_RETRIES) {
             retryCountRef.current++;
             logger.warn(
               `Video.js: Retry ${retryCountRef.current}/${MAX_RETRIES} in ${RETRY_DELAY}ms`,
             );
+
+            onRetrying?.(retryCountRef.current, MAX_RETRIES);
 
             retryTimeoutRef.current = window.setTimeout(() => {
               if (playerRef.current) {
@@ -109,7 +115,11 @@ export function VideoPlayer({
                 });
               }
             }, RETRY_DELAY);
+          } else {
+            onError?.(error);
           }
+        } else {
+          onError?.(error);
         }
       });
 
