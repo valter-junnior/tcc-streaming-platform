@@ -119,3 +119,29 @@ services:
     depends_on:
       - streaming-platform
     restart: unless-stopped
+
+  # Frontend React Application
+  frontend:
+    image: node:20-alpine
+    container_name: streaming-frontend
+    networks:
+      - streaming-network
+    working_dir: /app
+    command: sh -c "npm install && npm run dev -- --host"
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+    ports:
+      - "${FRONTEND_PORT}:3001"
+    environment:
+      FRONTEND_PORT: ${FRONTEND_PORT}
+      VITE_API_URL: ${VITE_API_URL}
+      VITE_WS_URL: ${VITE_WS_URL}
+      VITE_RTMP_URL: ${VITE_RTMP_URL}
+      VITE_HLS_URL: ${VITE_HLS_URL}
+      VITE_APP_URL: ${VITE_APP_URL}
+      VITE_BACKEND_HOST: ${VITE_BACKEND_HOST}
+      VITE_BACKEND_PORT: ${VITE_BACKEND_PORT}
+    depends_on:
+      - streaming-platform
+    restart: unless-stopped

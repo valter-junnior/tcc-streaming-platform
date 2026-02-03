@@ -1,8 +1,7 @@
-antes da tarefa leia utils.md
-vamos arrumar as estrutura de pastas do projetos
+leia o utils.md antes de realizar as tarefas.
 
-mova o nginx-rtmp para a pasta de app/ se for o caso e aplicavel deixe dentro de /backend
+tarefas:
 
-mova o frotend para dentro de app e o docker compose.yml juntos com os env para dentro de app tambem
+[ ] Quando iniciamos uma stream a página do frontend para quem assiste a stream nao atualiza automaticamente. Arquivos: NginxCallbackController.java, WatchPage.tsx. 
 
-atualize os path do que ver movido para não haver conflito
+[ ] Quando uma stream termina(status = ENDED), ela pode ser reiniciada sem problema não precisa criar uma nova stream, mude isso no backend e no frontend. Mas nesse caso precisamos de um modo que os dados de viewers e pico de viewers da ultima stream nao se mistura com a nova, ou até mesmo fazer essa parte de pico de viewers apenas na dashboard e que ela seja por um range de tempo um grafico de linha de 00:00 até 23:59 mostrando os picos de viewers de 1 em 1hr

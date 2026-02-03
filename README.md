@@ -49,12 +49,15 @@ nano .env
 ### Iniciar Infraestrutura
 
 ```bash
-# Subir todos os serviços (PostgreSQL, Redis, RabbitMQ, Backend)
+# Subir todos os serviços (PostgreSQL, Redis, RabbitMQ, Backend, Frontend)
 cd app/
 docker compose up -d
 
 # Ver logs
 docker compose logs -f
+
+# Ver logs apenas do frontend
+docker compose logs -f frontend
 ```
 
 ### Verificar Status
@@ -66,8 +69,10 @@ docker compose ps
 
 ## 🔗 Acessos
 
+- **Frontend**: http://localhost:3001
 - **Backend API**: http://localhost:8080
 - **Backend Health**: http://localhost:8080/actuator/health
+- **HLS Stream**: http://localhost:8081/hls/{stream-key}.m3u8
 - **RabbitMQ Management**: http://localhost:15672 (user/pass configurados no .env)
 - **PostgreSQL**: localhost:5432 (credenciais no .env)
 - **Redis**: localhost:6379
