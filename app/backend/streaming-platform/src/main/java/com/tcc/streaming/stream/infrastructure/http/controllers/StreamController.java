@@ -19,6 +19,8 @@ import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -30,6 +32,7 @@ import java.util.UUID;
 @Tag(name = "Streams", description = "Gerenciamento de streams de vídeo ao vivo")
 public class StreamController {
 
+    private static final Logger log = LoggerFactory.getLogger(StreamController.class);
     private final CreateStreamUseCase createStreamUseCase;
     private final GetStreamUseCase getStreamUseCase;
     private final GetStreamStatusUseCase getStreamStatusUseCase;
@@ -66,8 +69,10 @@ public class StreamController {
     public ResponseEntity<StreamPresenter> createStream(
         @Parameter(description = "Dados da stream a ser criada")
         @Valid @RequestBody CreateStreamRequest request) {
+        log.info("[Stream] Creating new stream - Title: {}", request.title());
         var dto = new CreateStreamDto(request.title(), request.description());
         var result = createStreamUseCase.execute(dto);
+        log.info("[Stream] Stream created successfully - ID: {}, Key: {}", result.id(), result.streamKey());
         return ResponseEntity.status(HttpStatus.CREATED).body(StreamPresenter.from(result));
     }
 
@@ -84,6 +89,7 @@ public class StreamController {
     public ResponseEntity<StreamPresenter> getStream(
         @Parameter(description = "ID único da stream (UUID)")
         @PathVariable UUID id) {
+        log.debug("[Stream] Getting stream by ID: {}", id);
         var result = getStreamUseCase.execute(id);
         return ResponseEntity.ok(StreamPresenter.from(result));
     }
@@ -101,6 +107,7 @@ public class StreamController {
     public ResponseEntity<StreamStatusPresenter> getStreamStatus(
         @Parameter(description = "ID único da stream (UUID)")
         @PathVariable UUID id) {
+        log.debug("[Stream] Getting stream status - ID: {}", id);
         var result = getStreamStatusUseCase.getStatus(id);
         return ResponseEntity.ok(StreamStatusPresenter.from(result));
     }
@@ -117,7 +124,9 @@ public class StreamController {
     public ResponseEntity<Void> deleteStream(
         @Parameter(description = "ID único da stream (UUID)")
         @PathVariable UUID id) {
+        log.info("[Stream] Deleting stream - ID: {}", id);
         deleteStreamUseCase.deleteStream(id);
+        log.info("[Stream] Stream deleted successfully - ID: {}", id);
         return ResponseEntity.noContent().build();
     }
 
@@ -133,7 +142,9 @@ public class StreamController {
     public ResponseEntity<Boolean> validateStreamKey(
         @Parameter(description = "Stream key a ser validada")
         @Valid @RequestBody ValidateStreamKeyRequest request) {
+        log.debug("[Stream] Validating stream key");
         boolean valid = validateStreamKeyUseCase.execute(request.streamKey());
+        log.debug("[Stream] Stream key validation result: {}", valid);
         return ResponseEntity.ok(valid);
     }
 
@@ -151,8 +162,10 @@ public class StreamController {
     public ResponseEntity<StreamPresenter> restartStream(
         @Parameter(description = "ID único da stream (UUID)")
         @PathVariable UUID id) {
+        log.info("[Stream] Restarting stream - ID: {}", id);
         streamService.restartStream(id);
         var result = getStreamUseCase.execute(id);
+        log.info("[Stream] Stream restarted successfully - ID: {}", id);
         return ResponseEntity.ok(StreamPresenter.from(result));
     }
 }

@@ -40,22 +40,22 @@ public class NginxCallbackController {
     public ResponseEntity<Void> onPublish(
         @Parameter(description = "Stream key do streamer")
         @RequestParam String name) {
-        log.info("[NGINX CALLBACK] on_publish received for stream key '{}'", name);
+        log.info("[NginxCallback] Received on_publish for stream key: {}", name);
         
         boolean valid = streamService.execute(name);
         
         if (valid) {
             // Stream key válida - iniciar transmissão
             UUID streamId = streamService.startStream(name);
-            log.info("[NGINX CALLBACK] on_publish: Stream '{}' AUTHORIZED and marked as LIVE", name);
+            log.info("[NginxCallback] Stream authorized and started - ID: {}, Key: {}", streamId, name);
             
             // Notificar via WebSocket que a stream iniciou
             webSocketController.broadcastStreamStarted(streamId);
-            log.info("[NGINX CALLBACK] on_publish: WebSocket notification sent for stream '{}'", streamId);
+            log.debug("[NginxCallback] WebSocket notification sent for stream: {}", streamId);
             
             return ResponseEntity.ok().build();
         } else {
-            log.warn("[NGINX CALLBACK] on_publish: Stream '{}' REJECTED - invalid stream key", name);
+            log.warn("[NginxCallback] Stream rejected - Invalid key: {}", name);
             return ResponseEntity.status(403).build();
         }
     }
@@ -69,14 +69,14 @@ public class NginxCallbackController {
     public ResponseEntity<Void> onPublishDone(
         @Parameter(description = "Stream key da transmissão")
         @RequestParam String name) {
-        log.info("[NGINX CALLBACK] on_publish_done received for stream key '{}'", name);
+        log.info("[NginxCallback] Received on_publish_done for stream key: {}", name);
         
         UUID streamId = streamService.endStream(name);
-        log.info("[NGINX CALLBACK] on_publish_done: Stream '{}' marked as ENDED", name);
+        log.info("[NginxCallback] Stream ended - ID: {}, Key: {}", streamId, name);
 
         // Notificar via WebSocket que a stream terminou
         webSocketController.broadcastStreamEnded(streamId);
-        log.info("[NGINX CALLBACK] on_publish_done: WebSocket notification sent for stream '{}'", streamId);
+        log.debug("[NginxCallback] WebSocket notification sent for stream: {}", streamId);
 
         return ResponseEntity.ok().build();
     }

@@ -44,14 +44,14 @@ public class StreamService implements CreateStreamUseCase, GetStreamUseCase, Get
     @Transactional
     @CacheEvict(value = "streams", key = "#result.id")
     public StreamDto execute(CreateStreamDto dto) {
-        // Get RTMP configuration from the configured gateway
-        String rtmpUrl = rtmpServerGateway.getServerConfig().getCompleteRtmpUrl();
+        log.debug("[StreamService] Creating stream entity - Title: {}", dto.title());
         
         // Criar entidade de domínio
         Stream stream = Stream.create(dto.title(), dto.description());
         
         // Persistir
         Stream saved = streamRepository.save(stream);
+        log.debug("[StreamService] Stream persisted - ID: {}", saved.getId());
         
         // Publicar evento stream_created no RabbitMQ
         eventPublisher.publishStreamCreated(saved.getId(), saved.getStreamKey(), saved.getTitle());
@@ -63,6 +63,7 @@ public class StreamService implements CreateStreamUseCase, GetStreamUseCase, Get
     @Cacheable(value = "streams", key = "#id")
     @Transactional(readOnly = true)
     public StreamDto execute(UUID id) {
+        log.debug("[StreamService] Fetching stream - ID: {}", id);
         Stream stream = streamRepository.findById(id)
             .orElseThrow(() -> new StreamNotFoundException(id));
         
@@ -92,6 +93,8 @@ public class StreamService implements CreateStreamUseCase, GetStreamUseCase, Get
         Stream stream = streamRepository.findById(id)
             .orElseThrow(() -> new StreamNotFoundException(id));
         
+        log.info("[StreamService] Deleting stream - ID: {}, Current Status: {}", id, stream.getStatus());
+        
         // Only call end() if stream is LIVE, otherwise just mark as ENDED directly
         if (stream.getStatus() == StreamStatus.LIVE) {
             stream.end();
@@ -104,6 +107,7 @@ public class StreamService implements CreateStreamUseCase, GetStreamUseCase, Get
         
         // Publicar evento stream_ended no RabbitMQ
         eventPublisher.publishStreamEnded(stream.getId(), stream.getStreamKey(), stream.getViewersPeak());
+        log.info("[StreamService] Stream deleted - ID: {}", id);
     }
 
     @Override
@@ -118,14 +122,14 @@ public class StreamService implements CreateStreamUseCase, GetStreamUseCase, Get
         Stream stream = streamRepository.findByStreamKey(streamKey)
             .orElseThrow(() -> new StreamNotFoundException(streamKey));
         
-        log.info("[START] Attempting to start stream - ID: {}, Title: '{}', Current Status: {}", 
-                 stream.getId(), stream.getTitle(), stream.getStatus());
+        log.info("[StreamService] Starting stream - ID: {}, Key: {}, Status: {}", 
+                 stream.getId(), streamKey, stream.getStatus());
         
         stream.start();
         streamRepository.save(stream);
         
-        log.info("[START] Stream started successfully - ID: {}, Title: '{}', New Status: {}", 
-                 stream.getId(), stream.getTitle(), stream.getStatus());
+        log.info("[StreamService] Stream started - ID: {}, New Status: {}", 
+                 stream.getId(), stream.getStatus());
         
         // Publicar evento stream_started no RabbitMQ
         eventPublisher.publishStreamStarted(stream.getId(), stream.getStreamKey());
@@ -139,14 +143,14 @@ public class StreamService implements CreateStreamUseCase, GetStreamUseCase, Get
         Stream stream = streamRepository.findByStreamKey(streamKey)
             .orElseThrow(() -> new StreamNotFoundException(streamKey));
         
-        log.info("[END] Attempting to end stream - ID: {}, Title: '{}', Current Status: {}", 
-                 stream.getId(), stream.getTitle(), stream.getStatus());
+        log.info("[StreamService] Ending stream - ID: {}, Key: {}, Status: {}", 
+                 stream.getId(), streamKey, stream.getStatus());
         
         stream.end();
         streamRepository.save(stream);
         
-        log.info("[END] Stream ended successfully - ID: {}, Title: '{}', New Status: {}, Peak viewers: {}", 
-                 stream.getId(), stream.getTitle(), stream.getStatus(), stream.getViewersPeak());
+        log.info("[StreamService] Stream ended - ID: {}, Peak viewers: {}", 
+                 stream.getId(), stream.getViewersPeak());
         
         // Publicar evento stream_ended no RabbitMQ
         eventPublisher.publishStreamEnded(stream.getId(), stream.getStreamKey(), stream.getViewersPeak());
@@ -160,19 +164,20 @@ public class StreamService implements CreateStreamUseCase, GetStreamUseCase, Get
         Stream stream = streamRepository.findById(id)
             .orElseThrow(() -> new StreamNotFoundException(id));
         
-        log.info("[RESTART] Attempting to restart stream - ID: {}, Title: '{}', Current Status: {}", 
-                 stream.getId(), stream.getTitle(), stream.getStatus());
+        log.info("[StreamService] Restarting stream - ID: {}, Current Status: {}", 
+                 stream.getId(), stream.getStatus());
         
         // Permitir reiniciar apenas streams ENDED
         if (stream.getStatus() != StreamStatus.ENDED) {
+            log.warn("[StreamService] Cannot restart stream - ID: {}, Status: {}", id, stream.getStatus());
             throw new IllegalStateException("Only ENDED streams can be restarted");
         }
         
         stream.restart();
         streamRepository.save(stream);
         
-        log.info("[RESTART] Stream restarted successfully - ID: {}, Title: '{}', New Status: {}", 
-                 stream.getId(), stream.getTitle(), stream.getStatus());
+        log.info("[StreamService] Stream restarted - ID: {}, New Status: {}", 
+                 stream.getId(), stream.getStatus());
         
         // Publicar evento stream_restarted no RabbitMQ
         eventPublisher.publishStreamCreated(stream.getId(), stream.getStreamKey(), stream.getTitle());

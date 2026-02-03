@@ -51,17 +51,11 @@ public class Stream {
 
     // Regras de negócio
     public void start() {
-        /*if (this.status != StreamStatus.WAITING) {
-            throw new IllegalStateException("Stream must be WAITING to start, current status: " + this.status);
-        }*/
         this.status = StreamStatus.LIVE;
         this.startedAt = LocalDateTime.now();
     }
 
     public void end() {
-        /*if (this.status != StreamStatus.LIVE) {
-            throw new IllegalStateException("Stream must be LIVE to end, current status: " + this.status);
-        }*/
         this.status = StreamStatus.ENDED;
         this.endedAt = LocalDateTime.now();
     }
@@ -96,14 +90,6 @@ public class Stream {
         if (this.currentViewers > 0) {
             this.currentViewers--;
         }
-    }
-
-    public boolean isLive() {
-        return this.status == StreamStatus.LIVE;
-    }
-
-    public boolean isEnded() {
-        return this.status == StreamStatus.ENDED;
     }
 
     public String getRtmpUrl() {
