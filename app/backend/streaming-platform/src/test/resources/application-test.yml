@@ -1,15 +1,20 @@
 spring:
   datasource:
-    driver-class-name: org.postgresql.Driver
+    # Driver será configurado dinamicamente:
+    # - Por @DynamicPropertySource para testes E2E com Testcontainers (PostgreSQL)
+    # - Ou H2 in-memory para testes unit sem Testcontainers
+    driver-class-name: org.h2.Driver
+    url: jdbc:h2:mem:testdb;MODE=PostgreSQL;DATABASE_TO_LOWER=TRUE;DEFAULT_NULL_ORDERING=HIGH
+    username: sa
+    password:
   
   jpa:
     hibernate:
       ddl-auto: create-drop
-    show-sql: true
+    show-sql: false
     properties:
       hibernate:
         format_sql: true
-        dialect: org.hibernate.dialect.PostgreSQLDialect
   
   main:
     allow-bean-definition-overriding: true
@@ -17,12 +22,14 @@ spring:
   cache:
     type: simple
     cache-names: streams, streamStatus
-
-rabbitmq:
-  enabled: false
-
-redis:
-  enabled: false
+  
+  # Disable RabbitMQ for unit tests
+  rabbitmq:
+    host: 
+  
+  # Disable Redis for unit tests  
+  redis:
+    host:
 
 logging:
   level:

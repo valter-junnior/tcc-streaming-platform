@@ -5,6 +5,7 @@ import com.tcc.streaming.common.infrastructure.rtmp.RtmpServerGateway;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.TestPropertySource;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -14,6 +15,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  * Tests the configuration and basic functionality of the RTMP server abstraction.
  */
 @SpringBootTest
+@ActiveProfiles("test")
 @TestPropertySource(properties = {
     "streaming.rtmp.provider=nginx-rtmp",
     "streaming.rtmp.host=localhost",

@@ -46,6 +46,7 @@ public abstract class AbstractE2ETest {
         registry.add("spring.datasource.url", postgresContainer::getJdbcUrl);
         registry.add("spring.datasource.username", postgresContainer::getUsername);
         registry.add("spring.datasource.password", postgresContainer::getPassword);
+        registry.add("spring.datasource.driver-class-name", () -> "org.postgresql.Driver");
         
         // Disable Redis and RabbitMQ for tests (use mocks/simple cache)
         registry.add("spring.cache.type", () -> "simple");

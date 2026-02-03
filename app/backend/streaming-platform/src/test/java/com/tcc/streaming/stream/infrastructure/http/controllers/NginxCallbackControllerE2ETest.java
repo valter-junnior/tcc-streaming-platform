@@ -27,7 +27,7 @@ class NginxCallbackControllerE2ETest extends AbstractE2ETest {
     private ObjectMapper objectMapper;
 
     @Test
-    @DisplayName("GET /api/streams/callback/publish - Should authorize valid stream key")
+    @DisplayName("POST /api/streams/callback/publish - Should authorize valid stream key")
     void shouldAuthorizeValidStreamKey() throws Exception {
         // Given - create a stream first
         CreateStreamRequest createRequest = new CreateStreamRequest(
@@ -47,25 +47,25 @@ class NginxCallbackControllerE2ETest extends AbstractE2ETest {
         String streamKey = objectMapper.readTree(responseBody).get("streamKey").asText();
 
         // When & Then
-        mockMvc.perform(get("/api/streams/callback/publish")
+        mockMvc.perform(post("/api/streams/callback/publish")
                 .param("name", streamKey))
             .andExpect(status().isOk());
     }
 
     @Test
-    @DisplayName("GET /api/streams/callback/publish - Should reject invalid stream key")
+    @DisplayName("POST /api/streams/callback/publish - Should reject invalid stream key")
     void shouldRejectInvalidStreamKey() throws Exception {
         // Given
         String invalidStreamKey = "invalid-stream-key-12345";
 
         // When & Then
-        mockMvc.perform(get("/api/streams/callback/publish")
+        mockMvc.perform(post("/api/streams/callback/publish")
                 .param("name", invalidStreamKey))
             .andExpect(status().isForbidden());
     }
 
     @Test
-    @DisplayName("GET /api/streams/callback/publish_done - Should start stream successfully")
+    @DisplayName("POST /api/streams/callback/publish - Should start stream successfully")
     void shouldStartStreamSuccessfully() throws Exception {
         // Given - create a stream first
         CreateStreamRequest createRequest = new CreateStreamRequest(
@@ -85,8 +85,8 @@ class NginxCallbackControllerE2ETest extends AbstractE2ETest {
         String streamKey = objectMapper.readTree(responseBody).get("streamKey").asText();
         String streamId = objectMapper.readTree(responseBody).get("id").asText();
 
-        // When - call publish_done callback
-        mockMvc.perform(get("/api/streams/callback/publish_done")
+        // When - call publish callback to start stream
+        mockMvc.perform(post("/api/streams/callback/publish")
                 .param("name", streamKey))
             .andExpect(status().isOk());
 
@@ -98,7 +98,7 @@ class NginxCallbackControllerE2ETest extends AbstractE2ETest {
     }
 
     @Test
-    @DisplayName("GET /api/streams/callback/done - Should end stream successfully")
+    @DisplayName("POST /api/streams/callback/publish_done - Should end stream successfully")
     void shouldEndStreamSuccessfully() throws Exception {
         // Given - create and start a stream
         CreateStreamRequest createRequest = new CreateStreamRequest(
@@ -119,12 +119,12 @@ class NginxCallbackControllerE2ETest extends AbstractE2ETest {
         String streamId = objectMapper.readTree(responseBody).get("id").asText();
 
         // Start the stream first
-        mockMvc.perform(get("/api/streams/callback/publish_done")
+        mockMvc.perform(post("/api/streams/callback/publish")
                 .param("name", streamKey))
             .andExpect(status().isOk());
 
-        // When - call done callback
-        mockMvc.perform(get("/api/streams/callback/done")
+        // When - call publish_done callback to end
+        mockMvc.perform(post("/api/streams/callback/publish_done")
                 .param("name", streamKey))
             .andExpect(status().isOk());
 
@@ -136,19 +136,7 @@ class NginxCallbackControllerE2ETest extends AbstractE2ETest {
     }
 
     @Test
-    @DisplayName("GET /api/streams/callback/done - Should return 200 even for non-existent stream")
-    void shouldReturn200ForNonExistentStreamOnDone() throws Exception {
-        // Given
-        String nonExistentStreamKey = "non-existent-key";
-
-        // When & Then - should not fail (Nginx expects 200)
-        mockMvc.perform(get("/api/streams/callback/done")
-                .param("name", nonExistentStreamKey))
-            .andExpect(status().isOk());
-    }
-
-    @Test
-    @DisplayName("Complete Nginx Flow - Publish, Publish Done, Done")
+    @DisplayName("Complete Nginx Flow - Publish, Publish Done")
     void shouldCompleteFullNginxCallbackFlow() throws Exception {
         // 1. Create stream
         CreateStreamRequest createRequest = new CreateStreamRequest(
@@ -168,33 +156,23 @@ class NginxCallbackControllerE2ETest extends AbstractE2ETest {
         String streamKey = objectMapper.readTree(responseBody).get("streamKey").asText();
         String streamId = objectMapper.readTree(responseBody).get("id").asText();
 
-        // 2. Nginx calls /publish to validate (before accepting stream)
-        mockMvc.perform(get("/api/streams/callback/publish")
+        // 2. Nginx calls /publish to start stream (WAITING -> LIVE)
+        mockMvc.perform(post("/api/streams/callback/publish")
                 .param("name", streamKey))
             .andExpect(status().isOk());
 
-        // 3. Verify stream is still WAITING
-        mockMvc.perform(get("/api/streams/" + streamId))
-            .andExpect(status().isOk())
-            .andExpect(jsonPath("$.status").value("WAITING"));
-
-        // 4. Nginx calls /publish_done (stream actually started)
-        mockMvc.perform(get("/api/streams/callback/publish_done")
-                .param("name", streamKey))
-            .andExpect(status().isOk());
-
-        // 5. Verify stream is now LIVE
+        // 3. Verify stream is now LIVE
         mockMvc.perform(get("/api/streams/" + streamId))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.status").value("LIVE"))
             .andExpect(jsonPath("$.startedAt").isNotEmpty());
 
-        // 6. Nginx calls /done (stream ended)
-        mockMvc.perform(get("/api/streams/callback/done")
+        // 4. Nginx calls /publish_done when stream ends (LIVE -> ENDED)
+        mockMvc.perform(post("/api/streams/callback/publish_done")
                 .param("name", streamKey))
             .andExpect(status().isOk());
 
-        // 7. Verify stream is now ENDED
+        // 5. Verify stream is now ENDED
         mockMvc.perform(get("/api/streams/" + streamId))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.status").value("ENDED"))
@@ -225,8 +203,8 @@ class NginxCallbackControllerE2ETest extends AbstractE2ETest {
         String streamKey2 = objectMapper.readTree(result2.getResponse().getContentAsString()).get("streamKey").asText();
         String streamId2 = objectMapper.readTree(result2.getResponse().getContentAsString()).get("id").asText();
 
-        // When - start stream 1
-        mockMvc.perform(get("/api/streams/callback/publish_done")
+        // When - start stream 1 with /publish
+        mockMvc.perform(post("/api/streams/callback/publish")
                 .param("name", streamKey1))
             .andExpect(status().isOk());
 
@@ -239,12 +217,12 @@ class NginxCallbackControllerE2ETest extends AbstractE2ETest {
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.status").value("WAITING"));
 
-        // When - end stream 1 and start stream 2
-        mockMvc.perform(get("/api/streams/callback/done")
+        // When - end stream 1 with /publish_done and start stream 2
+        mockMvc.perform(post("/api/streams/callback/publish_done")
                 .param("name", streamKey1))
             .andExpect(status().isOk());
 
-        mockMvc.perform(get("/api/streams/callback/publish_done")
+        mockMvc.perform(post("/api/streams/callback/publish")
                 .param("name", streamKey2))
             .andExpect(status().isOk());
 

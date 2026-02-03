@@ -6,6 +6,7 @@ import com.tcc.streaming.common.infrastructure.transcoding.TranscodingProperties
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.TestPropertySource;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -14,6 +15,7 @@ import static org.assertj.core.api.Assertions.assertThat;
  * Integration tests for FFmpeg Transcoder Gateway.
  */
 @SpringBootTest
+@ActiveProfiles("test")
 @TestPropertySource(properties = {
     "streaming.transcoding.provider=ffmpeg",
     "streaming.transcoding.segment-duration=6",
