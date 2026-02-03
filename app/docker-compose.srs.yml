@@ -1,3 +1,6 @@
+# Docker Compose para Plataforma de Streaming com SRS
+# Versão alternativa usando SRS como servidor RTMP
+
 networks:
   streaming-network:
     driver: bridge
@@ -73,7 +76,7 @@ services:
       SPRING_RABBITMQ_PORT: 5672
       SPRING_RABBITMQ_USERNAME: ${RABBITMQ_USER}
       SPRING_RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD}
-      RTMP_HOST: rtmp-server
+      RTMP_HOST: srs-server
       RTMP_PORT: 1935
     depends_on:
       postgres:
@@ -81,22 +84,22 @@ services:
       rabbitmq:
         condition: service_healthy
 
-  # RTMP Server (Nginx-RTMP - default)
-  rtmp-server:
+  # SRS (Simple Realtime Server)
+  srs-server:
     build:
-      context: ./backend/rtmp/nginx
+      context: ./backend/rtmp/srs
       dockerfile: Dockerfile
-    container_name: streaming-rtmp-server
+    container_name: streaming-srs-server
     networks:
       - streaming-network
     volumes:
-      - hls-data:/tmp/hls
+      - hls-data:/var/srs-hls
     ports:
       - "${RTMP_PORT}:1935"    # RTMP
+      - "8080:8080"            # SRS HTTP API
       - "${HLS_PORT}:8081"     # HLS HTTP Server
     environment:
       HLS_RETENTION_HOURS: 6
-      TRANSCODING_ENGINE: ffmpeg
     depends_on:
       - streaming-platform
     restart: unless-stopped

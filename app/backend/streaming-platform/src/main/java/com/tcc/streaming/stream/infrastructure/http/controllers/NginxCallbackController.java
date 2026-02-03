@@ -16,7 +16,7 @@ import java.util.UUID;
 
 @RestController
 @RequestMapping("/api/streams/callback")
-@Tag(name = "Nginx Callbacks", description = "Callbacks do servidor Nginx-RTMP para controle de streaming")
+@Tag(name = "RTMP Callbacks", description = "Callbacks dos servidores RTMP (Nginx-RTMP, SRS) para controle de streaming")
 public class NginxCallbackController {
 
     private static final Logger log = LoggerFactory.getLogger(NginxCallbackController.class);
@@ -31,7 +31,7 @@ public class NginxCallbackController {
     @PostMapping("/publish")
     @Operation(
         summary = "Callback de autenticação e início de stream",
-        description = "Chamado pelo Nginx-RTMP quando um streamer tenta iniciar uma transmissão. Valida a stream key e, se válida, marca a stream como LIVE."
+        description = "Chamado pelo servidor RTMP quando um streamer tenta iniciar uma transmissão. Valida a stream key e, se válida, marca a stream como LIVE."
     )
     @ApiResponses(value = {
         @ApiResponse(responseCode = "200", description = "Stream key válida - transmissão autorizada e iniciada"),
@@ -63,7 +63,7 @@ public class NginxCallbackController {
     @PostMapping("/publish_done")
     @Operation(
         summary = "Callback de fim de transmissão",
-        description = "Chamado pelo Nginx-RTMP quando o streamer para/desconecta da transmissão. Marca a stream como ENDED e executa limpeza."
+        description = "Chamado pelo servidor RTMP quando o streamer para/desconecta da transmissão. Marca a stream como ENDED e executa limpeza."
     )
     @ApiResponse(responseCode = "200", description = "Stream finalizada com sucesso")
     public ResponseEntity<Void> onPublishDone(

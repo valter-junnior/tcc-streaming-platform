@@ -1,3 +1,6 @@
+# Docker Compose para Plataforma de Streaming com GStreamer
+# Versão alternativa usando GStreamer para transcodificação
+
 networks:
   streaming-network:
     driver: bridge
@@ -81,22 +84,23 @@ services:
       rabbitmq:
         condition: service_healthy
 
-  # RTMP Server (Nginx-RTMP - default)
+  # RTMP Server (Nginx-RTMP with GStreamer)
   rtmp-server:
     build:
       context: ./backend/rtmp/nginx
-      dockerfile: Dockerfile
+      dockerfile: Dockerfile.gstreamer
     container_name: streaming-rtmp-server
     networks:
       - streaming-network
     volumes:
       - hls-data:/tmp/hls
+      - ./backend/transcoding/gstreamer:/gstreamer
     ports:
       - "${RTMP_PORT}:1935"    # RTMP
       - "${HLS_PORT}:8081"     # HLS HTTP Server
     environment:
       HLS_RETENTION_HOURS: 6
-      TRANSCODING_ENGINE: ffmpeg
+      TRANSCODING_ENGINE: gstreamer
     depends_on:
       - streaming-platform
     restart: unless-stopped

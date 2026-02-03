@@ -26,10 +26,6 @@ spring:
   # Disable RabbitMQ for unit tests
   rabbitmq:
     host: 
-  
-  # Disable Redis for unit tests  
-  redis:
-    host:
 
 logging:
   level:

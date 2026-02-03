@@ -1,1 +1,0 @@
-eu queria para ter o tempo de streaming mostrando para o usuario verifique como podemos implementar essa funcionalidade

@@ -17,7 +17,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 /**
  * E2E Tests for Nginx Callback Controller endpoints.
- * Tests the integration between Nginx-RTMP callbacks and the backend.
+ * Tests the integration between RTMP server callbacks and the backend.
  */
 @DisplayName("NginxCallbackController E2E Tests")
 @DirtiesContext(classMode = DirtiesContext.ClassMode.AFTER_CLASS)
