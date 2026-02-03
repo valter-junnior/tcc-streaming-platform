@@ -5,6 +5,7 @@ import { apiService } from "../../../app/services/apiService";
 import { routes } from "../../../app/routes";
 import type { CreateStreamRequest } from "../../../app/types/stream";
 import { useUserId } from "../../../shared/hooks/useUserId";
+import { logger } from "../../../shared/lib/logger";
 
 interface CreateStreamModalProps {
   isOpen: boolean;
@@ -52,7 +53,7 @@ export function CreateStreamModal({ isOpen, onClose }: CreateStreamModalProps) {
       // Redirect to dashboard
       navigate(routes.dashboard(response.id));
     } catch (err: any) {
-      console.error("Error creating stream:", err);
+      logger.error("Error creating stream", err);
       setError(
         err.response?.data?.message || "Erro ao criar stream. Tente novamente.",
       );

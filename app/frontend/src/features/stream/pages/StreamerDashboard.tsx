@@ -18,6 +18,7 @@ import { RTMP_URL, APP_URL } from "../../../app/config/env";
 import { routes } from "../../../app/routes";
 import { useUserId } from "../../../shared/hooks/useUserId";
 import type { Stream, StreamStatus } from "../../../app/types/stream";
+import { logger } from "../../../shared/lib/logger";
 
 export function StreamerDashboard() {
   const { streamId } = useParams<{ streamId: string }>();
@@ -51,7 +52,7 @@ export function StreamerDashboard() {
       const data = await apiService.getStream(streamId!);
       setStream(data);
     } catch (err: any) {
-      console.error("Error loading stream:", err);
+      logger.error("Error loading stream", err);
       setError("Erro ao carregar stream");
     } finally {
       setIsLoading(false);
@@ -104,7 +105,7 @@ export function StreamerDashboard() {
         }
       });
     } catch (err) {
-      console.error("WebSocket connection failed:", err);
+      logger.error("WebSocket connection failed", err);
     }
   };
 
@@ -137,7 +138,7 @@ export function StreamerDashboard() {
           : null,
       );
     } catch (err: any) {
-      console.error("Error ending stream:", err);
+      logger.error("Error ending stream", err);
       alert("Erro ao encerrar stream");
     } finally {
       setIsEnding(false);
@@ -158,7 +159,7 @@ export function StreamerDashboard() {
       const data = await apiService.restartStream(streamId!);
       setStream(data);
     } catch (err: any) {
-      console.error("Error restarting stream:", err);
+      logger.error("Error restarting stream", err);
       alert("Erro ao reiniciar transmissão");
     } finally {
       setIsRestarting(false);

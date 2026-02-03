@@ -3,6 +3,7 @@ import { X, Loader2, CheckCircle, AlertCircle } from "lucide-react";
 import { useUpdateStream } from "../../../app/hooks/useUpdateStream";
 import { useUserId } from "../../../shared/hooks/useUserId";
 import type { Stream } from "../../../app/types/stream";
+import { logger } from "../../../shared/lib/logger";
 
 interface EditStreamModalProps {
   stream: Stream;
@@ -53,7 +54,7 @@ export function EditStreamModal({
       // Close modal on success
       handleClose();
     } catch (err: any) {
-      console.error("Error updating stream:", err);
+      logger.error("Error updating stream", err);
 
       if (err.response?.status === 403) {
         setError("Você não tem permissão para editar esta stream");

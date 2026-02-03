@@ -13,6 +13,7 @@ import { HLS_URL } from "../../../app/config/env";
 import { routes } from "../../../app/routes";
 import { VideoPlayer } from "../components/VideoPlayer";
 import type { Stream, StreamStatus } from "../../../app/types/stream";
+import { logger } from "../../../shared/lib/logger";
 
 export function WatchPage() {
   const { streamId } = useParams<{ streamId: string }>();
@@ -102,7 +103,7 @@ export function WatchPage() {
         }
       });
     } catch (err) {
-      console.error("WebSocket connection failed:", err);
+      logger.error("WebSocket connection failed", err);
     }
   };
 

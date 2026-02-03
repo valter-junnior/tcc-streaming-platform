@@ -5,6 +5,7 @@ import { useDeleteStream } from "../../../app/hooks/useDeleteStream";
 import { useUserId } from "../../../shared/hooks/useUserId";
 import { routes } from "../../../app/routes";
 import type { Stream } from "../../../app/types/stream";
+import { logger } from "../../../shared/lib/logger";
 
 interface DeleteStreamModalProps {
   stream: Stream;
@@ -47,7 +48,7 @@ export function DeleteStreamModal({
       onClose();
       navigate(routes.myStreams());
     } catch (err: any) {
-      console.error("Error deleting stream:", err);
+      logger.error("Error deleting stream", err);
 
       if (err.response?.status === 403) {
         setError("Você não tem permissão para excluir esta stream");

@@ -21,6 +21,7 @@ import com.tcc.streaming.stream.core.usecases.UpdateStreamUseCase;
 import com.tcc.streaming.stream.core.usecases.ValidateStreamKeyUseCase;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.cache.CacheManager;
 import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
@@ -37,14 +38,17 @@ public class StreamService implements CreateStreamUseCase, GetStreamUseCase, Get
     private final StreamRepository streamRepository;
     private final EventPublisher eventPublisher;
     private final RtmpServerGateway rtmpServerGateway;
+    private final CacheManager cacheManager;
 
     public StreamService(
             StreamRepository streamRepository, 
             EventPublisher eventPublisher,
-            RtmpServerGateway rtmpServerGateway) {
+            RtmpServerGateway rtmpServerGateway,
+            CacheManager cacheManager) {
         this.streamRepository = streamRepository;
         this.eventPublisher = eventPublisher;
         this.rtmpServerGateway = rtmpServerGateway;
+        this.cacheManager = cacheManager;
     }
 
     @Override
@@ -94,7 +98,6 @@ public class StreamService implements CreateStreamUseCase, GetStreamUseCase, Get
     }
 
     @Override
-    @CacheEvict(value = {"streams", "liveStreams"}, allEntries = true)
     @Transactional
     public void deleteStream(UUID id, String ownerId) {
         Stream stream = streamRepository.findById(id)
@@ -126,6 +129,21 @@ public class StreamService implements CreateStreamUseCase, GetStreamUseCase, Get
         // Deletar fisicamente
         streamRepository.deleteById(id);
         log.info("[StreamService] Stream deleted permanently - ID: {}", id);
+        
+        // Cache eviction após transação bem-sucedida (via TransactionSynchronization)
+        evictCacheAfterCommit();
+    }
+    
+    private void evictCacheAfterCommit() {
+        org.springframework.transaction.support.TransactionSynchronizationManager.registerSynchronization(
+            new org.springframework.transaction.support.TransactionSynchronization() {
+                @Override
+                public void afterCommit() {
+                    cacheManager.getCache("streams").clear();
+                    cacheManager.getCache("liveStreams").clear();
+                }
+            }
+        );
     }
 
     @Override
@@ -246,7 +264,6 @@ public class StreamService implements CreateStreamUseCase, GetStreamUseCase, Get
 
     @Override
     @Transactional
-    @CacheEvict(value = {"streams", "liveStreams"}, allEntries = true)
     public StreamDto update(UpdateStreamDto dto) {
         log.debug("[StreamService] Updating stream {} for owner {}", dto.streamId(), dto.ownerId());
         
@@ -266,6 +283,9 @@ public class StreamService implements CreateStreamUseCase, GetStreamUseCase, Get
         
         Stream updated = streamRepository.save(stream);
         log.debug("[StreamService] Stream {} updated successfully", dto.streamId());
+        
+        // Cache eviction após transação bem-sucedida (via TransactionSynchronization)
+        evictCacheAfterCommit();
         
         return toDto(updated);
     }

@@ -1,6 +1,7 @@
 import { useEffect, useRef } from "react";
 import videojs from "video.js";
 import "video.js/dist/video-js.css";
+import { logger } from "../../../shared/lib/logger";
 import type Player from "video.js/dist/types/player";
 
 interface VideoPlayerProps {
@@ -84,19 +85,19 @@ export function VideoPlayer({
 
       // Event handlers
       player.on("loadedmetadata", () => {
-        console.log("Video.js: Manifest loaded successfully");
+        logger.debug("Video.js: Manifest loaded successfully");
         onReady?.();
       });
 
       player.on("error", () => {
         const error = player.error();
-        console.log("Video.js error:", error);
+        logger.error("Video.js error", error);
 
         if (error && error.code === 4) {
           // MEDIA_ERR_SRC_NOT_SUPPORTED (404 or similar)
           if (retryCountRef.current < MAX_RETRIES) {
             retryCountRef.current++;
-            console.log(
+            logger.warn(
               `Video.js: Retry ${retryCountRef.current}/${MAX_RETRIES} in ${RETRY_DELAY}ms`,
             );
 
