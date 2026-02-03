@@ -1,9 +1,14 @@
 import { useState } from "react";
-import { Video, Play, TrendingUp } from "lucide-react";
+import { Video, Play, TrendingUp, Eye, Loader2 } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { CreateStreamModal } from "../components/CreateStreamModal";
+import { useLiveStreams } from "../../../app/hooks/useLiveStreams";
+import { routes } from "../../../app/routes";
 
 export function HomePage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const navigate = useNavigate();
+  const { data: liveStreams, isLoading } = useLiveStreams();
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
@@ -37,6 +42,57 @@ export function HomePage() {
             Iniciar Streaming
           </button>
         </div>
+
+        {/* Live Streams Section */}
+        {liveStreams && liveStreams.length > 0 && (
+          <div className="max-w-6xl mx-auto mb-16">
+            <h3 className="text-3xl font-bold text-white mb-6 flex items-center gap-2">
+              <Play className="w-8 h-8 text-red-500 animate-pulse" />
+              Ao Vivo Agora
+            </h3>
+
+            {isLoading ? (
+              <div className="flex items-center justify-center py-12">
+                <Loader2 className="w-8 h-8 text-purple-500 animate-spin" />
+              </div>
+            ) : (
+              <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+                {liveStreams?.map((stream) => (
+                  <div
+                    key={stream.id}
+                    onClick={() => navigate(routes.watch(stream.id))}
+                    className="bg-slate-800/70 backdrop-blur rounded-lg border border-slate-700 overflow-hidden cursor-pointer hover:border-purple-500 transition-all hover:scale-105"
+                  >
+                    {/* Thumbnail Placeholder */}
+                    <div className="aspect-video bg-gradient-to-br from-purple-900/50 to-slate-900 flex items-center justify-center relative">
+                      <Play className="w-16 h-16 text-white/80" />
+                      <div className="absolute top-2 left-2 bg-red-600 text-white text-xs font-bold px-2 py-1 rounded flex items-center gap-1">
+                        <span className="w-2 h-2 bg-white rounded-full animate-pulse"></span>
+                        AO VIVO
+                      </div>
+                    </div>
+
+                    {/* Stream Info */}
+                    <div className="p-4">
+                      <h4 className="text-lg font-semibold text-white mb-2 truncate">
+                        {stream.title}
+                      </h4>
+                      {stream.description && (
+                        <p className="text-sm text-slate-400 mb-3 line-clamp-2">
+                          {stream.description}
+                        </p>
+                      )}
+                      <div className="flex items-center gap-2 text-sm text-slate-300">
+                        <Eye className="w-4 h-4" />
+                        <span>{stream.currentViewers} assistindo</span>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Features */}
         <div className="max-w-5xl mx-auto grid md:grid-cols-3 gap-8 mt-20">

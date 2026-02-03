@@ -13,6 +13,7 @@ import com.tcc.streaming.stream.core.usecases.CreateStreamUseCase;
 import com.tcc.streaming.stream.core.usecases.DeleteStreamUseCase;
 import com.tcc.streaming.stream.core.usecases.GetStreamStatusUseCase;
 import com.tcc.streaming.stream.core.usecases.GetStreamUseCase;
+import com.tcc.streaming.stream.core.usecases.ListLiveStreamsUseCase;
 import com.tcc.streaming.stream.core.usecases.ValidateStreamKeyUseCase;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -21,10 +22,12 @@ import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Service
-public class StreamService implements CreateStreamUseCase, GetStreamUseCase, GetStreamStatusUseCase, DeleteStreamUseCase, ValidateStreamKeyUseCase {
+public class StreamService implements CreateStreamUseCase, GetStreamUseCase, GetStreamStatusUseCase, DeleteStreamUseCase, ValidateStreamKeyUseCase, ListLiveStreamsUseCase {
 
     private static final Logger log = LoggerFactory.getLogger(StreamService.class);
     private final StreamRepository streamRepository;
@@ -117,7 +120,7 @@ public class StreamService implements CreateStreamUseCase, GetStreamUseCase, Get
     }
 
     @Transactional
-    @CacheEvict(value = {"streams", "streamStatus"}, key = "#result")
+    @CacheEvict(value = {"streams", "streamStatus", "liveStreams"}, allEntries = true)
     public UUID startStream(String streamKey) {
         Stream stream = streamRepository.findByStreamKey(streamKey)
             .orElseThrow(() -> new StreamNotFoundException(streamKey));
@@ -138,7 +141,7 @@ public class StreamService implements CreateStreamUseCase, GetStreamUseCase, Get
     }
 
     @Transactional
-    @CacheEvict(value = {"streams", "streamStatus"}, key = "#result")
+    @CacheEvict(value = {"streams", "streamStatus", "liveStreams"}, allEntries = true)
     public UUID endStream(String streamKey) {
         Stream stream = streamRepository.findByStreamKey(streamKey)
             .orElseThrow(() -> new StreamNotFoundException(streamKey));
@@ -159,7 +162,7 @@ public class StreamService implements CreateStreamUseCase, GetStreamUseCase, Get
     }
 
     @Transactional
-    @CacheEvict(value = {"streams", "streamStatus"}, key = "#id")
+    @CacheEvict(value = {"streams", "streamStatus", "liveStreams"}, allEntries = true)
     public void restartStream(UUID id) {
         Stream stream = streamRepository.findById(id)
             .orElseThrow(() -> new StreamNotFoundException(id));
@@ -198,5 +201,18 @@ public class StreamService implements CreateStreamUseCase, GetStreamUseCase, Get
             stream.getRtmpUrl(),
             stream.getWatchUrl()
         );
+    }
+
+    @Override
+    @Cacheable(value = "liveStreams")
+    @Transactional(readOnly = true)
+    public List<StreamDto> execute() {
+        log.debug("[StreamService] Fetching all LIVE streams");
+        List<Stream> liveStreams = streamRepository.findByStatus(StreamStatus.LIVE);
+        log.debug("[StreamService] Found {} LIVE streams", liveStreams.size());
+        
+        return liveStreams.stream()
+            .map(this::toDto)
+            .collect(Collectors.toList());
     }
 }

@@ -1,6 +1,19 @@
 import { lazy, Suspense } from "react";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Loader2 } from "lucide-react";
+
+// Create query client
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 1000 * 30, // 30 seconds
+      refetchInterval: 1000 * 30, // Auto-refetch every 30 seconds
+      refetchOnWindowFocus: true,
+      retry: 1,
+    },
+  },
+});
 
 // Lazy load pages for code splitting
 const HomePage = lazy(() =>
@@ -30,15 +43,20 @@ function LoadingFallback() {
 
 function App() {
   return (
-    <BrowserRouter>
-      <Suspense fallback={<LoadingFallback />}>
-        <Routes>
-          <Route path="/" element={<HomePage />} />
-          <Route path="/dashboard/:streamId" element={<StreamerDashboard />} />
-          <Route path="/watch/:streamId" element={<WatchPage />} />
-        </Routes>
-      </Suspense>
-    </BrowserRouter>
+    <QueryClientProvider client={queryClient}>
+      <BrowserRouter>
+        <Suspense fallback={<LoadingFallback />}>
+          <Routes>
+            <Route path="/" element={<HomePage />} />
+            <Route
+              path="/dashboard/:streamId"
+              element={<StreamerDashboard />}
+            />
+            <Route path="/watch/:streamId" element={<WatchPage />} />
+          </Routes>
+        </Suspense>
+      </BrowserRouter>
+    </QueryClientProvider>
   );
 }
 

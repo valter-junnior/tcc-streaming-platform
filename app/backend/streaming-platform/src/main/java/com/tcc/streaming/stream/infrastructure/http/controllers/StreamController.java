@@ -6,6 +6,7 @@ import com.tcc.streaming.stream.core.usecases.CreateStreamUseCase;
 import com.tcc.streaming.stream.core.usecases.DeleteStreamUseCase;
 import com.tcc.streaming.stream.core.usecases.GetStreamStatusUseCase;
 import com.tcc.streaming.stream.core.usecases.GetStreamUseCase;
+import com.tcc.streaming.stream.core.usecases.ListLiveStreamsUseCase;
 import com.tcc.streaming.stream.core.usecases.ValidateStreamKeyUseCase;
 import com.tcc.streaming.stream.infrastructure.http.presenters.StreamPresenter;
 import com.tcc.streaming.stream.infrastructure.http.presenters.StreamStatusPresenter;
@@ -25,6 +26,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
 import java.util.UUID;
 
 @RestController
@@ -38,6 +40,7 @@ public class StreamController {
     private final GetStreamStatusUseCase getStreamStatusUseCase;
     private final DeleteStreamUseCase deleteStreamUseCase;
     private final ValidateStreamKeyUseCase validateStreamKeyUseCase;
+    private final ListLiveStreamsUseCase listLiveStreamsUseCase;
     private final StreamService streamService;
 
     public StreamController(
@@ -46,6 +49,7 @@ public class StreamController {
         GetStreamStatusUseCase getStreamStatusUseCase,
         DeleteStreamUseCase deleteStreamUseCase,
         ValidateStreamKeyUseCase validateStreamKeyUseCase,
+        ListLiveStreamsUseCase listLiveStreamsUseCase,
         StreamService streamService
     ) {
         this.createStreamUseCase = createStreamUseCase;
@@ -53,6 +57,7 @@ public class StreamController {
         this.getStreamStatusUseCase = getStreamStatusUseCase;
         this.deleteStreamUseCase = deleteStreamUseCase;
         this.validateStreamKeyUseCase = validateStreamKeyUseCase;
+        this.listLiveStreamsUseCase = listLiveStreamsUseCase;
         this.streamService = streamService;
     }
 
@@ -74,6 +79,25 @@ public class StreamController {
         var result = createStreamUseCase.execute(dto);
         log.info("[Stream] Stream created successfully - ID: {}, Key: {}", result.id(), result.streamKey());
         return ResponseEntity.status(HttpStatus.CREATED).body(StreamPresenter.from(result));
+    }
+
+    @GetMapping("/live")
+    @Operation(
+        summary = "Listar streams ao vivo",
+        description = "Retorna todas as streams com status LIVE (dados cacheados)"
+    )
+    @ApiResponses(value = {
+        @ApiResponse(responseCode = "200", description = "Lista de streams LIVE retornada com sucesso",
+            content = @Content(schema = @Schema(implementation = StreamPresenter.class)))
+    })
+    public ResponseEntity<List<StreamPresenter>> getLiveStreams() {
+        log.debug("[Stream] Fetching all LIVE streams");
+        var result = listLiveStreamsUseCase.execute();
+        var presenters = result.stream()
+            .map(StreamPresenter::from)
+            .collect(java.util.stream.Collectors.toList());
+        log.debug("[Stream] Found {} LIVE streams", presenters.size());
+        return ResponseEntity.ok(presenters);
     }
 
     @GetMapping("/{id}")

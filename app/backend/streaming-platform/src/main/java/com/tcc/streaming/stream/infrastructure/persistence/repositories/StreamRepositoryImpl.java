@@ -5,8 +5,10 @@ import com.tcc.streaming.stream.core.repositories.StreamRepository;
 import com.tcc.streaming.stream.infrastructure.persistence.mappers.StreamMapper;
 import org.springframework.stereotype.Component;
 
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 @Component
 public class StreamRepositoryImpl implements StreamRepository {
@@ -36,6 +38,14 @@ public class StreamRepositoryImpl implements StreamRepository {
     public Optional<Stream> findByStreamKey(String streamKey) {
         return jpaRepository.findByStreamKey(streamKey)
             .map(mapper::toDomain);
+    }
+
+    @Override
+    public List<Stream> findByStatus(com.tcc.streaming.stream.core.entities.StreamStatus status) {
+        return jpaRepository.findByStatus(status)
+            .stream()
+            .map(mapper::toDomain)
+            .collect(java.util.stream.Collectors.toList());
     }
 
     @Override
