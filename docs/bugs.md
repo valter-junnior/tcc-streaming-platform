@@ -1,32 +1,3 @@
-## ✅ Frontend - Erro de build e runtime com video.js [RESOLVIDO]
+o redis na aplicação tem servido apenas para cache? isso afeta alguma coisa na hora de fazer o streaming? caso só afete as rotas normais de list e etc sem ser a parte do stream do video ao video retire toda a configuração de cache do redis por que só adiciona complexidade e no momento nao quero isso alem disso exclua os testes de redis tambem.
 
-### Erro 1: Build-time
-```
-Cannot read file: /app/src/shims/global.ts/window
-Cannot read file: /app/src/shims/global.ts/document
-```
-
-**Causa:**
-- Alias `global: path.resolve(__dirname, "./src/shims/global.ts")` no vite.config.ts
-- Conflitava com pacote npm `global` que video.js importa (`global/window`, `global/document`)
-
-**Solução:**
-1. Remover alias conflitante do vite.config.ts
-2. Adicionar `optimizeDeps: { include: ["video.js", "@videojs/http-streaming"] }`
-3. Atualizar manualChunks: `hls-vendor` → `video-vendor`
-
-### Erro 2: Runtime (navegador)
-```
-Uncaught ReferenceError: global is not defined
-```
-
-**Causa:**
-- Variável `global` do Node.js não existe no navegador
-- video.js tenta acessar `global` em runtime
-
-**Solução:**
-1. Adicionar polyfill no vite.config.ts: `define: { global: "globalThis" }`
-2. Limpar cache: `rm -rf node_modules/.vite`
-3. Reiniciar container
-
-**Status:** Frontend rodando em http://localhost:3001 ✅
+alem disto como funciona o application.yml e o application-docker.yml, so quero saber por que vi que o docker nao tem todas configuracoes ai queria saber se aplicação ler os dois e faz meio que um merge se for isso ta tudo ok

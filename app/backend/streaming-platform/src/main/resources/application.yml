@@ -103,9 +103,14 @@ streaming:
     threshold-days: 1
     # Cron schedule: run daily at 3 AM (0 0 3 * * *)
     cron: "0 0 3 * * *"
+    # HLS files cleanup - retention in hours
+    hls-retention-hours: 6
     # Other cleanup tasks
     expired-streams-cron: "0 */5 * * * *"  # Every 5 minutes
     old-hls-files-cron: "0 0 * * * *"      # Every hour
+    # Metrics aggregation
+    metrics-aggregation-cron: "0 0 4 * * *"  # Daily at 4 AM
+    old-events-cron: "0 0 5 * * SUN"         # Sundays at 5 AM
 
 springdoc:
   api-docs:

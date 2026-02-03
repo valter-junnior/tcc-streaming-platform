@@ -321,46 +321,42 @@ Desenvolver uma plataforma de streaming de vídeo ao vivo que permita avaliar e 
 **Objetivo**: Processar eventos assíncronos do message broker
 
 #### 5.1 Projeto Spring Boot
-- [ ] Criar projeto consumer-service
-- [ ] Adicionar dependências (AMQP, JPA, Redis)
-- [ ] Configurar conexão com RabbitMQ
-- [ ] Configurar conexão com PostgreSQL
+- [x] Criar projeto consumer-service
+- [x] Adicionar dependências (AMQP, JPA, Redis)
+- [x] Configurar conexão com RabbitMQ
+- [x] Configurar conexão com PostgreSQL
 
 #### 5.2 Event Consumers
-- [ ] Criar Consumer para `stream_created`
-  - [ ] Registrar métricas iniciais
-  - [ ] Log do evento
-- [ ] Criar Consumer para `stream_started`
-  - [ ] Atualizar estatísticas
-  - [ ] Iniciar coleta de métricas detalhadas
-  - [ ] Registrar timestamp exato
-- [ ] Criar Consumer para `stream_ended`
-  - [ ] Calcular duração total
-  - [ ] Calcular estatísticas finais
-  - [ ] Limpar cache de sessão
-  - [ ] Persistir histórico
-- [ ] Criar Consumer para `viewer_joined`
-  - [ ] Incrementar contador
-  - [ ] Registrar evento
-  - [ ] Atualizar pico se necessário
-- [ ] Criar Consumer para `viewer_left`
-  - [ ] Decrementar contador
-  - [ ] Registrar evento
-- [ ] Configurar concorrência de consumers
-- [ ] Implementar retry policy
-- [ ] Implementar error handling
+- [x] Criar Consumer para `stream_created`
+  - [x] Registrar métricas iniciais
+  - [x] Log do evento
+- [x] Criar Consumer para `stream_started`
+  - [x] Atualizar estatísticas
+  - [x] Iniciar coleta de métricas detalhadas
+  - [x] Registrar timestamp exato
+- [x] Criar Consumer para `stream_ended`
+  - [x] Calcular duração total
+  - [x] Calcular estatísticas finais
+  - [x] Limpar cache de sessão
+  - [x] Persistir histórico
+- [x] Criar Consumer para `viewer_joined`
+  - [x] Incrementar contador
+  - [x] Registrar evento
+  - [x] Atualizar pico se necessário
+- [x] Criar Consumer para `viewer_left`
+  - [x] Decrementar contador
+  - [x] Registrar evento
+- [x] Configurar concorrência de consumers
+- [x] Implementar retry policy
+- [x] Implementar error handling
 
 #### 5.3 Tarefas Agendadas
-- [ ] Criar scheduled task para limpar streams expiradas
-  - [ ] Buscar streams WAITING há mais de 30 minutos
-  - [ ] Marcar como EXPIRED
-  - [ ] Limpar cache
-- [ ] Criar scheduled task para limpar arquivos HLS antigos
-  - [ ] Remover segmentos de streams encerradas (após 6 horas)
-  - [ ] Liberar espaço em disco
-- [ ] Criar scheduled task para agregação de métricas
-  - [ ] Calcular médias diárias
-  - [ ] Persistir estatísticas agregadas
+- [x] Criar scheduled task para limpar arquivos HLS antigos
+  - [x] Remover segmentos de streams encerradas (após 6 horas)
+  - [x] Liberar espaço em disco
+- [x] Criar scheduled task para agregação de métricas
+  - [x] Calcular médias diárias
+  - [x] Persistir estatísticas agregadas
 
 ### 📊 Fase 6: Monitoramento (Semana 11-12)
 **Objetivo**: Implementar observabilidade completa do sistema
