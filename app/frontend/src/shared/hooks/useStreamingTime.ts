@@ -32,6 +32,13 @@ export function useStreamingTime(
 
     // Se stream está ENDED e tem endedAt, calcular duração final
     if (status === "ENDED" && endedAt) {
+      // ✅ IMPORTANTE: Limpar interval antes de calcular duração final
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+        intervalRef.current = null;
+      }
+      isInitializedRef.current = false;
+
       setIsEnded(true);
       const start = new Date(startedAt).getTime();
       const end = new Date(endedAt).getTime();
@@ -52,6 +59,12 @@ export function useStreamingTime(
 
     // Se não está LIVE, não fazer nada
     if (status !== "LIVE") {
+      // ✅ Limpar interval se não está LIVE
+      if (intervalRef.current) {
+        clearInterval(intervalRef.current);
+        intervalRef.current = null;
+      }
+      isInitializedRef.current = false;
       setDuration("00:00:00");
       setIsEnded(false);
       return;
