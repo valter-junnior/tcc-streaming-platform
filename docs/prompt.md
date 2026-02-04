@@ -1,0 +1,1 @@
+estou tentando fazer a parte do rtmp + transcode inicialmente com o nginx a ideia é que eu posso configurar tudo apartir de uma variaveld e ambiente como esta configurado hoje em dia mas gostaria que revisasse pra ver se esta tudo ok alem de organizar a pasta do rtmp/nginx
