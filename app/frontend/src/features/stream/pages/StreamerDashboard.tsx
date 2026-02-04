@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import {
   Copy,
@@ -13,10 +13,11 @@ import {
   Play,
 } from "lucide-react";
 import { apiService } from "../../../app/services/apiService";
-import { websocketService } from "../../../app/services/websocketService";
+import { sseService } from "../../../app/services/sseService";
 import { RTMP_URL, APP_URL } from "../../../app/config/env";
 import { routes } from "../../../app/routes";
 import { useUserId } from "../../../shared/hooks/useUserId";
+import { useViewerJoinLeave } from "../../../app/hooks/useViewerJoinLeave";
 import { StreamingTime } from "../components/StreamingTime";
 import type { Stream, StreamStatus } from "../../../app/types/stream";
 import { logger } from "../../../shared/lib/logger";
@@ -33,6 +34,23 @@ export function StreamerDashboard() {
   const [isEnding, setIsEnding] = useState(false);
   const [isRestarting, setIsRestarting] = useState(false);
   const [copiedField, setCopiedField] = useState<string | null>(null);
+  const unsubscribeRef = useRef<(() => void) | null>(null);
+  const hasConnectedRef = useRef(false);
+
+  // Streamer não deve contar nos viewers (countAsViewer=false)
+  useViewerJoinLeave(streamId, userId, false, (response) => {
+    // Atualizar viewers mesmo que streamer não conte
+    logger.info("[StreamerDashboard] Received join response", response);
+    setStream((prev) =>
+      prev
+        ? {
+            ...prev,
+            currentViewers: response.currentViewers,
+            viewersPeak: response.viewersPeak,
+          }
+        : null,
+    );
+  });
 
   useEffect(() => {
     if (!streamId) {
@@ -40,11 +58,21 @@ export function StreamerDashboard() {
       return;
     }
 
+    // Proteção contra double-call do React Strict Mode
+    if (hasConnectedRef.current) {
+      return;
+    }
+
+    hasConnectedRef.current = true;
     loadStream();
-    connectWebSocket();
+    connectSse();
 
     return () => {
-      websocketService.disconnect();
+      hasConnectedRef.current = false; // ✅ Resetar para permitir reconexão no remount
+      if (unsubscribeRef.current) {
+        unsubscribeRef.current();
+        unsubscribeRef.current = null;
+      }
     };
   }, [streamId]);
 
@@ -61,16 +89,26 @@ export function StreamerDashboard() {
     }
   };
 
-  const connectWebSocket = async () => {
-    try {
-      await websocketService.connect();
+  const connectSse = () => {
+    logger.info("[StreamerDashboard] Connecting SSE", { streamId });
 
-      websocketService.subscribeToStreamStatus(streamId!, (message) => {
-        if (message.type === "STATUS_UPDATE") {
-          setStream((prev) =>
-            prev ? { ...prev, status: message.data.status } : null,
+    // Usar um viewerId fixo para o streamer (baseado no streamId)
+    const streamerViewerId = `streamer-${streamId}`;
+
+    // Passar countAsViewer=false para não contar o streamer como viewer
+    unsubscribeRef.current = sseService.subscribe(
+      streamId!,
+      streamerViewerId,
+      (statusMessage) => {
+        logger.info(
+          "[StreamerDashboard] ✅ SSE Callback: Received status update",
+          statusMessage,
+        );
+
+        if (statusMessage.type === "STREAM_STARTED") {
+          logger.info(
+            "[StreamerDashboard] 🎥 Stream started! Updating status to LIVE",
           );
-        } else if (message.type === "STREAM_STARTED") {
           setStream((prev) =>
             prev
               ? {
@@ -80,7 +118,10 @@ export function StreamerDashboard() {
                 }
               : null,
           );
-        } else if (message.type === "STREAM_ENDED") {
+        } else if (statusMessage.type === "STREAM_ENDED") {
+          logger.info(
+            "[StreamerDashboard] ⏹️  Stream ended! Updating status to ENDED",
+          );
           setStream((prev) =>
             prev
               ? {
@@ -91,24 +132,25 @@ export function StreamerDashboard() {
               : null,
           );
         }
-      });
+      },
+      (viewersMessage) => {
+        logger.info(
+          "[StreamerDashboard] ✅ SSE Callback: Received viewers update",
+          viewersMessage,
+        );
 
-      websocketService.subscribeToStreamViewers(streamId!, (message) => {
-        if (message.type === "VIEWERS_UPDATE") {
-          setStream((prev) =>
-            prev
-              ? {
-                  ...prev,
-                  currentViewers: message.currentViewers ?? prev.currentViewers,
-                  viewersPeak: message.viewersPeak ?? prev.viewersPeak,
-                }
-              : null,
-          );
-        }
-      });
-    } catch (err) {
-      logger.error("WebSocket connection failed", err);
-    }
+        setStream((prev) =>
+          prev
+            ? {
+                ...prev,
+                currentViewers: viewersMessage.currentViewers,
+                viewersPeak: viewersMessage.viewersPeak,
+              }
+            : null,
+        );
+      },
+      false, // countAsViewer = false para não contar streamer como viewer
+    );
   };
 
   const handleCopy = (text: string, field: string) => {
@@ -263,10 +305,11 @@ export function StreamerDashboard() {
         >
           {getStatusIcon(stream.status)}
           <span className="font-semibold">{getStatusText(stream.status)}</span>
-          {stream.status === "LIVE" && (
+          {(stream.status === "LIVE" || stream.status === "ENDED") && (
             <span className="ml-2">
               <StreamingTime
                 startedAt={stream.startedAt}
+                endedAt={stream.endedAt}
                 status={stream.status}
                 size="small"
                 showIcon={false}
@@ -303,13 +346,18 @@ export function StreamerDashboard() {
             <div className="flex items-center gap-3 mb-2">
               <Clock className="w-5 h-5 text-purple-400" />
               <span className="text-slate-400 text-sm">
-                Tempo de Transmissão
+                {stream.status === "LIVE"
+                  ? "Tempo de Transmissão"
+                  : stream.status === "ENDED"
+                    ? "Duração Total"
+                    : "Tempo de Transmissão"}
               </span>
             </div>
             <div className="text-3xl font-bold text-white">
-              {stream.status === "LIVE" ? (
+              {stream.status === "LIVE" || stream.status === "ENDED" ? (
                 <StreamingTime
                   startedAt={stream.startedAt}
+                  endedAt={stream.endedAt}
                   status={stream.status}
                   size="large"
                   showIcon={false}

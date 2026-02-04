@@ -4,22 +4,56 @@ import { configService } from "../../app/services/configService";
 interface StreamingTimeResult {
   duration: string;
   isLive: boolean;
+  isEnded: boolean;
   startedAt: Date | null;
 }
 
 /**
- * Hook para calcular e exibir o tempo de streaming em tempo real
+ * Hook para calcular e exibir o tempo de streaming
+ * - Se LIVE: calcula em tempo real
+ * - Se ENDED: calcula duração total baseado em startedAt e endedAt
  */
 export function useStreamingTime(
   startedAt: string | null,
+  endedAt: string | null = null,
+  status: string = "WAITING",
 ): StreamingTimeResult {
   const [duration, setDuration] = useState<string>("00:00:00");
+  const [isEnded, setIsEnded] = useState<boolean>(false);
   const intervalRef = useRef<number | null>(null);
   const isInitializedRef = useRef(false);
 
   useEffect(() => {
     if (!startedAt) {
       setDuration("00:00:00");
+      setIsEnded(false);
+      return;
+    }
+
+    // Se stream está ENDED e tem endedAt, calcular duração final
+    if (status === "ENDED" && endedAt) {
+      setIsEnded(true);
+      const start = new Date(startedAt).getTime();
+      const end = new Date(endedAt).getTime();
+      const diff = end - start;
+
+      if (diff > 0) {
+        const hours = Math.floor(diff / (1000 * 60 * 60));
+        const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+        const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+
+        const formatted = `${hours.toString().padStart(2, "0")}:${minutes.toString().padStart(2, "0")}:${seconds.toString().padStart(2, "0")}`;
+        setDuration(formatted);
+      } else {
+        setDuration("00:00:00");
+      }
+      return;
+    }
+
+    // Se não está LIVE, não fazer nada
+    if (status !== "LIVE") {
+      setDuration("00:00:00");
+      setIsEnded(false);
       return;
     }
 
@@ -91,12 +125,14 @@ export function useStreamingTime(
         clearInterval(intervalRef.current);
         intervalRef.current = null;
       }
+      setIsEnded(false);
     };
-  }, [startedAt]);
+  }, [startedAt, endedAt, status]);
 
   return {
     duration,
-    isLive: !!startedAt,
+    isLive: status === "LIVE" && !!startedAt,
+    isEnded: status === "ENDED" && !!startedAt && !!endedAt,
     startedAt: startedAt ? new Date(startedAt) : null,
   };
 }

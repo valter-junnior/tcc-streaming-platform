@@ -125,7 +125,7 @@ export function HomePage() {
               Tempo Real
             </h3>
             <p className="text-slate-400">
-              Veja o número de espectadores atualizando ao vivo via WebSocket.
+              Veja o número de espectadores atualizando ao vivo via SSE.
             </p>
           </div>
 

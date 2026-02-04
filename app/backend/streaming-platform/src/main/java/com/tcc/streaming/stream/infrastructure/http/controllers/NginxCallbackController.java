@@ -1,7 +1,7 @@
 package com.tcc.streaming.stream.infrastructure.http.controllers;
 
 import com.tcc.streaming.stream.application.services.StreamService;
-import com.tcc.streaming.stream.infrastructure.websocket.controllers.StreamWebSocketController;
+import com.tcc.streaming.stream.infrastructure.sse.controllers.StreamSseController;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
@@ -21,11 +21,11 @@ public class NginxCallbackController {
 
     private static final Logger log = LoggerFactory.getLogger(NginxCallbackController.class);
     private final StreamService streamService;
-    private final StreamWebSocketController webSocketController;
+    private final StreamSseController sseController;
 
-    public NginxCallbackController(StreamService streamService, StreamWebSocketController webSocketController) {
+    public NginxCallbackController(StreamService streamService, StreamSseController sseController) {
         this.streamService = streamService;
-        this.webSocketController = webSocketController;
+        this.sseController = sseController;
     }
 
     @PostMapping("/publish")
@@ -49,9 +49,9 @@ public class NginxCallbackController {
             UUID streamId = streamService.startStream(name);
             log.info("[NginxCallback] Stream authorized and started - ID: {}, Key: {}", streamId, name);
             
-            // Notificar via WebSocket que a stream iniciou
-            webSocketController.broadcastStreamStarted(streamId);
-            log.debug("[NginxCallback] WebSocket notification sent for stream: {}", streamId);
+            // Notificar via SSE que a stream iniciou
+            sseController.broadcastStreamStarted(streamId);
+            log.debug("[NginxCallback] SSE notification sent for stream: {}", streamId);
             
             return ResponseEntity.ok().build();
         } else {
@@ -74,9 +74,9 @@ public class NginxCallbackController {
         UUID streamId = streamService.endStream(name);
         log.info("[NginxCallback] Stream ended - ID: {}, Key: {}", streamId, name);
 
-        // Notificar via WebSocket que a stream terminou
-        webSocketController.broadcastStreamEnded(streamId);
-        log.debug("[NginxCallback] WebSocket notification sent for stream: {}", streamId);
+        // Notificar via SSE que a stream terminou
+        sseController.broadcastStreamEnded(streamId);
+        log.debug("[NginxCallback] SSE notification sent for stream: {}", streamId);
 
         return ResponseEntity.ok().build();
     }
