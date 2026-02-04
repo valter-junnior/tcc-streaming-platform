@@ -75,8 +75,13 @@ echo "[$(date)]   - Input: ${INPUT_URL}" >> "$LOG_FILE"
 echo "[$(date)]   - Output: ${OUTPUT_DIR}/v%v/playlist.m3u8" >> "$LOG_FILE"
 echo "[$(date)]   - Master playlist: ${OUTPUT_DIR}/master.m3u8" >> "$LOG_FILE"
 echo "[$(date)]   - Preset: fast (better quality than veryfast)" >> "$LOG_FILE"
+echo "[$(date)] Attempting to connect to RTMP stream..." >> "$LOG_FILE"
 
 ffmpeg \
+    -v debug \
+    -loglevel trace \
+    -rtmp_live live \
+    -rw_timeout 10000000 \
     -i "${INPUT_URL}" \
     -filter_complex \
     "[v:0]split=4[v0][v1][v2][v3]; \
@@ -107,8 +112,20 @@ echo "[$(date)] FFmpeg exit code: $EXIT_CODE" >> "$LOG_FILE"
 if [ $EXIT_CODE -eq 0 ]; then
     echo "[$(date)] Transcoding completed successfully" >> "$LOG_FILE"
 else
-    echo "[$(date)] Transcoding failed with exit code: $EXIT_CODE" >> "$LOG_FILE"
+    echo "[$(date)] ERROR: Transcoding failed with exit code: $EXIT_CODE" >> "$LOG_FILE"
+    echo "[$(date)] Possible causes:" >> "$LOG_FILE"
+    echo "[$(date)]   1. RTMP stream not connected to Nginx" >> "$LOG_FILE"
+    echo "[$(date)]   2. OBS not streaming to rtmp://localhost:1935/live/${STREAM_KEY}" >> "$LOG_FILE"
+    echo "[$(date)]   3. Stream key mismatch" >> "$LOG_FILE"
+    echo "[$(date)]   4. Nginx-RTMP not receiving data" >> "$LOG_FILE"
     echo "[$(date)] Check FFmpeg output above for detailed error information" >> "$LOG_FILE"
+fi
+
+# Check if any files were generated
+if [ -f "${OUTPUT_DIR}/master.m3u8" ]; then
+    echo "[$(date)] SUCCESS: Master playlist generated" >> "$LOG_FILE"
+else
+    echo "[$(date)] WARNING: Master playlist NOT generated - FFmpeg did not produce output" >> "$LOG_FILE"
 fi
 
 echo "[$(date)] Script execution finished" >> "$LOG_FILE"
