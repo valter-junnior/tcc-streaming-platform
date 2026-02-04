@@ -30,10 +30,6 @@ interface Subscription {
 class SseService {
   private subscriptions: Map<string, Subscription> = new Map();
 
-  /**
-   * Conecta a uma stream para receber notificações em tempo real
-   * NÃO incrementa viewers - isso é feito via viewerService.joinStream()
-   */
   subscribe(
     streamId: string,
     viewerId: string,
@@ -41,7 +37,6 @@ class SseService {
     onViewersUpdate: ViewersUpdateCallback,
     countAsViewer: boolean = true,
   ): () => void {
-    // Se já existe uma subscrição para essa stream, desconectar a antiga primeiro
     const existing = this.subscriptions.get(streamId);
     if (existing) {
       logger.warn(
@@ -56,7 +51,6 @@ class SseService {
       this.subscriptions.delete(streamId);
     }
 
-    // Criar nova conexão SSE
     const url = `${API_BASE_URL}/api/sse/stream/${streamId}/subscribe?viewerId=${viewerId}&countAsViewer=${countAsViewer}`;
     logger.info("[SSE] Subscribing to stream", {
       streamId,
@@ -78,7 +72,6 @@ class SseService {
 
     this.subscriptions.set(streamId, subscription);
 
-    // Listener para eventos de status da stream
     eventSource.addEventListener("stream_status", (event: MessageEvent) => {
       try {
         const data = JSON.parse(event.data) as StreamStatusMessage;
@@ -89,7 +82,6 @@ class SseService {
       }
     });
 
-    // Listener para eventos de atualização de viewers
     eventSource.addEventListener("viewers_update", (event: MessageEvent) => {
       try {
         const data = JSON.parse(event.data) as ViewersUpdateMessage;
@@ -100,12 +92,10 @@ class SseService {
       }
     });
 
-    // Listener para conexão aberta
     eventSource.onopen = () => {
       logger.info("[SSE] Connection established", { streamId, viewerId });
     };
 
-    // Listener para erros
     eventSource.onerror = (error) => {
       const currentSubscription = this.subscriptions.get(streamId);
       if (!currentSubscription) return;
@@ -120,7 +110,6 @@ class SseService {
         reconnectAttempts: currentSubscription.reconnectAttempts,
       });
 
-      // Se exceder 10 tentativas de reconexão, fechar permanentemente
       if (currentSubscription.reconnectAttempts > 10) {
         logger.error(
           "[SSE] Too many reconnection attempts, closing connection",
@@ -133,7 +122,6 @@ class SseService {
         return;
       }
 
-      // Se a conexão foi fechada pelo servidor (pode ser stream inexistente)
       if (eventSource.readyState === EventSource.CLOSED) {
         logger.warn(
           "[SSE] Connection closed by server (stream may not exist)",
@@ -143,7 +131,6 @@ class SseService {
           },
         );
 
-        // Usar backoff exponencial antes de tentar reconectar
         const backoffMs = Math.min(
           1000 * Math.pow(2, currentSubscription.reconnectAttempts - 1),
           30000,
@@ -151,13 +138,11 @@ class SseService {
         logger.info(`[SSE] Will retry after ${backoffMs}ms backoff`);
 
         setTimeout(() => {
-          // Verificar se ainda deve reconectar
           if (this.subscriptions.has(streamId)) {
             logger.info("[SSE] Attempting to reconnect...", {
               streamId,
               viewerId,
             });
-            // Reconectar criando nova subscription
             this.subscribe(
               streamId,
               viewerId,
@@ -170,21 +155,13 @@ class SseService {
 
         this.unsubscribe(streamId);
       }
-      // EventSource.CONNECTING (0) significa que está tentando reconectar automaticamente
-      // Deixamos o EventSource fazer o retry automático
     };
 
-    // Retorna função para cancelar subscrição
     return () => {
       this.unsubscribe(streamId);
     };
   }
 
-  /**
-   * Cancela subscrição de uma stream
-   * NÃO decrementa viewers automaticamente - isso é feito via viewerService.leaveStream()
-   * ou pelo callback de desconexão do SSE no backend
-   */
   unsubscribe(streamId: string): void {
     const subscription = this.subscriptions.get(streamId);
     if (subscription) {
@@ -198,9 +175,6 @@ class SseService {
     }
   }
 
-  /**
-   * Cancela todas as subscrições ativas
-   */
   unsubscribeAll(): void {
     logger.info("[SSE] Unsubscribing from all streams");
     this.subscriptions.forEach((_, streamId) => {
@@ -208,9 +182,6 @@ class SseService {
     });
   }
 
-  /**
-   * Verifica se está subscrito a uma stream
-   */
   isSubscribed(streamId: string): boolean {
     return this.subscriptions.has(streamId);
   }

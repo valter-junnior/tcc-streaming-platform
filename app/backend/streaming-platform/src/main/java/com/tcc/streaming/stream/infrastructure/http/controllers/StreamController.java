@@ -101,12 +101,10 @@ public class StreamController {
             content = @Content(schema = @Schema(implementation = StreamPresenter.class)))
     })
     public ResponseEntity<List<StreamPresenter>> getLiveStreams() {
-        log.debug("[Stream] Fetching all LIVE streams");
         var result = listLiveStreamsUseCase.execute();
         var presenters = result.stream()
             .map(StreamPresenter::from)
             .collect(java.util.stream.Collectors.toList());
-        log.debug("[Stream] Found {} LIVE streams", presenters.size());
         return ResponseEntity.ok(presenters);
     }
 
@@ -123,7 +121,6 @@ public class StreamController {
     public ResponseEntity<StreamPresenter> getStream(
         @Parameter(description = "ID único da stream (UUID)")
         @PathVariable UUID id) {
-        log.debug("[Stream] Getting stream by ID: {}", id);
         var result = getStreamUseCase.execute(id);
         return ResponseEntity.ok(StreamPresenter.from(result));
     }

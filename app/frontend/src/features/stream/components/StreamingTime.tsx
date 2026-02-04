@@ -39,7 +39,6 @@ export function StreamingTime({
     large: "w-5 h-5",
   };
 
-  // Não mostrar se não tem dados
   if (!isLive && !isEnded) {
     return null;
   }

@@ -19,14 +19,12 @@ export function useStreamingTime(
   status: string = "WAITING",
 ): StreamingTimeResult {
   const [duration, setDuration] = useState<string>("00:00:00");
-  const [isEnded, setIsEnded] = useState<boolean>(false);
   const intervalRef = useRef<number | null>(null);
   const isInitializedRef = useRef(false);
 
   useEffect(() => {
     if (!startedAt) {
       setDuration("00:00:00");
-      setIsEnded(false);
       return;
     }
 
@@ -39,7 +37,6 @@ export function useStreamingTime(
       }
       isInitializedRef.current = false;
 
-      setIsEnded(true);
       const start = new Date(startedAt).getTime();
       const end = new Date(endedAt).getTime();
       const diff = end - start;
@@ -66,7 +63,6 @@ export function useStreamingTime(
       }
       isInitializedRef.current = false;
       setDuration("00:00:00");
-      setIsEnded(false);
       return;
     }
 
@@ -138,7 +134,6 @@ export function useStreamingTime(
         clearInterval(intervalRef.current);
         intervalRef.current = null;
       }
-      setIsEnded(false);
     };
   }, [startedAt, endedAt, status]);
 

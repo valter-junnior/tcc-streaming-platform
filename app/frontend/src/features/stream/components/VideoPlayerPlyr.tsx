@@ -18,7 +18,6 @@ export function VideoPlayerPlyr({
   const playerRef = useRef<Plyr | null>(null);
   const hlsRef = useRef<Hls | null>(null);
 
-  // Função para adicionar botão LIVE customizado
   const addLiveButton = (player: Plyr) => {
     const controlsContainer =
       player.elements?.container?.querySelector(".plyr__controls");
@@ -32,20 +31,16 @@ export function VideoPlayerPlyr({
         e.stopPropagation();
 
         if (hlsRef.current && player.media) {
-          // Método mais sutil - apenas ajusta para a posição mais atual
           const seekableLength = player.media.seekable.length;
           if (seekableLength > 0) {
-            // Vai para o final do buffer disponível (posição mais próxima do vivo)
             const livePosition = player.media.seekable.end(seekableLength - 1);
             player.media.currentTime = livePosition;
           } else {
-            // Fallback: vai para a duração atual
             if (player.duration && player.duration > 0) {
               player.media.currentTime = player.duration;
             }
           }
         } else if (player.media) {
-          // Para Safari nativo - método mais direto
           const seekableLength = player.media.seekable.length;
           if (seekableLength > 0) {
             const livePosition = player.media.seekable.end(seekableLength - 1);
@@ -56,7 +51,6 @@ export function VideoPlayerPlyr({
         }
       };
 
-      // Inserir antes do botão de fullscreen
       const fullscreenBtn = controlsContainer.querySelector(
         '[data-plyr="fullscreen"]',
       );

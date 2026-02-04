@@ -36,10 +36,6 @@ public class ViewerEventConsumer {
             UUID streamId = UUID.fromString((String) message.get("streamId"));
             String viewerId = (String) message.get("viewerId");
             
-            log.debug("[ViewerEventConsumer] Received event: {} - StreamId: {}, ViewerId: {}", 
-                      eventType, streamId, viewerId);
-            
-            // Criar DTO
             StreamEventDto eventDto = new StreamEventDto(
                 streamId,
                 eventType,

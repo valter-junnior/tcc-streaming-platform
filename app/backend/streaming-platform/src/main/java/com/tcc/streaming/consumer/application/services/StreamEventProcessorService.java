@@ -26,11 +26,7 @@ public class StreamEventProcessorService implements ProcessStreamEventUseCase {
     @Override
     @Transactional
     public void execute(StreamEventDto eventDto) {
-        log.debug("[StreamEventProcessor] Processing event - Type: {}, StreamId: {}", 
-                  eventDto.eventType(), eventDto.streamId());
-        
         try {
-            // Determinar tipo de evento
             StreamEventType eventType = mapEventType(eventDto.eventType());
             
             // Construir metadata JSON

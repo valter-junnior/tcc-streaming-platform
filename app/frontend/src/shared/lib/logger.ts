@@ -1,9 +1,3 @@
-/**
- * Logger utility for frontend
- * In development: logs to console
- * In production: can be extended to send to monitoring services (Sentry, LogRocket, etc)
- */
-
 type LogLevel = "info" | "warn" | "error" | "debug";
 
 class Logger {
@@ -11,7 +5,6 @@ class Logger {
 
   private log(level: LogLevel, message: string, data?: any) {
     if (this.isDev) {
-      // Development: log to console
       switch (level) {
         case "error":
           console.error(`[${level.toUpperCase()}]`, message, data || "");
@@ -26,13 +19,8 @@ class Logger {
           console.debug(`[${level.toUpperCase()}]`, message, data || "");
           break;
       }
-    } else {
-      // Production: can be extended to send to monitoring service
-      // Example: Sentry.captureMessage(message, level, { extra: data });
-      if (level === "error") {
-        // In production, only log errors to avoid noise
-        console.error(message);
-      }
+    } else if (level === "error") {
+      console.error(message);
     }
   }
 

@@ -33,9 +33,7 @@ public class StreamEventConsumer {
     public void handleStreamEvent(Map<String, Object> message) {
         try {
             String eventType = (String) message.get("eventType");
-            log.debug("[StreamEventConsumer] Received event: {}", eventType);
             
-            // Extrair dados do evento
             UUID streamId = UUID.fromString((String) message.get("streamId"));
             String streamKey = (String) message.get("streamKey");
             String title = (String) message.get("title");
@@ -56,12 +54,10 @@ public class StreamEventConsumer {
             // Processar evento
             processStreamEventUseCase.execute(eventDto);
             
-            // Lógica específica por tipo de evento
             switch (eventType) {
                 case "stream_created" -> handleStreamCreated(streamId, title);
                 case "stream_started" -> handleStreamStarted(streamId, streamKey);
                 case "stream_ended" -> handleStreamEnded(streamId, viewersPeak);
-                default -> log.debug("[StreamEventConsumer] Event type {} processed", eventType);
             }
             
         } catch (Exception e) {

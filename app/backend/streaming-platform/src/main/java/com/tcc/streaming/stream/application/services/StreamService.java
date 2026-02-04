@@ -47,16 +47,9 @@ public class StreamService implements CreateStreamUseCase, GetStreamUseCase, Get
     @Override
     @Transactional
     public StreamDto execute(CreateStreamDto dto) {
-        log.debug("[StreamService] Creating stream entity - Title: {}, OwnerId: {}", dto.title(), dto.ownerId());
-        
-        // Criar entidade de domínio
         Stream stream = Stream.create(dto.title(), dto.description(), dto.ownerId());
-        
-        // Persistir
         Stream saved = streamRepository.save(stream);
-        log.debug("[StreamService] Stream persisted - ID: {}", saved.getId());
         
-        // Publicar evento de domínio (será processado após commit)
         applicationEventPublisher.publishEvent(
             new StreamCreatedEvent(saved.getId(), saved.getStreamKey(), saved.getTitle())
         );
@@ -67,7 +60,6 @@ public class StreamService implements CreateStreamUseCase, GetStreamUseCase, Get
     @Override
     @Transactional(readOnly = true)
     public StreamDto execute(UUID id) {
-        log.debug("[StreamService] Fetching stream - ID: {}", id);
         Stream stream = streamRepository.findById(id)
             .orElseThrow(() -> new StreamNotFoundException(id));
         
@@ -258,11 +250,6 @@ public class StreamService implements CreateStreamUseCase, GetStreamUseCase, Get
         return toDto(updated);
     }
     
-    /**
-     * Cleanup inactive streams that haven't been updated for more than the specified threshold
-     * @param thresholdDays Number of days of inactivity before cleanup
-     * @return Number of streams cleaned up
-     */
     @Transactional
     public int cleanupInactiveStreams(int thresholdDays) {
         java.time.LocalDateTime thresholdDate = java.time.LocalDateTime.now().minusDays(thresholdDays);
@@ -310,21 +297,12 @@ public class StreamService implements CreateStreamUseCase, GetStreamUseCase, Get
             throw new StreamNotFoundException(streamId);
         }
         
-        // Buscar stream atualizada para retornar
         Stream stream = streamRepository.findById(streamId)
             .orElseThrow(() -> new StreamNotFoundException(streamId));
-        
-        log.debug("[StreamService] Viewers incremented atomically - Stream: {}, Current: {}, Peak: {}", 
-                 streamId, stream.getCurrentViewers(), stream.getViewersPeak());
         
         return toDto(stream);
     }
 
-    /**
-     * Decrement viewer count for a stream (atomic operation)
-     * @param streamId Stream ID
-     * @return Updated stream with new viewer count
-     */
     @Transactional
     public StreamDto decrementViewers(UUID streamId) {
         int updated = streamRepository.decrementViewersAtomic(streamId);
@@ -333,12 +311,8 @@ public class StreamService implements CreateStreamUseCase, GetStreamUseCase, Get
             throw new StreamNotFoundException(streamId);
         }
         
-        // Buscar stream atualizada para retornar
         Stream stream = streamRepository.findById(streamId)
             .orElseThrow(() -> new StreamNotFoundException(streamId));
-        
-        log.debug("[StreamService] Viewers decremented atomically - Stream: {}, Current: {}", 
-                 streamId, stream.getCurrentViewers());
         
         return toDto(stream);
     }
