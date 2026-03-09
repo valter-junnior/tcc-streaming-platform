@@ -1,1 +1,0 @@
-eu estava fazendo uma analise completa do backend para remover codigos, metodos e arquivos, inutilizaveis e redundantes, alem de comentarios e loggers que nao servem de nada

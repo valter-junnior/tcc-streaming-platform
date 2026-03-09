@@ -42,11 +42,11 @@ public class NginxCallbackController {
         @RequestParam String name) {
         log.info("[NginxCallback] Received on_publish for stream key: {}", name);
         
-        boolean valid = streamService.execute(name);
+        // Operação atômica: validar e iniciar stream em uma única transação
+        UUID streamId = streamService.validateAndStartStream(name);
         
-        if (valid) {
-            // Stream key válida - iniciar transmissão
-            UUID streamId = streamService.startStream(name);
+        if (streamId != null) {
+            // Stream key válida e stream iniciada com sucesso
             log.info("[NginxCallback] Stream authorized and started - ID: {}, Key: {}", streamId, name);
             
             // Notificar via SSE que a stream iniciou

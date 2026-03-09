@@ -1,9 +1,1 @@
-analise o frontend novamente mas de olho no codigo como:
-
-- componentização para reaproveitar codigos
-- regra de negocio e a logica implementada
-- codigo reduntantes (acho que o viewerId e o ownerId nao tem problema serem gerados pelo mesmo script e armaenado da mesma forma, entre outros)
-- avalie o ciclo de vida pra evitar refreshs na pagina desnecessários
-- avalie tudo que achar importa
-
-resolva tudo
+analise todo projeto e dentro de docs/reviews/ faça uma review de todo o projeto na parte do backend tente mostrar apenas os pontos de erros sabendo que quero manter uma boa arquitetura bons padrões de projeto DRY, além de avaliar logicas de regra de negocio crie um .md direto sem muita enrolação apenas com o necessário

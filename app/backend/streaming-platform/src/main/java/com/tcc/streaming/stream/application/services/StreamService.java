@@ -316,5 +316,39 @@ public class StreamService implements CreateStreamUseCase, GetStreamUseCase, Get
         
         return toDto(stream);
     }
+
+    /**
+     * Atomic operation to validate stream key and start stream if valid
+     * Prevents race condition between validation and start operations
+     * @param streamKey Stream key to validate and start
+     * @return Stream ID if validation and start successful, null if validation failed
+     */
+    @Transactional
+    public UUID validateAndStartStream(String streamKey) {
+        log.info("[StreamService] Atomic validate and start stream - Key: {}", streamKey);
+        
+        Stream stream = streamRepository.findByStreamKey(streamKey).orElse(null);
+        
+        if (stream == null) {
+            log.warn("[StreamService] Stream key validation failed - Key: {}", streamKey);
+            return null;
+        }
+        
+        log.info("[StreamService] Starting stream - ID: {}, Key: {}, Status: {}", 
+                 stream.getId(), streamKey, stream.getStatus());
+        
+        stream.start();
+        streamRepository.save(stream);
+        
+        log.info("[StreamService] Stream started - ID: {}, New Status: {}", 
+                 stream.getId(), stream.getStatus());
+        
+        // Publicar evento de domínio (será processado após commit)
+        applicationEventPublisher.publishEvent(
+            new StreamStartedEvent(stream.getId(), stream.getStreamKey())
+        );
+        
+        return stream.getId();
+    }
 }
 

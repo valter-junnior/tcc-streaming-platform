@@ -59,6 +59,16 @@ stream:
   cleanup:
     threshold-days: 1
 
+sse:
+  # SSE connection timeout in milliseconds (30 minutes)
+  timeout: 1800000
+  # Keepalive interval in milliseconds (30 seconds)
+  keepalive-interval: 30000
+  # TTL cleanup interval in milliseconds (5 minutes)  
+  ttl-cleanup-interval: 300000
+  # Emitter TTL in hours (2 hours)
+  emitter-ttl-hours: 2
+
 springdoc:
   api-docs:
     path: /api-docs

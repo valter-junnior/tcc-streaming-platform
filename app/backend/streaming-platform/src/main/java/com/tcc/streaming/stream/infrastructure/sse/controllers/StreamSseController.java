@@ -5,11 +5,12 @@ import com.tcc.streaming.stream.infrastructure.sse.SseEmitterManager;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.MediaType;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
-import org.springframework.web.client.RestTemplate;
 
 import java.util.UUID;
+import java.util.concurrent.CompletableFuture;
 
 @RestController
 @RequestMapping("/api/sse")
@@ -18,12 +19,10 @@ public class StreamSseController {
     private static final Logger log = LoggerFactory.getLogger(StreamSseController.class);
     
     private final SseEmitterManager emitterManager;
-    private final RestTemplate restTemplate;
     private final StreamService streamService;
 
     public StreamSseController(SseEmitterManager emitterManager, StreamService streamService) {
         this.emitterManager = emitterManager;
-        this.restTemplate = new RestTemplate();
         this.streamService = streamService;
     }
 
@@ -48,14 +47,12 @@ public class StreamSseController {
             
             if (countAsViewer) {
                 try {
-                    String url = String.format("http://localhost:8080/api/streams/%s/leave?viewerId=%s&countAsViewer=true", 
-                                              streamId, viewerId);
-                    
-                    log.info("[SSE] Calling leave endpoint on disconnect - URL: {}", url);
-                    restTemplate.postForEntity(url, null, Void.class);
+                    log.info("[SSE] Decreasing viewer count on disconnect - StreamId: {}, ViewerId: {}", 
+                             streamId, viewerId);
+                    streamService.decrementViewers(streamId);
                     
                 } catch (Exception e) {
-                    log.error("[SSE] Error calling leave endpoint: {}", e.getMessage(), e);
+                    log.error("[SSE] Error decreasing viewer count: {}", e.getMessage(), e);
                 }
             }
         });
@@ -75,14 +72,24 @@ public class StreamSseController {
         emitterManager.broadcastToStream(streamId, "stream_status", 
             new StreamStatusMessage("STREAM_ENDED", "ENDED"));
         
-        new Thread(() -> {
-            try {
-                Thread.sleep(5000);
-                emitterManager.removeAllEmittersForStream(streamId);
-            } catch (InterruptedException e) {
-                Thread.currentThread().interrupt();
-            }
-        }).start();
+        // Cleanup assincrono dos emitters após delay
+        cleanupEmittersAfterDelay(streamId);
+    }
+
+    @Async
+    private CompletableFuture<Void> cleanupEmittersAfterDelay(UUID streamId) {
+        try {
+            Thread.sleep(5000);
+            log.info("[SSE] Cleaning up emitters for ended stream: {}", streamId);
+            emitterManager.removeAllEmittersForStream(streamId);
+        } catch (InterruptedException e) {
+            log.warn("[SSE] Cleanup interrupted for stream: {}", streamId);
+            Thread.currentThread().interrupt();
+        } catch (Exception e) {
+            log.error("[SSE] Error during emitter cleanup for stream {}: {}", streamId, e.getMessage(), e);
+        }
+        
+        return CompletableFuture.completedFuture(null);
     }
 
     public void broadcastViewersUpdate(UUID streamId, int currentViewers, int viewersPeak) {

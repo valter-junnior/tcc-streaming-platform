@@ -63,15 +63,17 @@ public class Stream {
     }
 
     public void end() {
-        this.status = StreamStatus.ENDED;
-        this.endedAt = LocalDateTime.now();
-        this.updatedAt = LocalDateTime.now();
+        endStream(false);
     }
 
     public void forceEnd() {
         // Force end without status check - used for cleanup/delete
+        endStream(true);
+    }
+
+    private void endStream(boolean force) {
         this.status = StreamStatus.ENDED;
-        if (this.endedAt == null) {
+        if (force || this.endedAt == null) {
             this.endedAt = LocalDateTime.now();
         }
         this.updatedAt = LocalDateTime.now();

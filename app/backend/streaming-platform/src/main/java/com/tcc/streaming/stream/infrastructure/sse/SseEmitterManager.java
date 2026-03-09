@@ -1,12 +1,14 @@
 package com.tcc.streaming.stream.infrastructure.sse;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.tcc.streaming.stream.infrastructure.config.SseProperties;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.io.IOException;
+import java.time.LocalDateTime;
 import java.util.*;
 import java.util.concurrent.*;
 
@@ -14,29 +16,40 @@ import java.util.concurrent.*;
 public class SseEmitterManager {
 
     private static final Logger log = LoggerFactory.getLogger(SseEmitterManager.class);
-    private static final Long SSE_TIMEOUT = 30 * 60 * 1000L;
-    private static final Long KEEPALIVE_INTERVAL = 30 * 1000L;
     
     private final ScheduledExecutorService keepaliveScheduler = Executors.newScheduledThreadPool(1);
-    
     private final ObjectMapper objectMapper;
+    private final SseProperties sseProperties;
     
     private final Map<UUID, Set<ViewerEmitter>> streamEmitters = new ConcurrentHashMap<>();
     private final Map<String, ViewerEmitter> viewerEmitters = new ConcurrentHashMap<>();
     private final Map<String, UUID> activeViewers = new ConcurrentHashMap<>();
 
-    public SseEmitterManager(ObjectMapper objectMapper) {
+    public SseEmitterManager(ObjectMapper objectMapper, SseProperties sseProperties) {
         this.objectMapper = objectMapper;
+        this.sseProperties = sseProperties;
         
+        // Keepalive task
         keepaliveScheduler.scheduleAtFixedRate(() -> {
             try {
                 sendKeepaliveToAll();
             } catch (Exception e) {
                 log.error("[SSE] Error in keepalive task", e);
             }
-        }, KEEPALIVE_INTERVAL, KEEPALIVE_INTERVAL, TimeUnit.MILLISECONDS);
+        }, sseProperties.getKeepaliveInterval(), sseProperties.getKeepaliveInterval(), TimeUnit.MILLISECONDS);
         
-        log.info("[SSE] Keepalive scheduler started - Interval: {}s", KEEPALIVE_INTERVAL / 1000);
+        // TTL cleanup task
+        keepaliveScheduler.scheduleAtFixedRate(() -> {
+            try {
+                cleanupExpiredEmitters();
+            } catch (Exception e) {
+                log.error("[SSE] Error in TTL cleanup task", e);
+            }
+        }, sseProperties.getTtlCleanupInterval(), sseProperties.getTtlCleanupInterval(), TimeUnit.MILLISECONDS);
+        
+        log.info("[SSE] Scheduled tasks started - Keepalive: {}s, TTL Cleanup: {}min", 
+                 sseProperties.getKeepaliveInterval() / 1000, 
+                 sseProperties.getTtlCleanupInterval() / 1000 / 60);
     }
 
     public SseEmitter createEmitter(UUID streamId, String viewerId, Runnable onDisconnect) {
@@ -45,8 +58,8 @@ public class SseEmitterManager {
             removeEmitterInternal(viewerId);
         }
         
-        SseEmitter emitter = new SseEmitter(SSE_TIMEOUT);
-        ViewerEmitter viewerEmitter = new ViewerEmitter(streamId, viewerId, emitter, onDisconnect);
+        SseEmitter emitter = new SseEmitter(sseProperties.getTimeout());
+        ViewerEmitter viewerEmitter = new ViewerEmitter(streamId, viewerId, emitter, onDisconnect, LocalDateTime.now());
         
         streamEmitters.computeIfAbsent(streamId, k -> new CopyOnWriteArraySet<>()).add(viewerEmitter);
         viewerEmitters.put(viewerId, viewerEmitter);
@@ -210,5 +223,32 @@ public class SseEmitterManager {
         }
     }
 
-    private record ViewerEmitter(UUID streamId, String viewerId, SseEmitter emitter, Runnable onDisconnect) {}
+    /**
+     * Remove emitters that have exceeded TTL to prevent memory leaks
+     */
+    private void cleanupExpiredEmitters() {
+        LocalDateTime cutoff = LocalDateTime.now().minusHours(sseProperties.getEmitterTtlHours());
+        List<String> expiredViewers = new ArrayList<>();
+        
+        int totalBefore = viewerEmitters.size();
+        
+        for (ViewerEmitter viewerEmitter : viewerEmitters.values()) {
+            if (viewerEmitter.createdAt().isBefore(cutoff)) {
+                expiredViewers.add(viewerEmitter.viewerId());
+            }
+        }
+        
+        expiredViewers.forEach(viewerId -> {
+            log.info("[SSE] Removing expired emitter - ViewerId: {}, Age: >{}h", 
+                     viewerId, sseProperties.getEmitterTtlHours());
+            removeEmitterInternal(viewerId);
+        });
+        
+        if (expiredViewers.size() > 0) {
+            log.info("[SSE] TTL Cleanup completed - Before: {}, Removed: {}, After: {}", 
+                     totalBefore, expiredViewers.size(), viewerEmitters.size());
+        }
+    }
+
+    private record ViewerEmitter(UUID streamId, String viewerId, SseEmitter emitter, Runnable onDisconnect, LocalDateTime createdAt) {}
 }
