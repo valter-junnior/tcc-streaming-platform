@@ -154,8 +154,8 @@ export function HomePage() {
           </p>
           <p className="text-slate-300 leading-relaxed">
             O objetivo é comparar o desempenho de diferentes stacks tecnológicos
-            (RabbitMQ vs Redis Streams vs NATS, FFmpeg vs GStreamer, Nginx-RTMP
-            vs SRS) através de métricas quantitativas e qualitativas.
+            (RabbitMQ vs Redis Streams vs NATS, Nginx-RTMP vs SRS) através de
+            métricas quantitativas e qualitativas.
           </p>
         </div>
       </div>

@@ -9,9 +9,7 @@ nginx/
 │   └── nginx.conf         # Template de configuração do Nginx-RTMP
 ├── scripts/               # Scripts de operação
 │   ├── docker-entrypoint.sh    # Script de inicialização
-│   ├── transcode-wrapper.sh    # Wrapper para escolher engine de transcodificação
-│   ├── transcode-ffmpeg.sh     # Transcodificação com FFmpeg
-│   ├── transcode-gstreamer.sh  # Transcodificação com GStreamer
+│   ├── transcode-ffmpeg.sh     # Transcodição com FFmpeg (multi-qualidade HLS)
 │   └── cleanup-hls.sh          # Limpeza de arquivos HLS antigos
 └── docs/                  # Documentação
     └── README.md          # Este arquivo
@@ -33,8 +31,6 @@ Todas as configurações podem ser ajustadas via variáveis de ambiente no arqui
 | Variável | Padrão | Descrição |
 |----------|--------|-----------|
 | `HLS_PATH` | /tmp/hls | Diretório de saída dos arquivos HLS |
-| `HLS_FRAGMENT_DURATION` | 6s | Duração de cada segmento .ts |
-| `HLS_PLAYLIST_LENGTH` | 60s | Duração total da playlist |
 | `HLS_HTTP_PORT` | 8081 | Porta do servidor HTTP para HLS |
 | `HLS_RETENTION_HOURS` | 6 | Tempo de retenção dos arquivos HLS |
 
@@ -45,11 +41,10 @@ Todas as configurações podem ser ajustadas via variáveis de ambiente no arqui
 | `BACKEND_HOST` | streaming-platform | Hostname do backend |
 | `BACKEND_PORT` | 8080 | Porta do backend |
 
-### Configurações Transcodificação
+### Configurações Transcodição
 
-| Variável | Padrão | Descrição |
-|----------|--------|-----------|
-| `TRANSCODING_ENGINE` | ffmpeg | Engine de transcodificação (ffmpeg ou gstreamer) |
+A transcodição é feita pelo FFmpeg, invocado automaticamente pelo Nginx-RTMP via diretiva `exec`.
+Não há variáveis de ambiente adicionais - os parâmetros estão diretamente em `transcode-ffmpeg.sh`.
 
 ## Como Funciona
 
@@ -62,36 +57,20 @@ O `docker-entrypoint.sh`:
 4. Inicia o serviço cron para limpeza HLS
 5. Inicia o Nginx em foreground
 
-### 2. Transcodificação
+### 2. Transcodição
 
 Quando um stream RTMP é iniciado:
 1. Nginx-RTMP chama o callback `on_publish` no backend para validar
-2. Se aprovado, executa `transcode-wrapper.sh` com a stream key
-3. O wrapper verifica `TRANSCODING_ENGINE` e chama o script apropriado:
-   - `transcode-ffmpeg.sh` - Usa FFmpeg para transcodificação
-   - `transcode-gstreamer.sh` - Usa GStreamer para transcodificação
-4. O script de transcodificação gera 4 qualidades HLS (1080p, 720p, 480p, 360p)
+2. Se aprovado, o Nginx-RTMP executa `exec /usr/local/bin/transcode-ffmpeg.sh $name`
+3. FFmpeg lê o stream de `rtmp://127.0.0.1/live/{key}` e gera 4 qualidades HLS (1080p, 720p, 480p, 360p)
+4. Arquivos gerados em `/tmp/hls/{key}/master.m3u8` e `/tmp/hls/{key}/v{0-3}/playlist.m3u8`
+5. Frontend lê `master.m3u8` para ABR automático
 
 ### 3. Limpeza HLS
 
 O `cleanup-hls.sh` roda a cada hora via cron e remove:
 - Arquivos `.ts` e `.m3u8` mais antigos que `HLS_RETENTION_HOURS`
 - Diretórios vazios resultantes
-
-## Alternar Engine de Transcodificação
-
-Para alternar entre FFmpeg e GStreamer:
-
-```bash
-# Opção 1: Editar .env
-TRANSCODING_ENGINE=gstreamer  # ou ffmpeg
-
-# Opção 2: Usar script helper
-./scripts/switch-transcoding-engine.sh gstreamer
-
-# Rebuild do container
-docker compose up -d --build rtmp-server
-```
 
 ## Callbacks HTTP
 

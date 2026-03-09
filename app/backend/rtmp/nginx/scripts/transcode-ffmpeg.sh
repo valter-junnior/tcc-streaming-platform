@@ -69,17 +69,11 @@ fi
 echo "[$(date)] Stream is ready, starting FFmpeg transcoding..." >> "$LOG_FILE"
 
 # FFmpeg transcoding with 4 qualities for smooth adaptive bitrate
-echo "[$(date)] Starting FFmpeg transcoding with 4 qualities (1080p, 720p, 480p, 360p)..." >> "$LOG_FILE"
-echo "[$(date)] FFmpeg parameters:" >> "$LOG_FILE"
-echo "[$(date)]   - Input: ${INPUT_URL}" >> "$LOG_FILE"
-echo "[$(date)]   - Output: ${OUTPUT_DIR}/v%v/playlist.m3u8" >> "$LOG_FILE"
-echo "[$(date)]   - Master playlist: ${OUTPUT_DIR}/master.m3u8" >> "$LOG_FILE"
-echo "[$(date)]   - Preset: fast (better quality than veryfast)" >> "$LOG_FILE"
+echo "[$(date)] Starting FFmpeg transcoding: 1080p, 720p, 480p, 360p" >> "$LOG_FILE"
 echo "[$(date)] Attempting to connect to RTMP stream..." >> "$LOG_FILE"
 
 ffmpeg \
-    -v debug \
-    -loglevel trace \
+    -loglevel warning \
     -rtmp_live live \
     -rw_timeout 10000000 \
     -i "${INPUT_URL}" \

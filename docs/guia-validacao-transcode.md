@@ -235,29 +235,7 @@ docker compose exec rtmp-server grep "Starting transcoding" /tmp/hls/<stream_key
 docker compose exec rtmp-server grep "bitrate=" /tmp/hls/<stream_key>/transcode.log
 ```
 
-## 🔄 Alternar para GStreamer
-
-### Via .env
-
-```bash
-# Editar app/.env
-TRANSCODING_ENGINE=gstreamer
-
-# Restart
-docker compose up -d rtmp-server
-```
-
-### Verificar Engine Ativa
-
-```bash
-# FFmpeg
-docker compose exec rtmp-server ps aux | grep ffmpeg
-
-# GStreamer
-docker compose exec rtmp-server ps aux | grep gst-launch
-```
-
-## 📚 Referências
+## � Referências
 
 - [Changelog de Implementação](./changelogs/2026-02-04_ativacao-transcode-multi-qualidade.md)
 - [Análise do Problema](./analise-transcode-status.md)
@@ -265,5 +243,5 @@ docker compose exec rtmp-server ps aux | grep gst-launch
 
 ---
 
-**Última atualização**: 2026-02-04  
-**Status**: ✅ Pronto para testes
+**Última atualização**: 2026-03-09  
+**Status**: ✅ FFmpeg integrado via exec no Nginx-RTMP

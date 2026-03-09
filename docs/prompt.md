@@ -1,1 +1,1 @@
-analise todo projeto e dentro de docs/reviews/ faça uma review de todo o projeto na parte do backend tente mostrar apenas os pontos de erros sabendo que quero manter uma boa arquitetura bons padrões de projeto DRY, além de avaliar logicas de regra de negocio crie um .md direto sem muita enrolação apenas com o necessário
+agora faça o frontend conseguir selecionar a qualidade da transmissão

@@ -14,9 +14,8 @@ flowchart TB
         RTMP2[SRS<br/>Alternativa 1]
     end
     
-    subgraph "Video Processing (Escolha 1 de 2)"
-        Proc1[FFmpeg<br/>⭐ Principal]
-        Proc2[GStreamer<br/>Alternativa 1]
+    subgraph "Video Processing"
+        Proc1[FFmpeg<br/>⭐ via exec Nginx-RTMP]
     end
     
     subgraph "HLS Serving"

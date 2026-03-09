@@ -187,7 +187,7 @@ export function WatchPage() {
   useEffect(() => {
     if (!stream) return;
 
-    const hlsUrl = `${HLS_URL}/${stream.streamKey}/index.m3u8`;
+    const hlsUrl = `${HLS_URL}/${stream.streamKey}/master.m3u8`;
 
     if (stream.status === "LIVE") {
       startHlsPolling(hlsUrl);
@@ -229,8 +229,8 @@ export function WatchPage() {
     );
   }
 
-  // Nginx-RTMP nativo gera index.m3u8 (não master.m3u8)
-  const hlsUrl = `${HLS_URL}/${stream.streamKey}/index.m3u8`;
+  // FFmpeg gera master.m3u8 com múltiplas qualidades (1080p, 720p, 480p, 360p)
+  const hlsUrl = `${HLS_URL}/${stream.streamKey}/master.m3u8`;
 
   return (
     <div className="min-h-screen bg-slate-900">

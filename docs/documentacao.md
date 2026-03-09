@@ -28,7 +28,6 @@ Este **Trabalho de Conclusão de Curso (TCC)** apresenta o desenvolvimento de um
 No ecossistema de streaming e arquitetura de microserviços, desenvolvedores frequentemente enfrentam perguntas como:
 
 - 🤔 Qual servidor RTMP escolher: Nginx-RTMP ou SRS?
-- 🤔 FFmpeg ou GStreamer para transcodificação?
 - 🤔 RabbitMQ, Redis Streams ou NATS para mensageria?
 - 🤔 Como essas escolhas impactam latência, uso de recursos e escalabilidade?
 
@@ -102,7 +101,7 @@ O sistema é organizado em **5 camadas principais** com componentes desacoplados
            │                   │
 ┌──────────┴───────────────────▼──────────────────────────────┐
 │              STREAMING INFRASTRUCTURE LAYER                 │
-│   Nginx-RTMP/SRS │ FFmpeg/GStreamer │ Nginx HLS Server      │
+│   Nginx-RTMP/SRS │ FFmpeg             │ Nginx HLS Server      │
 └──────────▲──────────────────────────────────────────────────┘
            │ RTMP
 ┌──────────┴──────────────────────────────────────────────────┐
@@ -898,22 +897,22 @@ sequenceDiagram
 - ✅ API REST para controle
 - ✅ Dashboard integrado
 
-### Comparação: Transcodificação
+### Transcodificação: FFmpeg
 
-| Critério | FFmpeg | GStreamer |
-|----------|--------|-----------|
-| **Performance** | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐ |
-| **Formatos** | ⭐⭐⭐⭐⭐ Todos | ⭐⭐⭐⭐ Maioria |
-| **CLI** | ⭐⭐⭐⭐⭐ | ⭐⭐ |
-| **API Programática** | ⭐⭐ | ⭐⭐⭐⭐⭐ |
-| **Debugging** | ⭐⭐ Difícil | ⭐⭐⭐⭐ Fácil |
-| **Comunidade** | ⭐⭐⭐⭐⭐ Enorme | ⭐⭐⭐ Média |
+O projeto utiliza **FFmpeg** para transcodificação multi-qualidade via `exec` do Nginx-RTMP.
 
-**Quando usar GStreamer**:
-- ✅ Controle programático fino necessário
-- ✅ Pipelines complexos e customizados
-- ✅ Integração profunda com aplicação
-- ✅ Debugging é importante
+| Critério | FFmpeg |
+|----------|---------|
+| **Performance** | ⭐⭐⭐⭐⭐ |
+| **Formatos** | ⭐⭐⭐⭐⭐ Todos |
+| **CLI** | ⭐⭐⭐⭐⭐ |
+| **Comunidade** | ⭐⭐⭐⭐⭐ Enorme |
+
+**Vantagens do FFmpeg com Nginx-RTMP exec**:
+- ✅ Integração direta via diretiva `exec` no nginx-rtmp
+- ✅ Geração de HLS multi-qualidade (360p a 1080p)
+- ✅ Master playlist automática para ABR
+- ✅ Amplamente documentado e suportado
 
 ---
 
@@ -1416,7 +1415,6 @@ k6 run k6-load-test.js
 - [Nginx-RTMP Module](https://github.com/arut/nginx-rtmp-module)
 - [SRS Documentation](https://github.com/ossrs/srs)
 - [FFmpeg Documentation](https://ffmpeg.org/documentation.html)
-- [GStreamer Documentation](https://gstreamer.freedesktop.org/documentation/)
 - [HLS Specification (RFC 8216)](https://tools.ietf.org/html/rfc8216)
 - [Spring Boot Reference](https://docs.spring.io/spring-boot/docs/current/reference/htmlsingle/)
 - [React Documentation](https://react.dev/)
