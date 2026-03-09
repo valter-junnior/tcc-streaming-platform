@@ -1,6 +1,7 @@
 package com.tcc.streaming.stream.infrastructure.persistence.repositories;
 
 import com.tcc.streaming.stream.core.entities.Stream;
+import com.tcc.streaming.stream.core.entities.StreamStatus;
 import com.tcc.streaming.stream.core.repositories.StreamRepository;
 import com.tcc.streaming.stream.infrastructure.persistence.mappers.StreamMapper;
 import org.springframework.stereotype.Component;
@@ -57,7 +58,7 @@ public class StreamRepositoryImpl implements StreamRepository {
 
     @Override
     public List<Stream> findInactiveStreams(java.time.LocalDateTime thresholdDate) {
-        return jpaRepository.findInactiveStreams(thresholdDate)
+        return jpaRepository.findInactiveStreams(List.of(StreamStatus.WAITING, StreamStatus.LIVE), thresholdDate)
             .stream()
             .map(mapper::toDomain)
             .collect(java.util.stream.Collectors.toList());

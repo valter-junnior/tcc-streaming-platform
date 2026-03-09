@@ -22,6 +22,7 @@ import com.tcc.streaming.stream.core.events.StreamEndedEvent;
 import com.tcc.streaming.stream.core.events.StreamStartedEvent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -36,12 +37,18 @@ public class StreamService implements CreateStreamUseCase, GetStreamUseCase, Get
     private static final Logger log = LoggerFactory.getLogger(StreamService.class);
     private final StreamRepository streamRepository;
     private final ApplicationEventPublisher applicationEventPublisher;
+    private final String rtmpUrl;
+    private final String watchBaseUrl;
 
     public StreamService(
             StreamRepository streamRepository,
-            ApplicationEventPublisher applicationEventPublisher) {
+            ApplicationEventPublisher applicationEventPublisher,
+            @Value("${stream.rtmp-url}") String rtmpUrl,
+            @Value("${stream.watch-base-url}") String watchBaseUrl) {
         this.streamRepository = streamRepository;
         this.applicationEventPublisher = applicationEventPublisher;
+        this.rtmpUrl = rtmpUrl;
+        this.watchBaseUrl = watchBaseUrl;
     }
 
     @Override
@@ -77,7 +84,7 @@ public class StreamService implements CreateStreamUseCase, GetStreamUseCase, Get
             stream.getStatus(),
             stream.getCurrentViewers(),
             stream.getViewersPeak(),
-            stream.getWatchUrl()
+            watchBaseUrl + "/" + stream.getId()
         );
     }
 
@@ -195,8 +202,8 @@ public class StreamService implements CreateStreamUseCase, GetStreamUseCase, Get
             stream.getEndedAt(),
             stream.getCurrentViewers(),
             stream.getViewersPeak(),
-            stream.getRtmpUrl(),
-            stream.getWatchUrl()
+            rtmpUrl,
+            watchBaseUrl + "/" + stream.getId()
         );
     }
 

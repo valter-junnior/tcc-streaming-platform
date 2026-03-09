@@ -57,6 +57,12 @@ public class Stream {
 
     // Regras de negócio
     public void start() {
+        if (this.status == StreamStatus.LIVE) {
+            return; // idempotente: reconexão do broadcaster
+        }
+        if (this.status != StreamStatus.WAITING) {
+            throw new IllegalStateException("Stream can only be started from WAITING status, current: " + this.status);
+        }
         this.status = StreamStatus.LIVE;
         this.startedAt = LocalDateTime.now();
         this.updatedAt = LocalDateTime.now();
@@ -72,6 +78,9 @@ public class Stream {
     }
 
     private void endStream(boolean force) {
+        if (!force && this.status == StreamStatus.ENDED) {
+            return; // idempotente: evita encerrar stream já finalizada
+        }
         this.status = StreamStatus.ENDED;
         if (force || this.endedAt == null) {
             this.endedAt = LocalDateTime.now();
@@ -102,14 +111,6 @@ public class Stream {
         if (this.currentViewers > 0) {
             this.currentViewers--;
         }
-    }
-
-    public String getRtmpUrl() {
-        return "rtmp://localhost:1935/live";
-    }
-
-    public String getWatchUrl() {
-        return "http://localhost:3001/watch/" + this.id;
     }
 
     // Geração de stream key única

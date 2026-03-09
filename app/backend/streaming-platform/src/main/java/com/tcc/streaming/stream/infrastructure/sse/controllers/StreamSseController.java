@@ -77,7 +77,7 @@ public class StreamSseController {
     }
 
     @Async
-    private CompletableFuture<Void> cleanupEmittersAfterDelay(UUID streamId) {
+    public CompletableFuture<Void> cleanupEmittersAfterDelay(UUID streamId) {
         try {
             Thread.sleep(5000);
             log.info("[SSE] Cleaning up emitters for ended stream: {}", streamId);

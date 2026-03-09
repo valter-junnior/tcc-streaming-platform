@@ -58,6 +58,8 @@ management:
 stream:
   cleanup:
     threshold-days: 1
+  rtmp-url: ${RTMP_URL:rtmp://localhost:1935/live}
+  watch-base-url: ${WATCH_BASE_URL:http://localhost:3001/watch}
 
 sse:
   # SSE connection timeout in milliseconds (30 minutes)
