@@ -20,7 +20,6 @@ flowchart TB
 
     subgraph Broker["Message Broker"]
         MB2["RabbitMQ\n⭐ Principal"]
-        MB3["Redis Streams\nAlternativa"]
     end
 
     subgraph Backend["Backend"]
@@ -50,16 +49,13 @@ flowchart TB
     WRT --> Browser
 
     NGX & SRS -.->|callback HTTP| API
-    API --> MB2 & MB3
-    MB2 & MB3 --> Consumer
+    API --> MB2
+    MB2 --> Consumer
     Consumer --> DB
     API --> Cache
 
     API & Consumer --> Prom
     Prom --> Graf
-
-    %% Matriz 2x2
-    note1["Matriz 2×2:\nA+HLS | A+WebRTC\nB+HLS | B+WebRTC"]
 
     style NGX fill:#90EE90
     style SRS fill:#90EE90

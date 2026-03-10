@@ -75,7 +75,6 @@ Desenvolver uma plataforma de streaming de vídeo ao vivo que permita avaliar e 
   - [x] Spring Data JPA
   - [x] Spring Data Redis
   - [x] Spring AMQP (RabbitMQ)
-  - [x] Spring WebSocket
   - [x] Spring Boot Actuator
   - [x] PostgreSQL Driver
   - [x] Lombok
@@ -169,15 +168,14 @@ Desenvolver uma plataforma de streaming de vídeo ao vivo que permita avaliar e 
 - [x] Adicionar serialização JSON
 - [ ] Configurar Dead Letter Queue ⏳ Optimization Phase
 
-#### 2.6 WebSocket
-- [x] Configurar STOMP over WebSocket
-- [x] Endpoint: `/ws` com SockJS
-- [x] Criar tópico: `/topic/stream/{streamId}/status`
-- [x] Criar tópico: `/topic/stream/{streamId}/viewers`
-- [x] Implementar lógica de broadcast de eventos (controller criado)
-- [x] Handlers para join/leave (implementado)
+#### 2.6 SSE (Server-Sent Events)
+- [x] Configurar `SseEmitterManager` para gerenciar emissores por stream
+- [x] Endpoint: `GET /api/sse/stream/{streamId}/subscribe` (text/event-stream)
+- [x] Eventos emitidos: `status`, `viewers`
+- [x] Implementar lógica de broadcast via `SseEmitterManager`
 - [x] Publicar eventos no RabbitMQ (EventPublisher integrado)
-- [ ] Integrar contador de viewers real-time ⏳ Fase 3
+- [x] Timeout e cleanup de emissores desconectados
+- [x] Integrar contador de viewers real-time
 
 ### 📹 Fase 3: Infraestrutura de Streaming (Semana 5-6)
 **Objetivo**: Configurar ingestão RTMP, transcodificação e serving HLS
@@ -254,7 +252,7 @@ Desenvolver uma plataforma de streaming de vídeo ao vivo que permita avaliar e 
   - [x] React Router
   - [x] Axios
   - [x] Video.js ou HLS.js
-  - [x] STOMP client (WebSocket)
+  - [x] EventSource (SSE client nativo)
   - [x] Tailwind CSS
   - [x] Shadcn
   - [x] Lucide Icons
@@ -285,7 +283,7 @@ Desenvolver uma plataforma de streaming de vídeo ao vivo que permita avaliar e 
 - [x] Status da stream (WAITING, LIVE, ENDED)
 - [x] Contador de viewers online
 - [x] Botão "Encerrar Stream"
-- [x] WebSocket connection para atualizações
+- [x] SSE connection para atualizações em tempo real
 
 #### 4.5 Player de Vídeo
 - [x] Criar componente `VideoPlayer`
@@ -306,16 +304,15 @@ Desenvolver uma plataforma de streaming de vídeo ao vivo que permita avaliar e 
 - [x] Contador de viewers
 - [x] Mensagem se stream ainda não iniciou
 - [x] Mensagem se stream encerrou
-- [x] WebSocket para atualizações
+- [x] SSE para atualizações em tempo real
 
-#### 4.7 WebSocket Integration
-- [x] Configurar STOMP client
-- [x] Conectar ao endpoint `/ws`
-- [x] Subscrever a tópicos de stream
-- [x] Enviar evento `viewer_joined` ao entrar
-- [x] Enviar evento `viewer_left` ao sair
+#### 4.7 SSE Integration (Server-Sent Events)
+- [x] Usar `EventSource` nativo do browser
+- [x] Conectar ao endpoint `GET /api/sse/stream/{streamId}/subscribe`
+- [x] Processar eventos `status` e `viewers` recebidos
 - [x] Atualizar UI baseado em eventos recebidos
-- [x] Reconexão automática
+- [x] Reconexão automática via retry do EventSource
+- [x] Fechar conexão ao sair da página
 
 ### 🔄 Fase 5: Consumer Service (Semana 9-10)
 **Objetivo**: Processar eventos assíncronos do message broker
@@ -417,47 +414,73 @@ Desenvolver uma plataforma de streaming de vídeo ao vivo que permita avaliar e 
 - [ ] Centralizar logs (opcional: ELK Stack)
 - [ ] Rotação de logs
 
-### 🔄 Fase 7: Alternativas Tecnológicas (Semana 13-15)
-**Objetivo**: Implementar variantes com diferentes tecnologias
+#### 7.3 SRS Server — Implementação B (RTMP + HLS + WebRTC)
+> **Prioridade alta** — SRS deixa de ser alternativa e passa a ser a segunda implementação principal da matriz 2×2.
 
-#### 7.1 Alternativa: Redis Streams (Message Broker)
-- [ ] Criar `docker-compose.redis-streams.yml`
-- [ ] Implementar Producer com Redis Streams
-- [ ] Implementar Consumer com Redis Streams
-- [ ] Configurar consumer groups
-- [ ] Testar funcionamento completo
-- [ ] Coletar métricas de performance
-- [ ] Documentar diferenças
+##### 7.3.1 Infraestrutura SRS
+- [ ] Criar `app/backend/rtmp/srs/` com:
+  - [ ] `Dockerfile` baseado em `ossrs/srs:6`
+  - [ ] `configs/srs.conf` configurado para RTMP + HLS + WebRTC
+  - [ ] `scripts/transcode-ffmpeg.sh` (mesmo script do Nginx-RTMP, para isolar variável)
+- [ ] Adicionar serviço `srs-server` ao `app/docker-compose.yml`:
+  - [ ] Portas: 1935 (RTMP), 8080 (HLS/API), 1985 (console), 8000/udp (WebRTC)
+  - [ ] Volume para HLS: `/tmp/hls`
+- [ ] Configurar `srs.conf`:
+  ```
+  listen 1935;
+  vhost __defaultVhost__ {
+    on_publish { notify http://streaming-platform:8080/api/streams/callback/publish; }
+    on_unpublish { notify http://streaming-platform:8080/api/streams/callback/publish_done; }
+    hls { enabled on; hls_path /tmp/hls; }
+    rtc { enabled on; rtmp_to_rtc on; }
+    exec { enabled on; publish ./scripts/transcode-ffmpeg.sh [stream]; }
+  }
+  ```
 
-#### 7.2 Alternativa: NATS (Message Broker)
-- [ ] Criar `docker-compose.nats.yml`
-- [ ] Configurar NATS container
-- [ ] Implementar Producer com NATS
-- [ ] Implementar Consumer com NATS
-- [ ] Configurar JetStream para persistência
-- [ ] Testar funcionamento completo
-- [ ] Coletar métricas de performance
-- [ ] Documentar diferenças
+##### 7.3.2 Integração com Backend
+- [ ] Verificar compatibilidade dos callbacks HTTP do SRS com `NginxCallbackController`
+  - [ ] SRS envia parâmetro `stream` (não `name`) — ajustar controller ou SRS config
+- [ ] Testar fluxo completo: OBS → SRS → callback Spring Boot → status LIVE
 
-#### 7.3 Alternativa: SRS (RTMP Server)
-- [ ] Criar `docker-compose.srs.yml`
-- [ ] Configurar SRS container
-- [ ] Configurar callbacks HTTP
-- [ ] Adaptar transcodificação
-- [ ] Testar com OBS
-- [ ] Coletar métricas de performance
-- [ ] Comparar com Nginx-RTMP
-- [ ] Documentar diferenças
+##### 7.3.3 Entrega HLS via SRS
+- [ ] Confirmar que FFmpeg gera segmentos em `/tmp/hls/{key}/master.m3u8`
+- [ ] Configurar Nginx HTTP (ou SRS HTTP) para servir HLS do SRS
+- [ ] Testar player HLS no frontend com stream do SRS
 
-#### 7.4 Alternativa: GStreamer (Transcodificação)
-- [ ] Criar pipeline GStreamer
-- [ ] Configurar presets de qualidade
-- [ ] Gerar segmentos HLS
-- [ ] Integrar com Nginx-RTMP
-- [ ] Testar funcionamento
-- [ ] Coletar métricas de performance
-- [ ] Comparar com FFmpeg
-- [ ] Documentar diferenças
+##### 7.3.4 Entrega WebRTC via SRS
+- [ ] Habilitar WebRTC nativo no SRS (`rtmp_to_rtc on`)
+- [ ] Configurar CANDIDATE IP no SRS (IP do host para WebRTC ICE)
+- [ ] Testar conexão WebRTC via SRS console (`http://localhost:1985`)
+- [ ] Integrar player WebRTC no frontend (ver 7.4 abaixo)
+- [ ] Confirmar latência (~100-300ms vs ~3-10s do HLS)
+
+##### 7.3.5 Testes SRS
+- [ ] Testar transmissão OBS → SRS completa
+- [ ] Comparar HLS: Nginx-RTMP vs SRS (mesma stream, métricas)
+- [ ] Comparar protocolo: HLS vs WebRTC no SRS
+- [ ] Coletar métricas: CPU, memória, latência ponta-a-ponta
+
+#### 7.4 WebRTC — Suporte no Frontend
+- [ ] Adicionar componente `VideoPlayerWebRTC.tsx` (paralelo ao `VideoPlayerPlyr.tsx`)
+  - [ ] Conexão via `RTCPeerConnection` + SDP offer/answer com SRS
+  - [ ] Endpoint SRS WHIP: `http://localhost:8080/rtc/v1/whep/?app=live&stream={key}`
+  - [ ] `autoplay` e tratamento de stream track
+- [ ] Adicionar toggle na `WatchPage.tsx`:
+  - [ ] Seletor "HLS" / "WebRTC" visível apenas quando SRS estiver ativo
+  - [ ] Persistir escolha no localStorage
+- [ ] Tratar reconexão e erros WebRTC no frontend
+- [ ] Exibir indicador de protocolo ativo e latência estimada
+
+#### 7.5 Métricas Comparativas — Infraestrutura de Coleta
+- [ ] Adicionar métricas específicas de servidor RTMP ao Prometheus:
+  - [ ] Nginx-RTMP: consultar `/stat` (XML) e expor via exporter ou Spring Boot
+  - [ ] SRS: consultar API REST `/api/v1/streams` e expor via exporter ou Spring Boot
+- [ ] Criar dashboards Grafana para comparação:
+  - [ ] Painel lado-a-lado: Nginx-RTMP × SRS (CPU, memória, conexões)
+  - [ ] Painel lado-a-lado: HLS × WebRTC (latência, taxa de erros, bitrate efetivo)
+- [ ] Implementar medição de latência ponta-a-ponta:
+  - [ ] Técnica: timestamp visual na tela do OBS + captura de frame no browser
+  - [ ] Alternativa: marker nos segmentos HLS via `Program-Date-Time`
 
 ### 🧪 Fase 8: Testes e Otimização (Semana 16-17)
 **Objetivo**: Validar sistema e coletar dados para análise comparativa
@@ -494,19 +517,27 @@ Desenvolver uma plataforma de streaming de vídeo ao vivo que permita avaliar e 
 - [ ] Simular múltiplos viewers
 - [ ] Coletar logs durante testes
 
-#### 8.4 Análise Comparativa
-- [ ] Executar cada cenário com:
-  - [ ] RabbitMQ vs Redis Streams vs NATS
-  - [ ] Nginx-RTMP vs SRS
-  - [ ] FFmpeg vs GStreamer
-- [ ] Coletar dados de:
-  - [ ] Latência (RTMP → HLS)
-  - [ ] Throughput do message broker
-  - [ ] Uso de CPU e memória
-  - [ ] I/O de disco
-  - [ ] FPS e qualidade de vídeo
-- [ ] Gerar gráficos comparativos
-- [ ] Documentar resultados
+#### 8.4 Análise Comparativa — Matriz 2×2
+Executar cada combinação da matriz com os cenários de carga definidos em 8.2:
+
+| Combinação | Servidor | Protocolo | Status |
+|---|---|---|---|
+| A+HLS | Nginx-RTMP | HLS | ✅ Baseline (implementado) |
+| B+HLS | SRS | HLS | 🔲 A implementar |
+| B+WebRTC | SRS | WebRTC | 🔲 A implementar |
+| A+WebRTC | Nginx-RTMP | WebRTC | 🔲 Experimental (FFmpeg WHIP) |
+
+- [ ] Executar cenário Baseline com combinação A+HLS (já funcional)
+- [ ] Executar cenário Baseline com combinação B+HLS (após Fase 7.3)
+- [ ] Executar cenário Baseline com combinação B+WebRTC (após Fase 7.4)
+- [ ] Coletar métricas para cada combinação:
+  - [ ] Latência RTMP → reprodução no browser
+  - [ ] CPU e memória do servidor RTMP
+  - [ ] CPU do processo FFmpeg
+  - [ ] Estabilidade do player (taxa de reconexões, stalls)
+  - [ ] Bitrate efetivo recebido pelo viewer
+- [ ] Gerar gráficos comparativos por combinação
+- [ ] Documentar trade-offs identificados (latência vs complexidade vs recursos)
 
 #### 8.5 Otimizações
 - [ ] Otimizar queries do banco de dados
