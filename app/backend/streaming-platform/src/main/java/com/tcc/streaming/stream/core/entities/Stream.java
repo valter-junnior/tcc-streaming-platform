@@ -118,13 +118,9 @@ public class Stream {
         return UUID.randomUUID().toString().replace("-", "").substring(0, 16);
     }
 
-    // Getters e Setters
+    // Getters
     public UUID getId() {
         return id;
-    }
-
-    public void setId(UUID id) {
-        this.id = id;
     }
 
     public String getTitle() {
@@ -147,32 +143,16 @@ public class Stream {
         return streamKey;
     }
 
-    public void setStreamKey(String streamKey) {
-        this.streamKey = streamKey;
-    }
-
     public String getOwnerId() {
         return ownerId;
-    }
-
-    public void setOwnerId(String ownerId) {
-        this.ownerId = ownerId;
     }
 
     public StreamStatus getStatus() {
         return status;
     }
 
-    public void setStatus(StreamStatus status) {
-        this.status = status;
-    }
-
     public LocalDateTime getCreatedAt() {
         return createdAt;
-    }
-
-    public void setCreatedAt(LocalDateTime createdAt) {
-        this.createdAt = createdAt;
     }
 
     public LocalDateTime getUpdatedAt() {
@@ -187,31 +167,15 @@ public class Stream {
         return startedAt;
     }
 
-    public void setStartedAt(LocalDateTime startedAt) {
-        this.startedAt = startedAt;
-    }
-
     public LocalDateTime getEndedAt() {
         return endedAt;
-    }
-
-    public void setEndedAt(LocalDateTime endedAt) {
-        this.endedAt = endedAt;
     }
 
     public Integer getCurrentViewers() {
         return currentViewers;
     }
 
-    public void setCurrentViewers(Integer currentViewers) {
-        this.currentViewers = currentViewers;
-    }
-
     public Integer getViewersPeak() {
         return viewersPeak;
-    }
-
-    public void setViewersPeak(Integer viewersPeak) {
-        this.viewersPeak = viewersPeak;
     }
 }
