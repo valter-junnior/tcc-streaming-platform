@@ -1,17 +1,1 @@
-corrija a documentação o todo e os diagramas, atualmente a unica coisa que tem alternativas é o rtmp que temos os dois servidores e os dois protocolos, mas a estrutura :
-
-
-backend
-
-java + spring
-rabbitmq
-redis
-postgres
-
-forntend
-
-react + hls
-
-rtmp:
-hls e/ou webrtc
-nginx e/ou srs
+primeiramente implemente o webrtc no nginx, fique atento a um detalhe, quero que tudo seja controlado por variaveis de ambiente para eu dizer que servidor estou usando(nginx ou srs) e/ou protocolo(hls ou webrtc), nesse caso agora temos que fazer apenas o nginx funcionar com o rtmp (como já esta funcionando perfeitamente atualmente) e agora fazer funcionar com o webrtc, além disso o frontend deve ser responsivo e automatico sozinho que ele saiba que protocolo estamos usando para não haver conflitos, assim mesmo com o backend.

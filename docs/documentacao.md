@@ -1,1635 +1,396 @@
-# Documentação v2.0 - Plataforma de Streaming com Análise Comparativa
+# Documentação Técnica — Plataforma de Streaming com Análise Comparativa
 
-## 📚 Índice
+## Índice
 
-1. [Visão Geral do Projeto](#-visão-geral-do-projeto)
-2. [Arquitetura do Sistema](#-arquitetura-do-sistema)
-3. [Stack Tecnológico](#-stack-tecnológico)
-4. [Componentes Principais](#-componentes-principais)
-5. [Fluxos do Sistema](#-fluxos-do-sistema)
-6. [Alternativas Tecnológicas](#-alternativas-tecnológicas)
-7. [Estrutura do Projeto](#-estrutura-do-projeto)
-8. [Guias de Configuração](#-guias-de-configuração)
-9. [Monitoramento e Métricas](#-monitoramento-e-métricas)
-10. [API Reference](#-api-reference)
-11. [Estratégia de Testes](#-estratégia-de-testes)
-12. [Referências](#-referências)
-
----
-
-## 🎯 Visão Geral do Projeto
-
-### O que é este Projeto?
-
-Este **Trabalho de Conclusão de Curso (TCC)** apresenta o desenvolvimento de uma **plataforma de streaming de vídeo ao vivo** com um diferencial único: não apenas criar um sistema funcional, mas realizar uma **análise comparativa quantitativa e qualitativa** de diferentes tecnologias que podem implementar as mesmas funcionalidades.
-
-### Problema que Resolve
-
-No ecossistema de streaming e arquitetura de microserviços, desenvolvedores frequentemente enfrentam perguntas como:
-
-- 🤔 Qual servidor RTMP escolher: Nginx-RTMP ou SRS?
-- 🤔 RabbitMQ, Redis Streams ou NATS para mensageria?
-- 🤔 Como essas escolhas impactam latência, uso de recursos e escalabilidade?
-
-Este projeto fornece **dados concretos e análises objetivas** para auxiliar na tomada dessas decisões.
-
-### Funcionalidades Principais
-
-#### Para Streamers (Criadores de Conteúdo)
-- ✅ Acesso sem cadastro via navegador (`stream.localhost/`)
-- ✅ Um clique em "Iniciar Streaming" gera automaticamente:
-  - URL do servidor RTMP
-  - Stream Key única e segura
-  - Link compartilhável para espectadores
-- ✅ Painel de controle em tempo real com:
-  - Status da transmissão
-  - Contador de espectadores online
-  - Duração da transmissão
-- ✅ Instruções claras para configurar OBS Studio
-
-#### Para Espectadores (Viewers)
-- ✅ Acesso direto via link compartilhado (sem login)
-- ✅ Player de vídeo adaptativo (múltiplas qualidades)
-- ✅ Visualização do número de espectadores
-- ✅ Experiência fluida em qualquer dispositivo
-
-#### Para Análise (Objetivo Acadêmico)
-- ✅ Coleta automática de métricas de performance
-- ✅ Dashboards de monitoramento em tempo real
-- ✅ Comparação objetiva entre stacks tecnológicos
-- ✅ Dados para análise de trade-offs
-
-### Características Técnicas
-
-| Característica | Descrição |
-|----------------|-----------|
-| **Arquitetura** | Microserviços desacoplados e substituíveis |
-| **Containerização** | 100% em Docker para portabilidade |
-| **Ambiente** | Local (desenvolvimento e testes) |
-| **Protocolo de Ingestão** | RTMP (padrão da indústria, via OBS) |
-| **Servidores RTMP** | Nginx-RTMP + SRS (análise comparativa 1×2) |
-| **Protocolo de Entrega** | HLS + WebRTC (análise comparativa 1×2) |
-| **Matriz Comparativa** | 2 servidores × 2 protocolos = 4 combinações |
-| **Transcodificação** | FFmpeg — múltiplas qualidades (360p a 1080p), utilizado em ambos os servidores |
-| **Comunicação** | REST API + SSE para tempo real |
-| **Observabilidade** | Prometheus + Grafana para métricas e comparação |
+1. [Visão Geral](#1-visão-geral)
+2. [Arquitetura](#2-arquitetura)
+3. [Stack Tecnológico](#3-stack-tecnológico)
+4. [Backend](#4-backend)
+5. [Frontend](#5-frontend)
+6. [Infraestrutura RTMP](#6-infraestrutura-rtmp)
+7. [Mensageria e Cache](#7-mensageria-e-cache)
+8. [API REST](#8-api-rest)
+9. [Eventos SSE](#9-eventos-sse)
+10. [Modelo de Dados](#10-modelo-de-dados)
+11. [Fluxos Principais](#11-fluxos-principais)
+12. [Monitoramento](#12-monitoramento)
+13. [Testes](#13-testes)
+14. [Estrutura do Projeto](#14-estrutura-do-projeto)
+15. [Referências](#15-referências)
 
 ---
 
-## 🏗️ Arquitetura do Sistema
+## 1. Visão Geral
 
-### Visão de Alto Nível
+Este Trabalho de Conclusão de Curso desenvolve uma plataforma de streaming de vídeo ao vivo com foco na análise comparativa de diferentes tecnologias de ingestão RTMP e protocolos de entrega de vídeo. O sistema permite que um streamer transmita vídeo via OBS Studio, que espectadores assistam via browser, e coleta métricas para comparar o desempenho de cada abordagem.
 
-O sistema é organizado em **5 camadas principais** com componentes desacoplados, permitindo a substituição de tecnologias sem afetar o funcionamento geral.
+O objetivo central é implementar e avaliar uma matriz 2×2 de combinações:
 
-```
-┌─────────────────────────────────────────────────────────────┐
-│                    FRONTEND LAYER                           │
-│               (React + TypeScript + HLS.js)                 │
-└──────────────────────┬──────────────────────────────────────┘
-                       │ REST API + WebSocket
-┌──────────────────────▼──────────────────────────────────────┐
-│                  BACKEND SERVICES LAYER                     │
-│   Stream Service │ Consumer Service │ Metrics Service       │
-│              (Spring Boot Microservices)                    │
-└──────────┬───────────────────┬──────────────────────────────┘
-           │                   │
-           │                   │ Events
-┌──────────▼───────────────────▼──────────────────────────────┐
-│                    DATA LAYER                               │
-│   PostgreSQL │ Redis Cache │ RabbitMQ/Redis/NATS            │
-└─────────────────────────────────────────────────────────────┘
-           ▲                   │
-           │                   │
-┌──────────┴───────────────────▼──────────────────────────────┐
-│              STREAMING INFRASTRUCTURE LAYER                 │
-│   Nginx-RTMP/SRS │ FFmpeg             │ Nginx HLS Server      │
-└──────────▲──────────────────────────────────────────────────┘
-           │ RTMP
-┌──────────┴──────────────────────────────────────────────────┐
-│                    OBS STUDIO                               │
-│                   (External Tool)                           │
-└─────────────────────────────────────────────────────────────┘
+| | HLS | WebRTC |
+|---|---|---|
+| Nginx-RTMP | Implementação A (baseline) | Experimental |
+| SRS | A implementar | A implementar |
 
-                        ┌───────────────────┐
-                        │ MONITORING LAYER  │
-                        │ Prometheus+Grafana│
-                        └───────────────────┘
-```
-
-### Camadas Detalhadas
-
-#### 1️⃣ Frontend Layer
-
-**Responsabilidades**:
-- Renderizar interfaces web (criar stream, assistir stream)
-- Reproduzir vídeo HLS com adaptive bitrate
-- Comunicação em tempo real via WebSocket (contador de viewers)
-- Gerenciar estado da aplicação
-
-**Tecnologias**:
-- React 18+ (framework UI)
-- TypeScript (type safety)
-- Video.js/HLS.js (player de vídeo)
-- STOMP/SockJS (WebSocket client)
-- Tailwind CSS (estilização)
-
-**Por que esta abordagem?**
-- Interface web = acessível de qualquer dispositivo
-- SPA = experiência fluida sem recarregar página
-- WebSocket = atualizações em tempo real sem polling
-
-#### 2️⃣ Backend Services Layer
-
-**Responsabilidades**:
-- Gerenciar ciclo de vida das streams (CRUD)
-- Validar e autenticar transmissões
-- Processar eventos assíncronos
-- Agregar e expor métricas
-
-**Serviços**:
-
-| Serviço | Responsabilidade Principal |
-|---------|----------------------------|
-| **Stream Service** | API REST, WebSocket, gerenciamento de streams |
-| **Consumer Service** | Processamento assíncrono de eventos |
-| **Metrics Service** | Coleta de métricas de streaming (FFmpeg, Nginx) |
-
-**Por que microserviços?**
-- ✅ Escalabilidade independente
-- ✅ Isolamento de falhas
-- ✅ Facilita comparação de tecnologias
-- ✅ Deploy independente
-
-#### 3️⃣ Streaming Infrastructure Layer
-
-**Responsabilidades**:
-- Receber stream RTMP do OBS
-- Transcodificar vídeo em múltiplas qualidades
-- Gerar e servir segmentos HLS
-- Validar credenciais de streaming
-
-**Componentes**:
-
-| Componente | Função |
-|------------|--------|
-| **Nginx-RTMP** | Servidor de ingestão RTMP |
-| **FFmpeg** | Transcodificação de vídeo |
-| **Nginx HLS** | Servir segmentos HLS via HTTP |
-
-**Pipeline de Vídeo**:
-```
-OBS → RTMP → Nginx-RTMP → FFmpeg → HLS Segments → Nginx → Player
-```
-
-#### 4️⃣ Data Layer
-
-**Responsabilidades**:
-- Persistir dados das streams
-- Cachear sessões ativas
-- Transportar eventos entre serviços
-- Garantir consistência de dados
-
-**Componentes**:
-
-| Tecnologia | Uso |
-|------------|-----|
-| **PostgreSQL** | Dados persistentes (streams, eventos) |
-| **Redis** | Cache de sessões, contador de viewers |
-| **RabbitMQ** | Message broker (principal) |
-| **Redis Streams** | Message broker (alternativa 1) |
-| **NATS** | Message broker (alternativa 2) |
-
-#### 5️⃣ Monitoring Layer
-
-**Responsabilidades**:
-- Coletar métricas de todos os componentes
-- Armazenar séries temporais
-- Visualizar dados em dashboards
-- Permitir análise comparativa
-
-**Componentes**:
-- **Prometheus**: Coleta e armazenamento de métricas
-- **Grafana**: Visualização e dashboards
+A plataforma não exige cadastro de usuários. Streamers criam uma transmissão via browser, recebem as credenciais RTMP e configuram o OBS. Espectadores acessam o link compartilhável para assistir.
 
 ---
 
-## 🛠️ Stack Tecnológico
+## 2. Arquitetura
+
+O sistema é composto por cinco camadas:
+
+**Camada de ingestão RTMP**: recebe o stream do OBS Studio via protocolo RTMP. É nessa camada que residem as alternativas comparadas — Nginx-RTMP (Implementação A) e SRS (Implementação B).
+
+**Camada de transcodificação**: o FFmpeg converte o stream recebido em múltiplas qualidades de vídeo e gera segmentos HLS. Cada servidor RTMP aciona o FFmpeg de forma diferente, mas o codec e os parâmetros de qualidade são equivalentes nas duas implementações.
+
+**Camada de entrega**: serve os segmentos HLS ao browser via HTTP. No caso do SRS, também oferece entrega via WebRTC com conversão nativa RTMP→WebRTC.
+
+**Camada de backend**: serviço Spring Boot responsável por gerenciar o ciclo de vida das streams, autenticar as transmissões via callbacks HTTP dos servidores RTMP, processar eventos assíncronos via RabbitMQ, e notificar clientes via SSE.
+
+**Camada de frontend**: aplicação React que fornece interface para criar streams, assistir em tempo real e acompanhar métricas básicas.
+
+Serviços de suporte: PostgreSQL para persistência, Redis para estado de viewers em tempo real, RabbitMQ para comunicação assíncrona entre módulos, Prometheus e Grafana para coleta e visualização de métricas.
+
+---
+
+## 3. Stack Tecnológico
 
 ### Backend
-
-#### Java 21 + Spring Boot 3.x
-
-**Por que Java?**
-- ✅ Tipagem forte reduz erros
-- ✅ Ecossistema maduro (Spring)
-- ✅ JVM otimizada para alta performance
-- ✅ Excelente para aplicações multithread
-- ❌ Consumo de memória pode ser alto
-- ❌ Tempo de inicialização mais lento
-
-**Bibliotecas Spring**:
-- `spring-boot-starter-web`: API REST
-- `spring-boot-starter-websocket`: WebSocket
-- `spring-boot-starter-data-jpa`: Acesso ao banco
-- `spring-boot-starter-data-redis`: Cache
-- `spring-boot-starter-amqp`: RabbitMQ
-- `spring-boot-starter-actuator`: Métricas
+- Java 21
+- Spring Boot 3.2
+- Spring Data JPA
+- Spring AMQP (RabbitMQ)
+- Spring Boot Actuator com Micrometer e Prometheus
+- PostgreSQL 16
+- RabbitMQ 3 com management plugin
+- Testcontainers para testes de integração
+- SpringDoc OpenAPI (Swagger UI)
 
 ### Frontend
+- React 18 com TypeScript
+- Vite como bundler
+- HLS.js para reprodução de streams HLS
+- Plyr como player de vídeo
+- TanStack Query para gerenciamento de estado assíncrono
+- Axios para chamadas HTTP
+- Tailwind CSS para estilização
+- Radix UI para componentes de interface
 
-#### React 18 + TypeScript
+### Infraestrutura RTMP
+- Nginx compilado com o módulo nginx-rtmp-module (Implementação A)
+- SRS (Simple Realtime Server) versão 6 (Implementação B)
+- FFmpeg para transcodificação multi-qualidade
 
-**Por que React?**
-- ✅ Component-based architecture
-- ✅ Virtual DOM para performance
-- ✅ Ecossistema gigante
-- ✅ Fácil integração com WebSocket e HLS
-- ❌ Necessita bundler (Vite)
-- ❌ Apenas view layer
-
-**Principais Bibliotecas**:
-- `react-router-dom`: Roteamento
-- `axios`: HTTP client
-- `video.js` ou `hls.js`: Player de vídeo
-- `@stomp/stompjs`: WebSocket STOMP
-
-### Infraestrutura de Streaming
-
-#### Nginx-RTMP Module (Principal)
-
-**Para que serve**: Receber streams RTMP do OBS
-
-**Prós**:
-- ✅ Extremamente estável
-- ✅ Performance excelente
-- ✅ Baixo consumo de recursos
-- ✅ Callbacks HTTP para validação
-
-**Contras**:
-- ❌ Não é mais mantido (último commit: 2017)
-- ❌ Funcionalidades limitadas
-
-#### FFmpeg (Principal)
-
-**Para que serve**: Transcodificar vídeo em múltiplas qualidades
-
-**Prós**:
-- ✅ Padrão da indústria
-- ✅ Suporta todos os formatos
-- ✅ Extremamente flexível
-- ✅ Hardware acceleration disponível
-
-**Contras**:
-- ❌ Curva de aprendizado íngreme
-- ❌ Alto consumo de CPU
-
-**Qualidades Geradas**:
-| Resolução | Bitrate | Preset |
-|-----------|---------|--------|
-| 1080p | 5000 kbps | medium |
-| 720p | 2800 kbps | medium |
-| 480p | 1400 kbps | fast |
-| 360p | 800 kbps | faster |
-
-#### HLS (HTTP Live Streaming)
-
-**Por que HLS?**
-- ✅ Funciona sobre HTTP (sem portas especiais)
-- ✅ Suporte nativo em iOS/Safari
-- ✅ Passa por CDNs e firewalls
-- ✅ Adaptive Bitrate (ABR) automático
-
-**Limitações**:
-- ❌ Latência de 6-30 segundos (vs. 3-5s do RTMP)
-
-### Banco de Dados
-
-#### PostgreSQL (Principal)
-
-**Prós**:
-- ✅ ACID compliant
-- ✅ Suporte a JSONB
-- ✅ Performance excelente
-- ✅ Recursos avançados (window functions, CTEs)
-
-**Schema Principal**:
-```sql
--- Tabela de Streams
-CREATE TABLE streams (
-    id UUID PRIMARY KEY,
-    title VARCHAR(255) NOT NULL,
-    description TEXT,
-    stream_key VARCHAR(64) UNIQUE NOT NULL,
-    status VARCHAR(20) NOT NULL, -- WAITING, LIVE, PAUSED, ENDED, ERROR, EXPIRED
-    created_at TIMESTAMP NOT NULL,
-    started_at TIMESTAMP,
-    ended_at TIMESTAMP,
-    viewers_peak INTEGER DEFAULT 0
-);
-
--- Tabela de Eventos
-CREATE TABLE stream_events (
-    id BIGSERIAL PRIMARY KEY,
-    stream_id UUID REFERENCES streams(id),
-    event_type VARCHAR(50) NOT NULL,
-    metadata JSONB,
-    created_at TIMESTAMP NOT NULL
-);
-
--- Índices
-CREATE INDEX idx_streams_status ON streams(status);
-CREATE INDEX idx_streams_created_at ON streams(created_at);
-CREATE INDEX idx_events_stream_id ON stream_events(stream_id);
-```
-
-#### Redis (Cache e Sessões)
-
-**Estruturas Usadas**:
-```
-# Sessões ativas de streams
-stream:session:{stream_key} → Hash {
-    streamId,
-    status,
-    createdAt,
-    viewers
-}
-TTL: 2 horas
-
-# Contador de viewers
-stream:viewers:{stream_id} → Set {viewerId1, viewerId2, ...}
-```
-
-### Message Brokers
-
-#### RabbitMQ (⭐ Principal)
-
-**Arquitetura**:
-```
-Exchange: streaming.events (topic)
-├── Queue: stream.events.all (routing key: stream.#)
-├── Queue: stream.events.started (routing key: stream.started)
-├── Queue: stream.events.ended (routing key: stream.ended)
-└── Queue: stream.events.viewers (routing key: stream.viewers.#)
-```
-
-**Prós**:
-- ✅ Maduro e estável
-- ✅ Interface web de gerenciamento
-- ✅ Garantias de entrega
-- ✅ Dead Letter Queues
-
-**Contras**:
-- ❌ Throughput menor que Kafka
-- ❌ Consumo de memória pode ser alto
-
-#### Redis Streams (Alternativa 1)
-
-**Prós**:
-- ✅ Extremamente rápido (in-memory)
-- ✅ Aproveita Redis já existente
-- ✅ Configuração simples
-- ✅ Baixo consumo de recursos
-
-**Contras**:
-- ❌ Menos features que RabbitMQ
-- ❌ Limitado pela RAM
-- ❌ Persistência opcional
-
-#### NATS (Alternativa 2)
-
-**Prós**:
-- ✅ Ultra-rápido e leve
-- ✅ Latência ultra-baixa
-- ✅ Binary único em Go
-- ✅ JetStream para persistência
-
-**Contras**:
-- ❌ Comunidade menor
-- ❌ Menos ferramentas de terceiros
-
-### Monitoramento
-
-#### Prometheus
-
-**Para que serve**: Coletar e armazenar métricas time-series
-
-**Métricas Coletadas**:
-- JVM metrics (via Spring Boot Actuator)
-- HTTP requests (latência, taxa de erro)
-- Custom metrics (viewers, streams ativas)
-- FFmpeg metrics (FPS, bitrate)
-
-#### Grafana
-
-**Dashboards Criados**:
-1. **Visão Geral do Sistema**
-2. **Métricas de Streaming**
-3. **Recursos de Infraestrutura**
-4. **Comparação de Tecnologias**
+### Infraestrutura Geral
+- Docker e Docker Compose para orquestração de containers
+- Nginx como servidor HTTP para servir segmentos HLS
+- Prometheus para coleta de métricas
+- Grafana para dashboards comparativos
 
 ---
 
-## 📦 Componentes Principais
+## 4. Backend
 
-### Stream Service
+O backend é um monolito Spring Boot com dois módulos lógicos internos: `stream` e `consumer`. A organização interna segue os princípios de Clean Architecture, com separação entre core (entidades, casos de uso, repositórios) e infraestrutura (controllers, persistência JPA, mensageria, SSE).
 
-**Tipo**: Spring Boot REST API + WebSocket Server
+### Módulo Stream
 
-**Responsabilidades**:
-- Gerenciar CRUD de streams
-- Gerar stream keys únicas
-- Validar autenticação via callbacks HTTP
-- Gerenciar sessões ativas no Redis
-- Publicar eventos no message broker
-- Fornecer WebSocket para atualizações em tempo real
+Responsável por toda a lógica de gerenciamento de streams. Expõe a API REST e o endpoint SSE. Valida transmissões via callbacks HTTP emitidos pelo servidor RTMP. Publica eventos de domínio no RabbitMQ através do `EventPublisher`. Gerencia o contador de viewers com operações atômicas diretamente no banco via JPQL `UPDATE`.
 
-**Endpoints Principais**:
+Casos de uso implementados:
+- `CreateStreamUseCase` — cria a stream e gera a stream key (UUID)
+- `GetStreamUseCase` — busca stream por ID
+- `GetStreamStatusUseCase` — retorna status e contadores
+- `ListLiveStreamsUseCase` — lista streams com status LIVE
+- `ListUserStreamsUseCase` — lista streams de um owner
+- `UpdateStreamUseCase` — atualiza título e descrição
+- `DeleteStreamUseCase` — encerra a stream (status ENDED)
+- `ValidateStreamKeyUseCase` — valida se uma stream key existe e está ativa
+
+### Módulo Consumer
+
+Consome eventos assíncronos do RabbitMQ e atualiza o estado do sistema. Os consumers processam eventos de ciclo de vida da stream e eventos de viewers, registrando logs e atualizando métricas.
+
+Consumers implementados:
+- `StreamEventConsumer` — processa `stream.created`, `stream.started`, `stream.ended`
+- `ViewerEventConsumer` — processa `viewer.joined`, `viewer.left`
+- `MetricsAggregationScheduler` — agendador periódico para agregação de métricas
+
+### Componentes Transversais
+
+- `SseEmitterManager` — gerencia emissores SSE por stream, incluindo keepalive e cleanup por TTL
+- `StreamDomainEventListener` — escuta eventos de domínio Spring e os propaga via SSE e RabbitMQ
+- `StreamCleanupScheduler` — remove streams inativas com status ENDED há mais de 1 dia
+- `GlobalExceptionHandler` — trata exceções e retorna respostas padronizadas
+- `EventPublisher` — publica eventos no RabbitMQ com serialização JSON
+
+---
+
+## 5. Frontend
+
+A interface web é uma SPA (Single Page Application) construída com React e TypeScript. O roteamento é gerenciado pelo React Router. Chamadas HTTP ao backend usam Axios com TanStack Query para cache e revalidação automática.
+
+### Páginas e funcionalidades
+
+**Página inicial**: exibe o botão para iniciar uma nova transmissão e lista as streams ao vivo no momento.
+
+**Criação de stream**: formulário com título e descrição obrigatórios. Ao confirmar, a API cria a stream e retorna a URL RTMP, a stream key e o link de espectador.
+
+**Painel do streamer**: exibe a URL RTMP (`rtmp://localhost:1935/live`), a stream key, o status atual (WAITING / LIVE / ENDED), o contador de viewers em tempo real e o pico de espectadores. Permite encerrar a stream.
+
+**Página de visualização**: reproduz o stream HLS via Plyr com HLS.js integrado, com suporte a Adaptive Bitrate Streaming (ABR). Exibe título, status e contador de viewers. Atualiza automaticamente via SSE.
+
+**Atualizações em tempo real**: todas as atualizações de status e contadores de viewers chegam ao frontend via SSE através do `EventSource` nativo do browser, conectado ao endpoint `GET /api/sse/stream/{streamId}/subscribe`.
+
+---
+
+## 6. Infraestrutura RTMP
+
+### Implementação A — Nginx-RTMP
+
+Container baseado em imagem customizada com Nginx compilado com `nginx-rtmp-module`. Recebe streams RTMP na porta 1935, application `live`.
+
+**Callbacks HTTP configurados**:
+- `on_publish` — dispara `POST /api/streams/callback/publish` para validar e iniciar a stream
+- `on_publish_done` — dispara `POST /api/streams/callback/publish_done` para encerrar a stream
+
+**Transcodificação**: ao receber uma nova publicação, executa o script `transcode-ffmpeg.sh` passando o nome da stream. O script invoca o FFmpeg para gerar 4 qualidades de vídeo em HLS.
+
+**Entrega HLS**: o mesmo container serve os segmentos HLS via HTTP na porta 8081. Playlists `.m3u8` são servidas sem cache. Segmentos `.ts` são servidos com cache imutável.
+
+**Segurança**: reprodução RTMP direta bloqueada para clientes externos. Os endpoints `/stat` e `/control` são restritos à rede interna Docker.
+
+### Implementação B — SRS
+
+Container baseado na imagem `ossrs/srs:6`. Recebe streams RTMP na porta 1935 e expõe API HTTP na porta 8080, servidor HTTP para HLS na porta 8081 e UDP na porta 8000 para WebRTC.
+
+**Callbacks HTTP configurados**: SRS notifica o backend com mais granularidade — `on_connect`, `on_close`, `on_publish`, `on_unpublish`, `on_play`, `on_stop`.
+
+**Transcodificação**: o SRS usa seu mecanismo interno de transcodificação para invocar o FFmpeg, gerando as mesmas 4 qualidades que a Implementação A (1080p, 720p, 480p, 360p).
+
+**Entrega HLS**: segmentos armazenados em `/var/srs-hls`, servidos pelo servidor HTTP interno do SRS com fragmentos de 6 segundos e janela de 60 segundos.
+
+**Entrega WebRTC**: o SRS converte o stream RTMP para WebRTC nativamente, sem FFmpeg adicional. Isso possibilita latência de 100 a 300 milissegundos, contra os 3 a 10 segundos do HLS.
+
+### Transcodificação FFmpeg
+
+O FFmpeg gera 4 perfis de qualidade por stream transmitida:
+
+| Qualidade | Resolução | Bitrate de vídeo | Preset |
+|-----------|-----------|-----------------|--------|
+| 1080p | 1920×1080 | 5000 kbps | medium |
+| 720p | 1280×720 | 2800 kbps | medium |
+| 480p | 854×480 | 1400 kbps | fast |
+| 360p | 640×360 | 800 kbps | faster |
+
+Codec de vídeo: H.264 (libx264). Codec de áudio: AAC, 128 kbps, 44100 Hz, estéreo. Duração de cada segmento HLS: 6 segundos. O resultado é uma master playlist `master.m3u8` referenciando as playlists de cada qualidade.
+
+---
+
+## 7. Mensageria e Cache
+
+### RabbitMQ
+
+O sistema usa RabbitMQ como message broker para desacoplar a produção de eventos (módulo stream) do consumo (módulo consumer).
+
+**Exchange**: `stream.exchange` do tipo topic.
+
+**Filas e routing keys**:
+
+| Fila | Routing keys vinculadas |
+|------|------------------------|
+| `stream.events` | `stream.created`, `stream.started`, `stream.ended` |
+| `metrics.events` | `viewer.joined`, `viewer.left` |
+
+Mensagens são serializadas em JSON via `Jackson2JsonMessageConverter`. A concorrência de consumers é configurada entre 3 e 10 threads.
+
+### Redis
+
+O Redis é utilizado para armazenamento de estado de sessão e operações atômicas sobre o contador de viewers. O contador `current_viewers` e o pico `viewers_peak` são atualizados via JPQL `UPDATE` atômico diretamente no PostgreSQL, com `clearAutomatically = true` para garantir consistência do contexto de persistência.
+
+---
+
+## 8. API REST
+
+Base URL: `http://localhost:8080`
+
+Documentação interativa disponível em `/swagger-ui.html`.
+
+### Streams
 
 | Método | Endpoint | Descrição |
 |--------|----------|-----------|
-| POST | `/api/streams/create` | Criar nova stream |
-| GET | `/api/streams/{id}` | Obter detalhes da stream |
-| GET | `/api/streams/{id}/status` | Status e contador de viewers |
-| DELETE | `/api/streams/{id}` | Encerrar stream |
-| POST | `/api/streams/callback/publish` | Validar stream (Nginx callback) |
-| POST | `/api/streams/callback/publish_done` | Stream iniciou (Nginx callback) |
-| POST | `/api/streams/callback/done` | Stream encerrou (Nginx callback) |
+| POST | `/api/streams` | Cria nova stream |
+| GET | `/api/streams/live` | Lista streams ao vivo |
+| GET | `/api/streams/my` | Lista streams do owner |
+| GET | `/api/streams/{id}` | Retorna detalhes da stream |
+| GET | `/api/streams/{id}/status` | Retorna status e contadores |
+| PUT | `/api/streams/{id}` | Atualiza título e descrição |
+| DELETE | `/api/streams/{id}` | Encerra a stream |
+| POST | `/api/streams/{id}/restart` | Reinicia stream encerrada |
+| POST | `/api/streams/validate` | Valida stream key |
 
-**WebSocket Topics**:
-- `/topic/stream/{id}/status`: Atualizações de status
-- `/topic/stream/{id}/viewers`: Contador de viewers
+### Callbacks RTMP
 
-**Configuração (`application.yml`)**:
-```yaml
-server:
-  port: 8080
+| Método | Endpoint | Disparado por |
+|--------|----------|--------------|
+| POST | `/api/streams/callback/publish` | on_publish do servidor RTMP |
+| POST | `/api/streams/callback/publish_done` | on_publish_done / on_unpublish |
 
-spring:
-  datasource:
-    url: jdbc:postgresql://postgres:5432/streaming_db
-    username: streaming_user
-    password: ${DB_PASSWORD}
-  
-  jpa:
-    hibernate:
-      ddl-auto: validate
-    show-sql: false
-  
-  redis:
-    host: redis
-    port: 6379
-  
-  rabbitmq:
-    host: rabbitmq
-    port: 5672
-    username: guest
-    password: guest
+O callback `/publish` valida a stream key e transita o status para LIVE. O callback `/publish_done` transita o status para ENDED.
 
-streaming:
-  rtmp:
-    url: rtmp://nginx-rtmp:1935/live
-  hls:
-    base-url: http://localhost:8081/hls
-  session:
-    ttl: 7200 # 2 horas em segundos
-```
+### Viewers
 
-### Consumer Service
-
-**Tipo**: Spring Boot Event Consumer
-
-**Responsabilidades**:
-- Consumir eventos do message broker
-- Atualizar estatísticas
-- Persistir eventos históricos
-- Limpar streams expiradas (scheduled task)
-- Limpar arquivos HLS antigos (scheduled task)
-
-**Event Handlers**:
-
-| Evento | Ação |
-|--------|------|
-| `stream_created` | Registrar métricas iniciais |
-| `stream_started` | Atualizar status, iniciar coleta de métricas |
-| `stream_ended` | Calcular estatísticas finais, limpar cache |
-| `viewer_joined` | Incrementar contador, atualizar pico |
-| `viewer_left` | Decrementar contador |
-
-**Scheduled Tasks**:
-```java
-// Limpar streams expiradas (WAITING há mais de 30 min)
-@Scheduled(fixedRate = 300000) // 5 minutos
-public void cleanExpiredStreams() { ... }
-
-// Limpar arquivos HLS antigos (streams encerradas há mais de 6h)
-@Scheduled(fixedRate = 3600000) // 1 hora
-public void cleanOldHlsFiles() { ... }
-```
-
-### Metrics Service
-
-**Tipo**: Spring Boot Metrics Collector
-
-**Responsabilidades**:
-- Parsear logs do FFmpeg
-- Consultar stats do Nginx-RTMP
-- Calcular métricas de latência
-- Expor métricas customizadas para Prometheus
-
-**Métricas Customizadas**:
-```java
-// Latência total (RTMP → HLS)
-Gauge.builder("streaming_latency_seconds", this::calculateLatency)
-    .description("Latência total do streaming")
-    .register(meterRegistry);
-
-// FPS de transcodificação
-Gauge.builder("transcoding_fps", this::getCurrentFps)
-    .description("Frames por segundo")
-    .register(meterRegistry);
-
-// Viewers ativos
-Gauge.builder("active_viewers", this::getActiveViewers)
-    .description("Viewers atualmente assistindo")
-    .register(meterRegistry);
-```
-
-### Frontend (React App)
-
-**Estrutura de Componentes**:
-```
-src/
-├── components/
-│   ├── HomePage.tsx               # Página inicial
-│   ├── CreateStreamModal.tsx      # Modal de criação
-│   ├── StreamerDashboard.tsx      # Painel do streamer
-│   ├── WatchPage.tsx              # Página de visualização
-│   ├── VideoPlayer.tsx            # Player HLS
-│   └── ViewerCounter.tsx          # Contador de viewers
-├── services/
-│   ├── api.ts                     # Cliente HTTP
-│   └── websocket.ts               # Cliente WebSocket
-├── types/
-│   └── stream.ts                  # TypeScript types
-└── App.tsx
-```
-
-**Exemplo de Componente**:
-```typescript
-// VideoPlayer.tsx
-import Hls from 'hls.js';
-import { useEffect, useRef } from 'react';
-
-interface VideoPlayerProps {
-  streamId: string;
-  hlsUrl: string;
-}
-
-export const VideoPlayer: React.FC<VideoPlayerProps> = ({ hlsUrl }) => {
-  const videoRef = useRef<HTMLVideoElement>(null);
-
-  useEffect(() => {
-    if (Hls.isSupported() && videoRef.current) {
-      const hls = new Hls();
-      hls.loadSource(hlsUrl);
-      hls.attachMedia(videoRef.current);
-      
-      hls.on(Hls.Events.MANIFEST_PARSED, () => {
-        videoRef.current?.play();
-      });
-
-      return () => hls.destroy();
-    }
-  }, [hlsUrl]);
-
-  return (
-    <video 
-      ref={videoRef} 
-      controls 
-      className="w-full max-w-4xl"
-    />
-  );
-};
-```
+| Método | Endpoint | Descrição |
+|--------|----------|-----------|
+| POST | `/api/streams/{streamId}/join` | Registra entrada de espectador |
+| POST | `/api/streams/{streamId}/leave` | Registra saída de espectador |
 
 ---
 
-## 🔄 Fluxos do Sistema
+## 9. Eventos SSE
 
-### Fluxo 1: Criação de Stream
+O servidor utiliza Server-Sent Events (SSE) para enviar atualizações em tempo real ao browser, eliminando a necessidade de polling.
 
-```mermaid
-sequenceDiagram
-    actor User as Usuário
-    participant Web as React Frontend
-    participant API as Stream Service
-    participant DB as PostgreSQL
-    participant Cache as Redis
-    participant Broker as RabbitMQ
+**Endpoint de inscrição**: `GET /api/sse/stream/{streamId}/subscribe` (Content-Type: `text/event-stream`)
 
-    User->>Web: Clica "Iniciar Streaming"
-    Web->>API: POST /api/streams/create
-    API->>API: Gera Stream Key (UUID)
-    API->>DB: INSERT INTO streams
-    API->>Cache: SET stream:session:{key}
-    API->>Broker: Publica evento "stream_created"
-    API-->>Web: Retorna {id, streamKey, rtmpUrl, watchUrl}
-    Web-->>User: Exibe painel com credenciais
-```
+O `SseEmitterManager` gerencia todos os emissores ativos, agrupados por stream ID. Ao receber um evento de domínio (status alterado, viewer entrou/saiu), o `StreamDomainEventListener` propaga o evento para todos os emissores conectados àquela stream.
 
-**Detalhamento**:
-
-1. Usuário acessa `stream.localhost/` e clica em "Iniciar Streaming"
-2. Frontend abre modal solicitando título e descrição
-3. Usuário preenche e confirma
-4. Frontend envia `POST /api/streams/create` com payload:
-   ```json
-   {
-     "title": "Minha Transmissão",
-     "description": "Teste de streaming"
-   }
-   ```
-5. Stream Service:
-   - Valida entrada
-   - Gera stream key única (UUID v4)
-   - Cria registro no PostgreSQL com status `WAITING`
-   - Armazena sessão no Redis com TTL de 2 horas
-   - Publica evento no RabbitMQ
-6. Stream Service retorna:
-   ```json
-   {
-     "id": "550e8400-e29b-41d4-a716-446655440000",
-     "streamKey": "abc123def456",
-     "rtmpUrl": "rtmp://localhost:1935/live",
-     "watchUrl": "http://stream.localhost/watch/550e8400-e29b-41d4-a716-446655440000"
-   }
-   ```
-7. Frontend exibe painel com:
-   - URL RTMP e Stream Key (com botão copiar)
-   - Link compartilhável
-   - Instruções para configurar OBS
-
-### Fluxo 2: Transmissão de Vídeo
-
-```mermaid
-sequenceDiagram
-    participant OBS
-    participant RTMP as Nginx-RTMP
-    participant API as Stream Service
-    participant FFmpeg
-    participant HLS as Nginx HLS
-    participant Broker as RabbitMQ
-
-    OBS->>RTMP: Conecta RTMP com stream key
-    RTMP->>API: POST /callback/publish
-    API->>API: Valida stream key
-    API-->>RTMP: 200 OK (aceita)
-    RTMP->>FFmpeg: Exec transcodificação
-    FFmpeg->>FFmpeg: Gera segmentos HLS
-    FFmpeg->>HLS: Salva .m3u8 e .ts
-    RTMP->>API: POST /callback/publish_done
-    API->>API: Atualiza status = LIVE
-    API->>Broker: Publica "stream_started"
-    API->>Web: WebSocket notification
-```
-
-**Detalhamento**:
-
-1. **Streamer configura OBS**:
-   - Server: `rtmp://localhost:1935/live`
-   - Stream Key: `abc123def456` (copiado do painel)
-
-2. **OBS inicia transmissão**: Estabelece conexão RTMP
-
-3. **Nginx-RTMP valida**:
-   - Faz callback: `POST http://stream-service:8080/api/streams/callback/publish?name=abc123def456`
-   - Stream Service valida stream key no Redis/PostgreSQL
-   - Retorna 200 OK (aceita) ou 403 Forbidden (rejeita)
-
-4. **Nginx-RTMP executa FFmpeg**:
-   ```bash
-   ffmpeg -i rtmp://localhost/live/abc123def456 \
-     -c:v libx264 -preset medium -b:v 5000k -s 1920x1080 \
-       -f hls -hls_time 6 -hls_list_size 10 \
-       /tmp/hls/abc123def456-1080p.m3u8 \
-     -c:v libx264 -preset medium -b:v 2800k -s 1280x720 \
-       -f hls -hls_time 6 -hls_list_size 10 \
-       /tmp/hls/abc123def456-720p.m3u8 \
-     -c:v libx264 -preset fast -b:v 1400k -s 854x480 \
-       -f hls -hls_time 6 -hls_list_size 10 \
-       /tmp/hls/abc123def456-480p.m3u8 \
-     -c:v libx264 -preset faster -b:v 800k -s 640x360 \
-       -f hls -hls_time 6 -hls_list_size 10 \
-       /tmp/hls/abc123def456-360p.m3u8
-   ```
-
-5. **FFmpeg gera arquivos HLS**:
-   - Segmentos `.ts` (cada 6 segundos)
-   - Playlists `.m3u8` (atualizadas continuamente)
-
-6. **Nginx-RTMP notifica início**:
-   - Callback: `POST /callback/publish_done`
-   - Stream Service atualiza status para `LIVE`
-   - Publica evento `stream_started` no RabbitMQ
-   - Notifica viewers via WebSocket
-
-### Fluxo 3: Visualização
-
-```mermaid
-sequenceDiagram
-    actor Viewer as Espectador
-    participant Web as React Frontend
-    participant API as Stream Service
-    participant HLS as Nginx HLS
-    participant WS as WebSocket
-
-    Viewer->>Web: Acessa /watch/{id}
-    Web->>API: GET /api/streams/{id}/status
-    API-->>Web: {status: LIVE, viewers: 10, hlsUrl}
-    Web->>HLS: GET /hls/{key}/master.m3u8
-    HLS-->>Web: Playlist com qualidades
-    Web->>HLS: GET /hls/{key}-720p.m3u8
-    HLS-->>Web: Playlist com segmentos
-    Web->>HLS: GET segment-001.ts
-    HLS-->>Web: Segmento de vídeo
-    Web->>WS: Connect + viewer_joined
-    API->>API: Incrementa contador
-    API->>WS: Broadcast novo viewer count
-    Web-->>Viewer: Reproduz vídeo
-```
-
-**Detalhamento**:
-
-1. **Espectador acessa link**: `http://stream.localhost/watch/550e8400-...`
-
-2. **Frontend carrega página**:
-   - Requisita: `GET /api/streams/550e8400-.../status`
-   - Recebe:
-     ```json
-     {
-       "id": "550e8400-...",
-       "title": "Minha Transmissão",
-       "status": "LIVE",
-       "viewers": 10,
-       "hlsUrl": "http://localhost:8081/hls/abc123def456/master.m3u8"
-     }
-     ```
-
-3. **Player HLS inicializa**:
-   - Carrega master playlist: `master.m3u8`
-   - Master playlist contém:
-     ```m3u8
-     #EXTM3U
-     #EXT-X-STREAM-INF:BANDWIDTH=5000000,RESOLUTION=1920x1080
-     abc123def456-1080p.m3u8
-     #EXT-X-STREAM-INF:BANDWIDTH=2800000,RESOLUTION=1280x720
-     abc123def456-720p.m3u8
-     #EXT-X-STREAM-INF:BANDWIDTH=1400000,RESOLUTION=854x480
-     abc123def456-480p.m3u8
-     #EXT-X-STREAM-INF:BANDWIDTH=800000,RESOLUTION=640x360
-     abc123def456-360p.m3u8
-     ```
-
-4. **Player escolhe qualidade** (baseado em bandwidth):
-   - Requisita: `abc123def456-720p.m3u8`
-   - Recebe lista de segmentos:
-     ```m3u8
-     #EXTM3U
-     #EXT-X-TARGETDURATION:6
-     #EXT-X-VERSION:3
-     #EXTINF:6.0,
-     segment-001.ts
-     #EXTINF:6.0,
-     segment-002.ts
-     #EXTINF:6.0,
-     segment-003.ts
-     ```
-
-5. **Player baixa e reproduz segmentos** sequencialmente
-
-6. **WebSocket connection**:
-   - Frontend conecta a `/ws`
-   - Subscreve `/topic/stream/550e8400-.../viewers`
-   - Envia mensagem `viewer_joined`
-   - Stream Service incrementa contador no Redis
-   - Broadcast novo count para todos os viewers
-
-7. **Player continua requisitando** novos segmentos a cada 6 segundos
-
-8. **Adaptive Bitrate**: Player ajusta qualidade automaticamente baseado em bandwidth
-
-### Fluxo 4: Encerramento
-
-```mermaid
-sequenceDiagram
-    participant OBS
-    participant RTMP as Nginx-RTMP
-    participant FFmpeg
-    participant API as Stream Service
-    participant DB as PostgreSQL
-    participant Broker as RabbitMQ
-    participant WS as WebSocket
-
-    OBS->>RTMP: Desconecta
-    RTMP->>FFmpeg: SIGTERM
-    FFmpeg->>FFmpeg: Finaliza transcodificação
-    RTMP->>API: POST /callback/done
-    API->>DB: UPDATE status = ENDED
-    API->>API: Calcula duração e métricas
-    API->>Broker: Publica "stream_ended"
-    API->>WS: Notifica viewers
-    WS->>Web: Stream encerrada
-    Web-->>Viewer: Exibe mensagem
-```
+**Configurações SSE**:
+- Timeout de conexão: 30 minutos
+- Keepalive: a cada 30 segundos
+- TTL de emissores inativos: 2 horas
+- Cleanup periódico: a cada 5 minutos
 
 ---
 
-## 🔀 Alternativas Tecnológicas
+## 10. Modelo de Dados
 
-### Comparação: Message Brokers
+### Tabela `streams`
 
-| Critério | RabbitMQ | Redis Streams | NATS |
-|----------|----------|---------------|------|
-| **Performance** | ⭐⭐⭐ Bom | ⭐⭐⭐⭐⭐ Excelente | ⭐⭐⭐⭐⭐ Excelente |
-| **Throughput** | ~20k msg/s | ~100k msg/s | ~200k msg/s |
-| **Latência** | ~5-10ms | ~1ms | ~0.5ms |
-| **Confiabilidade** | ⭐⭐⭐⭐⭐ Excelente | ⭐⭐⭐ Bom | ⭐⭐⭐⭐ Muito bom |
-| **Features** | ⭐⭐⭐⭐⭐ Completo | ⭐⭐⭐ Básico | ⭐⭐⭐ Básico |
-| **Facilidade** | ⭐⭐⭐ Médio | ⭐⭐⭐⭐⭐ Fácil | ⭐⭐⭐⭐ Fácil |
-| **Recursos** | Alto (RAM+CPU) | Médio (RAM) | Baixo |
-| **Caso de Uso** | Sistemas críticos | Performance crítica | Cloud-native |
+| Campo | Tipo | Descrição |
+|-------|------|-----------|
+| id | UUID | Identificador único |
+| title | VARCHAR(200) | Título da transmissão |
+| description | VARCHAR(1000) | Descrição |
+| stream_key | VARCHAR(16) | Chave de autenticação RTMP (unique) |
+| owner_id | VARCHAR(36) | Identificador do criador |
+| status | VARCHAR(20) | WAITING, LIVE ou ENDED |
+| created_at | TIMESTAMP | Data de criação |
+| updated_at | TIMESTAMP | Última atualização |
+| started_at | TIMESTAMP | Início da transmissão |
+| ended_at | TIMESTAMP | Encerramento da transmissão |
+| current_viewers | INTEGER | Viewers conectados no momento |
+| viewers_peak | INTEGER | Pico de viewers da sessão |
 
-**Quando usar cada um**:
+### Ciclo de vida da stream
 
-- **RabbitMQ**: 
-  - ✅ Garantias de entrega são críticas
-  - ✅ Roteamento complexo de mensagens
-  - ✅ Dead Letter Queues necessárias
-  - ✅ Interface de gerenciamento importante
+A stream é criada com status `WAITING`. Quando o OBS inicia a transmissão, o callback do servidor RTMP muda o status para `LIVE`. Quando o OBS para de transmitir ou o streamer encerra manualmente, o status vai para `ENDED`. Streams com status ENDED há mais de 1 dia são removidas automaticamente pelo `StreamCleanupScheduler`.
 
-- **Redis Streams**:
-  - ✅ Já usa Redis no projeto
-  - ✅ Performance é crítica
-  - ✅ Volume moderado de mensagens
-  - ✅ Simplicidade operacional
+### Eventos de domínio
 
-- **NATS**:
-  - ✅ Latência ultra-baixa necessária
-  - ✅ Cloud-native architecture
-  - ✅ Recursos limitados
-  - ✅ Simplicidade operacional
-
-### Comparação: Servidores RTMP
-
-| Critério | Nginx-RTMP | SRS |
-|----------|------------|-----|
-| **Maturidade** | ⭐⭐⭐⭐⭐ | ⭐⭐⭐ |
-| **Manutenção** | ❌ Descontinuado | ✅ Ativo |
-| **Performance** | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐ |
-| **Features** | ⭐⭐⭐ Básico | ⭐⭐⭐⭐⭐ Completo |
-| **Documentação** | ⭐⭐⭐ | ⭐⭐⭐⭐⭐ |
-| **API REST** | ❌ | ✅ |
-| **Dashboard** | ❌ | ✅ |
-| **WebRTC** | ❌ | ✅ |
-
-**Quando usar SRS**:
-- ✅ Necessidade de features modernas (WebRTC, clustering)
-- ✅ Manutenção ativa é importante
-- ✅ API REST para controle
-- ✅ Dashboard integrado
-
-### Transcodificação: FFmpeg
-
-O projeto utiliza **FFmpeg** para transcodificação multi-qualidade via `exec` do Nginx-RTMP.
-
-| Critério | FFmpeg |
-|----------|---------|
-| **Performance** | ⭐⭐⭐⭐⭐ |
-| **Formatos** | ⭐⭐⭐⭐⭐ Todos |
-| **CLI** | ⭐⭐⭐⭐⭐ |
-| **Comunidade** | ⭐⭐⭐⭐⭐ Enorme |
-
-**Vantagens do FFmpeg com Nginx-RTMP exec**:
-- ✅ Integração direta via diretiva `exec` no nginx-rtmp
-- ✅ Geração de HLS multi-qualidade (360p a 1080p)
-- ✅ Master playlist automática para ABR
-- ✅ Amplamente documentado e suportado
+O módulo stream publica eventos Spring que o `StreamDomainEventListener` captura e distribui:
+- `StreamCreatedEvent` — publicado ao criar stream
+- `StreamStartedEvent` — publicado quando status vai para LIVE
+- `StreamEndedEvent` — publicado quando status vai para ENDED
 
 ---
 
-## 📁 Estrutura do Projeto
+## 11. Fluxos Principais
+
+### Criação de stream
+
+O frontend envia `POST /api/streams` com título e descrição. O backend gera uma stream key, persiste no PostgreSQL com status WAITING e publica `stream.created` no RabbitMQ. A resposta inclui a URL RTMP e a stream key para configuração no OBS.
+
+### Publicação de stream
+
+O OBS conecta ao servidor RTMP na porta 1935 com a stream key. O servidor RTMP dispara o callback `on_publish` para o backend, que valida a key e atualiza o status para LIVE. O backend publica `stream.started` no RabbitMQ e o `StreamDomainEventListener` notifica os clientes SSE. O servidor RTMP aciona o FFmpeg para iniciar a transcodificação HLS.
+
+### Visualização
+
+O browser acessa a página de visualização e conecta ao endpoint SSE para receber atualizações em tempo real. O player HLS carrega a master playlist e adapta automaticamente a qualidade conforme as condições de rede.
+
+### Encerramento
+
+Quando o OBS para a transmissão, o callback `on_publish_done` é disparado. O backend atualiza o status para ENDED, publica `stream.ended` no RabbitMQ e o SSE notifica todos os browsers conectados.
+
+---
+
+## 12. Monitoramento
+
+O Spring Boot Actuator expõe métricas via endpoint `/actuator/prometheus` no formato Prometheus. O Micrometer coleta métricas da JVM, do pool de conexões HikariCP, do RabbitMQ e métricas customizadas da aplicação.
+
+O Prometheus faz scraping periódico dos endpoints de cada serviço. O Grafana consome os dados do Prometheus e exibe dashboards com métricas de CPU, memória, conexões ativas e indicadores específicos de streaming.
+
+Os dashboards são estruturados para comparação lado a lado das implementações A e B, permitindo a análise quantitativa central do TCC — latência RTMP para reprodução no browser, uso de CPU e memória por container, e capacidade máxima de viewers simultâneos.
+
+---
+
+## 13. Testes
+
+Os testes de integração usam Testcontainers para subir um container PostgreSQL real e validar os fluxos completos via HTTP com RestAssured.
+
+- `StreamControllerE2ETest` — testa CRUD de streams, listagem de streams ao vivo, restart e validação de stream key (11 testes)
+- `NginxCallbackControllerE2ETest` — testa os callbacks de publish e publish_done simulando o comportamento do servidor RTMP (7 testes)
+
+A classe base `AbstractE2ETest` inicializa o container PostgreSQL compartilhado entre todas as suítes e configura o Spring para usar o banco de teste.
+
+Total: 18 testes E2E passando.
+
+---
+
+## 14. Estrutura do Projeto
 
 ```
 tcc/
 ├── app/
 │   ├── backend/
-│   │   ├── stream-service/              # Serviço principal
-│   │   │   ├── src/
-│   │   │   │   ├── main/
-│   │   │   │   │   ├── java/
-│   │   │   │   │   │   └── com/tcc/streaming/
-│   │   │   │   │   │       ├── controller/
-│   │   │   │   │   │       │   ├── StreamController.java
-│   │   │   │   │   │       │   └── CallbackController.java
-│   │   │   │   │   │       ├── service/
-│   │   │   │   │   │       │   ├── StreamService.java
-│   │   │   │   │   │       │   └── EventPublisher.java
-│   │   │   │   │   │       ├── repository/
-│   │   │   │   │   │       │   ├── StreamRepository.java
-│   │   │   │   │   │       │   └── EventRepository.java
-│   │   │   │   │   │       ├── model/
-│   │   │   │   │   │       │   ├── Stream.java
-│   │   │   │   │   │       │   └── StreamEvent.java
-│   │   │   │   │   │       ├── config/
-│   │   │   │   │   │       │   ├── WebSocketConfig.java
-│   │   │   │   │   │       │   └── RabbitMQConfig.java
-│   │   │   │   │   │       └── StreamingApplication.java
-│   │   │   │   │   └── resources/
-│   │   │   │   │       └── application.yml
-│   │   │   │   └── test/
-│   │   │   └── pom.xml
-│   │   │
-│   │   ├── consumer-service/            # Processador de eventos
-│   │   │   ├── src/
-│   │   │   └── pom.xml
-│   │   │
-│   │   ├── metrics-service/             # Coletor de métricas
-│   │   │   ├── src/
-│   │   │   └── pom.xml
-│   │   │
-│   │   └── common/                      # Libs compartilhadas
-│   │       ├── src/
-│   │       └── pom.xml
-│   │
-│   ├── frontend/
-│   │   └── web/                         # React Application
-│   │       ├── src/
-│   │       │   ├── components/
-│   │       │   │   ├── HomePage.tsx
-│   │       │   │   ├── CreateStreamModal.tsx
-│   │       │   │   ├── StreamerDashboard.tsx
-│   │       │   │   ├── WatchPage.tsx
-│   │       │   │   ├── VideoPlayer.tsx
-│   │       │   │   └── ViewerCounter.tsx
-│   │       │   ├── services/
-│   │       │   │   ├── api.ts
-│   │       │   │   └── websocket.ts
-│   │       │   ├── types/
-│   │       │   │   └── stream.ts
-│   │       │   ├── App.tsx
-│   │       │   └── main.tsx
-│   │       ├── public/
-│   │       ├── package.json
-│   │       ├── tsconfig.json
-│   │       └── vite.config.ts
-│   │
-│   └── config/
-│       ├── nginx/
-│       │   ├── nginx-rtmp.conf
-│       │   └── nginx-hls.conf
-│       ├── prometheus/
-│       │   └── prometheus.yml
-│       └── grafana/
-│           ├── datasources/
-│           │   └── prometheus.yml
-│           └── dashboards/
-│               ├── overview.json
-│               ├── streaming.json
-│               └── infrastructure.json
-│
-├── docker/
-│   ├── nginx-rtmp/
-│   │   └── Dockerfile
-│   ├── postgres/
-│   │   ├── Dockerfile
-│   │   └── init.sql
-│   ├── rabbitmq/
-│   │   └── Dockerfile
-│   ├── redis/
-│   │   └── Dockerfile
-│   └── monitoring/
-│       ├── prometheus/
-│       │   └── Dockerfile
-│       └── grafana/
-│           └── Dockerfile
-│
-├── docker-compose/
-│   ├── docker-compose.yml                    # Setup principal (RabbitMQ)
-│   ├── docker-compose.redis-streams.yml      # Variante Redis Streams
-│   ├── docker-compose.nats.yml               # Variante NATS
-│   └── docker-compose.srs.yml                # Variante SRS
-│
-├── docs/
-│   ├── todo.md                              # Este arquivo
-│   ├── documentacao_v2.md                   # Documentação completa
-│   ├── setup.md                             # Guia de instalação
-│   ├── api-reference.md                     # Referência de APIs
-│   └── diagrams/                            # Diagramas Mermaid
-│       ├── 01-arquitetura-geral.mermaid
-│       ├── 03-fluxo-criacao-stream.mermaid
-│       ├── 04-fluxo-transmissao.mermaid
-│       ├── 05-fluxo-visualizacao.mermaid
-│       ├── 06-c4-containers.mermaid
-│       ├── 07-estrutura-pastas.mermaid
-│       ├── 09-estados-stream.mermaid
-│       └── 10-fluxo-metricas.mermaid
-│
-├── scripts/
-│   ├── setup.sh                             # Script de setup inicial
-│   ├── start-services.sh                    # Iniciar todos os serviços
-│   ├── stop-services.sh                     # Parar todos os serviços
-│   └── clean-hls.sh                         # Limpar arquivos HLS antigos
-│
-├── .gitignore
-├── README.md
-└── LICENSE
+│   │   ├── streaming-platform/         # Monolito Spring Boot
+│   │   │   └── src/main/java/com/tcc/streaming/
+│   │   │       ├── common/             # Config, eventos, handlers transversais
+│   │   │       ├── stream/             # Módulo de gerenciamento de streams
+│   │   │       └── consumer/           # Módulo de consumo de eventos
+│   │   └── rtmp/
+│   │       ├── nginx/                  # Implementação A: Nginx-RTMP
+│   │       │   ├── configs/nginx.conf
+│   │       │   └── scripts/transcode-ffmpeg.sh
+│   │       └── srs/                    # Implementação B: SRS
+│   │           └── srs.conf
+│   ├── frontend/                       # React + TypeScript (Vite)
+│   ├── config/
+│   │   ├── nginx/
+│   │   ├── prometheus/
+│   │   └── grafana/
+│   └── docker-compose.yml
+└── docs/
+    ├── documentacao.md
+    ├── todo.md
+    └── diagrams/
 ```
+
+### Serviços Docker
+
+| Serviço | Imagem | Portas expostas |
+|---------|--------|----------------|
+| postgres | postgres:16-alpine | 5432 |
+| rabbitmq | rabbitmq:3-management-alpine | 5672, 15672 |
+| streaming-platform | maven:3.9-eclipse-temurin-21 | 8080 |
+| rtmp-server | build customizado (Nginx-RTMP) | 1935 (RTMP), 8081 (HLS) |
+| frontend | node:20-alpine | 3001 |
 
 ---
 
-## ⚙️ Guias de Configuração
+## 15. Referências
 
-### Setup Inicial
-
-#### Pré-requisitos
-```bash
-# Docker e Docker Compose
-docker --version  # >= 20.10
-docker-compose --version  # >= 1.29
-
-# Java 21
-java --version  # openjdk 21.x
-
-# Node.js e npm
-node --version  # >= 20.x
-npm --version  # >= 10.x
-
-# Maven ou Gradle
-mvn --version  # >= 3.9
-```
-
-#### Instalação
-
-1. **Clone o repositório**:
-```bash
-git clone https://github.com/seu-usuario/tcc-streaming.git
-cd tcc-streaming
-```
-
-2. **Configure variáveis de ambiente**:
-```bash
-cp .env.example .env
-# Editar .env com suas configurações
-```
-
-3. **Inicie a infraestrutura**:
-```bash
-cd docker-compose
-docker-compose up -d postgres redis rabbitmq
-```
-
-4. **Aguarde serviços iniciarem** (30-60 segundos)
-
-5. **Build dos serviços backend**:
-```bash
-cd ../app/backend/stream-service
-mvn clean install
-```
-
-6. **Inicie Stream Service**:
-```bash
-mvn spring-boot:run
-```
-
-7. **Inicie Frontend**:
-```bash
-cd ../../frontend/web
-npm install
-npm run dev
-```
-
-8. **Acesse a aplicação**: `http://localhost:5173`
-
-### Configuração do OBS
-
-1. **Abra OBS Studio**
-2. **Settings → Stream**:
-   - Service: Custom
-   - Server: `rtmp://localhost:1935/live`
-   - Stream Key: (copiar do painel do streamer)
-3. **Settings → Output**:
-   - Output Mode: Advanced
-   - Encoder: x264
-   - Bitrate: 3000-6000 kbps
-   - Keyframe Interval: 2
-4. **Settings → Video**:
-   - Base Resolution: 1920x1080
-   - Output Resolution: 1920x1080
-   - FPS: 30 ou 60
-5. **Clique OK e depois Start Streaming**
-
----
-
-## 📊 Monitoramento e Métricas
-
-### Dashboards Grafana
-
-#### 1. Visão Geral do Sistema
-
-**URL**: `http://localhost:3000/dashboards`
-
-**Painéis**:
-- Total de streams ativas (gauge)
-- Total de viewers online (gauge)
-- Streams criadas hoje (counter)
-- Timeline de eventos (graph)
-- Status dos serviços (health checks)
-
-**Queries Prometheus**:
-```promql
-# Streams ativas
-count(streams{status="LIVE"})
-
-# Viewers online
-sum(active_viewers)
-
-# Streams criadas nas últimas 24h
-increase(streams_created_total[24h])
-```
-
-#### 2. Métricas de Streaming
-
-**Painéis**:
-- FPS médio (gauge + graph)
-- Bitrate entrada/saída (graph)
-- Latência RTMP → HLS (graph)
-- Taxa de transcodificação (graph)
-- Frame drops (counter)
-
-**Queries Prometheus**:
-```promql
-# FPS médio
-avg(transcoding_fps)
-
-# Latência streaming
-histogram_quantile(0.95, streaming_latency_seconds)
-
-# Bitrate
-rate(ffmpeg_output_bytes_total[1m]) * 8 / 1000000  # Mbps
-```
-
-#### 3. Recursos de Infraestrutura
-
-**Painéis**:
-- CPU por container (graph)
-- Memória por container (graph)
-- Disco I/O (graph)
-- Network I/O (graph)
-
-**Queries Prometheus**:
-```promql
-# CPU
-rate(container_cpu_usage_seconds_total[5m]) * 100
-
-# Memória
-container_memory_usage_bytes / container_spec_memory_limit_bytes * 100
-```
-
-### Alertas
-
-**Alertas Configurados**:
-
-```yaml
-# prometheus.yml - alerting rules
-groups:
-  - name: streaming_alerts
-    rules:
-      - alert: HighStreamLatency
-        expr: streaming_latency_seconds > 15
-        for: 2m
-        annotations:
-          summary: "Latência de streaming alta"
-          description: "Latência atual: {{ $value }}s"
-      
-      - alert: LowTranscodingFPS
-        expr: transcoding_fps < 25
-        for: 1m
-        annotations:
-          summary: "FPS baixo na transcodificação"
-          description: "FPS atual: {{ $value }}"
-      
-      - alert: HighCPUUsage
-        expr: container_cpu_usage_seconds_total > 0.8
-        for: 5m
-        annotations:
-          summary: "Uso de CPU alto"
-          description: "Container {{ $labels.container }} usando > 80% CPU"
-```
-
----
-
-## 📖 API Reference
-
-### Stream Management
-
-#### POST /api/streams/create
-Criar nova stream
-
-**Request**:
-```json
-{
-  "title": "string",
-  "description": "string" (opcional)
-}
-```
-
-**Response** (201 Created):
-```json
-{
-  "id": "uuid",
-  "streamKey": "string",
-  "rtmpUrl": "string",
-  "watchUrl": "string",
-  "status": "WAITING",
-  "createdAt": "timestamp"
-}
-```
-
-#### GET /api/streams/{id}/status
-Obter status da stream
-
-**Response** (200 OK):
-```json
-{
-  "id": "uuid",
-  "title": "string",
-  "status": "LIVE",
-  "viewers": 42,
-  "duration": 3600,
-  "hlsUrl": "string"
-}
-```
-
-#### DELETE /api/streams/{id}
-Encerrar stream
-
-**Response** (204 No Content)
-
-### RTMP Callbacks (Internal)
-
-#### POST /api/streams/callback/publish
-Validar stream antes de aceitar
-
-**Query Params**: `name={streamKey}`
-
-**Response**: 
-- 200 OK (aceita)
-- 403 Forbidden (rejeita)
-
-#### POST /api/streams/callback/publish_done
-Notificar início de transmissão
-
-**Response**: 200 OK
-
-#### POST /api/streams/callback/done
-Notificar fim de transmissão
-
-**Response**: 200 OK
-
----
-
-## 🧪 Estratégia de Testes
-
-### Testes Unitários
-
-**Cobertura Alvo**: >70%
-
-**Frameworks**:
-- JUnit 5 (backend)
-- Mockito (mocking)
-- Jest (frontend)
-
-**Exemplo**:
-```java
-@SpringBootTest
-class StreamServiceTest {
-    
-    @Mock
-    private StreamRepository repository;
-    
-    @InjectMocks
-    private StreamService service;
-    
-    @Test
-    void shouldCreateStream() {
-        // Given
-        CreateStreamRequest request = new CreateStreamRequest("Test", "Desc");
-        
-        // When
-        StreamResponse response = service.createStream(request);
-        
-        // Then
-        assertNotNull(response.getId());
-        assertNotNull(response.getStreamKey());
-        verify(repository).save(any(Stream.class));
-    }
-}
-```
-
-### Testes de Integração
-
-**Ferramentas**:
-- Testcontainers (PostgreSQL, Redis, RabbitMQ)
-- RestAssured (API REST)
-
-**Exemplo**:
-```java
-@SpringBootTest(webEnvironment = WebEnvironment.RANDOM_PORT)
-@Testcontainers
-class StreamControllerIntegrationTest {
-    
-    @Container
-    static PostgreSQLContainer<?> postgres = new PostgreSQLContainer<>("postgres:15");
-    
-    @Test
-    void shouldCreateAndRetrieveStream() {
-        // POST /api/streams/create
-        String streamId = given()
-            .contentType(ContentType.JSON)
-            .body("{\"title\":\"Test\"}")
-            .when()
-            .post("/api/streams/create")
-            .then()
-            .statusCode(201)
-            .extract().path("id");
-        
-        // GET /api/streams/{id}/status
-        given()
-            .when()
-            .get("/api/streams/" + streamId + "/status")
-            .then()
-            .statusCode(200)
-            .body("status", equalTo("WAITING"));
-    }
-}
-```
-
-### Testes de Carga
-
-**Ferramenta**: K6
-
-**Cenários**:
-
-```javascript
-// k6-load-test.js
-import http from 'k6/http';
-import { check } from 'k6';
-
-export const options = {
-  stages: [
-    { duration: '2m', target: 100 },  // Ramp-up to 100 users
-    { duration: '5m', target: 100 },  // Stay at 100 users
-    { duration: '2m', target: 0 },    // Ramp-down to 0 users
-  ],
-};
-
-export default function () {
-  // Simular viewer acessando stream
-  const res = http.get('http://localhost:8080/api/streams/123/status');
-  check(res, {
-    'status is 200': (r) => r.status === 200,
-    'latency < 200ms': (r) => r.timings.duration < 200,
-  });
-}
-```
-
-**Executar**:
-```bash
-k6 run k6-load-test.js
-```
-
----
-
-## 📚 Referências
-
-### Documentação Técnica
 - [Nginx-RTMP Module](https://github.com/arut/nginx-rtmp-module)
 - [SRS Documentation](https://github.com/ossrs/srs)
 - [FFmpeg Documentation](https://ffmpeg.org/documentation.html)
-- [HLS Specification (RFC 8216)](https://tools.ietf.org/html/rfc8216)
+- [HLS Specification — RFC 8216](https://tools.ietf.org/html/rfc8216)
+- [WebRTC Specification](https://www.w3.org/TR/webrtc/)
 - [Spring Boot Reference](https://docs.spring.io/spring-boot/docs/current/reference/htmlsingle/)
-- [React Documentation](https://react.dev/)
+- [Spring AMQP Reference](https://docs.spring.io/spring-amqp/reference/)
 - [RabbitMQ Documentation](https://www.rabbitmq.com/documentation.html)
-- [Redis Streams Tutorial](https://redis.io/docs/data-types/streams-tutorial/)
-- [NATS Documentation](https://docs.nats.io/)
 - [Prometheus Documentation](https://prometheus.io/docs/)
 - [Grafana Documentation](https://grafana.com/docs/)
-
-### Artigos e Tutoriais
-- [Building a Live Streaming Platform](https://www.nginx.com/blog/)
-- [Microservices with Spring Boot](https://spring.io/guides/gs/spring-boot/)
-- [HLS Streaming Best Practices](https://developer.apple.com/streaming/)
-- [Message Broker Comparison](https://blog.bytebytego.com/p/message-brokers)
-
-### Papers Acadêmicos
-- HTTP Live Streaming (HLS): A Comprehensive Study
-- Comparative Analysis of Video Streaming Protocols
-- Performance Evaluation of Message-Oriented Middleware
-
----
-
-## 📝 Notas de Desenvolvimento
-
-### Convenções de Código
-
-**Java**:
-- Seguir Google Java Style Guide
-- Usar Lombok para reduzir boilerplate
-- Javadoc em classes e métodos públicos
-
-**TypeScript**:
-- Usar ESLint + Prettier
-- Prefer functional components
-- Props interface para cada componente
-
-### Git Workflow
-
-**Branches**:
-- `main`: Código estável
-- `develop`: Desenvolvimento ativo
-- `feature/*`: Features específicas
-- `fix/*`: Correções de bugs
-
-**Commits**:
-```
-tipo(escopo): descrição curta
-
-Descrição detalhada (opcional)
-
-Refs: #issue-number
-```
-
-Tipos: `feat`, `fix`, `docs`, `refactor`, `test`, `chore`
-
-### Versionamento
-
-Seguir [Semantic Versioning](https://semver.org/):
-- `MAJOR.MINOR.PATCH`
-- Exemplo: `1.0.0`, `1.1.0`, `1.1.1`
-
----
-
-## 🎓 Análise Comparativa (Objetivo do TCC)
-
-### Métricas a Comparar
-
-#### Performance
-- [ ] Throughput (mensagens/segundo para brokers)
-- [ ] Latência end-to-end (RTMP → Visualização)
-- [ ] FPS de transcodificação
-- [ ] Uso de CPU
-- [ ] Uso de memória
-- [ ] I/O de disco
-- [ ] Uso de rede
-
-#### Escalabilidade
-- [ ] Viewers simultâneos máximos
-- [ ] Degradação de performance com carga crescente
-- [ ] Capacidade de horizontal scaling
-
-#### Confiabilidade
-- [ ] Taxa de erros (%)
-- [ ] Recuperação de falhas (tempo)
-- [ ] Perda de mensagens/frames (%)
-
-#### Usabilidade
-- [ ] Complexidade de configuração (1-5)
-- [ ] Qualidade da documentação (1-5)
-- [ ] Curva de aprendizado (horas estimadas)
-
-### Cenários de Teste
-
-| Cenário | Streamers | Viewers | Duração |
-|---------|-----------|---------|---------|
-| Baseline | 1 | 10 | 10 min |
-| Média Carga | 1 | 100 | 15 min |
-| Alta Carga | 1 | 500 | 10 min |
-| Múltiplas Streams | 5 | 20 cada | 10 min |
-| Stress Test | 1 | 1000 | 5 min |
-
-### Estrutura do TCC
-
-```
-1. Introdução
-   1.1. Contextualização
-   1.2. Motivação
-   1.3. Objetivos
-   1.4. Justificativa
-
-2. Referencial Teórico
-   2.1. Streaming de Vídeo
-   2.2. Protocolos (RTMP, HLS)
-   2.3. Arquitetura de Microserviços
-   2.4. Message Brokers
-   2.5. Trabalhos Relacionados
-
-3. Metodologia
-   3.1. Arquitetura Proposta
-   3.2. Tecnologias Utilizadas
-   3.3. Métricas Definidas
-   3.4. Cenários de Teste
-   3.5. Processo de Coleta
-
-4. Implementação
-   4.1. Componentes do Sistema
-   4.2. Decisões Técnicas
-   4.3. Desafios Enfrentados
-   4.4. Soluções Implementadas
-
-5. Resultados
-   5.1. Análise Quantitativa
-   5.2. Gráficos Comparativos
-   5.3. Análise Qualitativa
-   5.4. Trade-offs Identificados
-   5.5. Recomendações
-
-6. Conclusão
-   6.1. Objetivos Alcançados
-   6.2. Aprendizados
-   6.3. Trabalhos Futuros
-   6.4. Contribuições
-```
-
----
-
----
-
-## 🔬 Análise Comparativa — Matriz 2×2
-
-### Visão Geral
-
-O objetivo central do TCC é comparar tecnologias que implementam as mesmas funcionalidades. Com o novo direcionamento, a análise se organiza em uma **matriz 2×2**:
-
-| | **HLS (HTTP Live Streaming)** | **WebRTC (Ultra-low latency)** |
-|---|---|---|
-| **Nginx-RTMP** | ✅ Implementado (FFmpeg exec) | 🔬 A implementar (FFmpeg WHIP/experimental) |
-| **SRS Server** | 🔬 A implementar (FFmpeg exec) | 🔬 A implementar (nativo no SRS) |
-
-### Combinações
-
-1. **Nginx-RTMP + HLS** (baseline — já implementado)
-   - Ingestão: RTMP porta 1935
-   - Transcodificação: FFmpeg via `exec` do nginx.conf
-   - Entrega: Nginx HTTP porta 8081, `master.m3u8` e segmentos `.ts`
-
-2. **SRS + HLS** (a implementar)
-   - Ingestão: RTMP porta 1935 (via SRS)
-   - Transcodificação: FFmpeg via `exec` da config SRS
-   - Entrega: Nginx HTTP ou SRS HTTP, mesmo formato HLS
-
-3. **SRS + WebRTC** (a implementar — diferencial do TCC)
-   - Ingestão: RTMP porta 1935 (via SRS)
-   - Conversão: SRS converte RTMP → WebRTC nativamente
-   - Entrega: WebRTC (~100–300ms de latência)
-
-4. **Nginx-RTMP + WebRTC** (experimental)
-   - Ingestão: RTMP porta 1935
-   - Conversão: FFmpeg com saída WHIP (protocolo WebRTC push)
-   - Entrega: WebRTC (mais complexo, requer WHIP endpoint)
-
-### Métricas de Comparação
-
-| Métrica | O que mede |
-|---|---|
-| **Latência ponta-a-ponta** | Tempo desde `exec` até reprodução no browser |
-| **Latência de ingestão** | OBS → servidor RTMP |
-| **Latência de entrega** | Servidor → browser |
-| **Uso de CPU** | Consumo do servidor durante transcodificação |
-| **Uso de memória** | RSS do processo principal |
-| **Estabilidade** | Taxa de reconexões e erros do player |
-| **Complexidade de setup** | Linhas de config, curva de aprendizado |
-
-### FFmpeg em Todos os Cenários
-
-O FFmpeg é utilizado como transcodificador em **todos os cenários** para isolar a variável sendo comparada (servidor ou protocolo), não o transcodificador:
-
-```bash
-# Mesmo script em Nginx-RTMP e SRS:
-ffmpeg -i rtmp://127.0.0.1/live/{key} \
-  -filter_complex "[v:0]split=4[v0][v1][v2][v3]; ..." \
-  -f hls -master_pl_name master.m3u8 \
-  /tmp/hls/{key}/v%v/playlist.m3u8
-```
-
----
-
-**Versão**: 3.0  
-**Última Atualização**: 09/03/2026  
-**Autor**: [Seu Nome]  
-**Orientador**: [Nome do Orientador]  
-**Instituição**: [Nome da Instituição]
-
----
-
-💡 **Para começar o desenvolvimento, consulte o arquivo [todo.md](todo.md) com o roadmap detalhado!**
+- [HLS.js Documentation](https://github.com/video-dev/hls.js/)
+- [Testcontainers Documentation](https://testcontainers.com/guides/)
