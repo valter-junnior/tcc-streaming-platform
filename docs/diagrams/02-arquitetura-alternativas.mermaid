@@ -1,13 +1,14 @@
 flowchart TB
     OBS["OBS Studio / Streamer (RTMP)"]
 
-    subgraph Ingestion["Camada de Ingestão RTMP"]
-        NGX["Nginx-RTMP ⭐ Implementação A"]
-        SRS["SRS Server ⭐ Implementação B"]
+    subgraph Ingestion["Camada de Ingestão RTMP — Eixo Y da Matriz"]
+        NGX["Nginx-RTMP ⭐ Servidor A"]
+        SRS["SRS Server ⭐ Servidor B"]
     end
 
-    subgraph Transcoding["Transcodificação (FFmpeg — ambos os servidores)"]
-        FFmpeg["FFmpeg 4 qualidades: 1080p - 360p"]
+    subgraph Transcoding["Transcodificação — Eixo X da Matriz"]
+        FFmpeg["FFmpeg ⭐ Transcodificador A\n4 qualidades: 1080p - 360p"]
+        GStreamer["GStreamer ⭐ Transcodificador B\n4 qualidades: 1080p - 360p"]
     end
 
     subgraph HLSDelivery["Entrega — HLS"]
@@ -38,8 +39,11 @@ flowchart TB
     OBS -->|RTMP :1935| NGX
     OBS -->|RTMP :1935| SRS
     NGX -->|exec transcode-ffmpeg.sh| FFmpeg
+    NGX -->|exec transcode-gstreamer.sh| GStreamer
     SRS -->|exec transcode-ffmpeg.sh| FFmpeg
+    SRS -->|exec transcode-gstreamer.sh| GStreamer
     FFmpeg --> HLS
+    GStreamer --> HLS
     HLS --> Browser
 
     NGX & SRS -.->|callback HTTP on_publish / on_publish_done| API
@@ -54,5 +58,6 @@ flowchart TB
     style NGX fill:#90EE90
     style SRS fill:#90EE90
     style FFmpeg fill:#FFD700
+    style GStreamer fill:#FFA500
     style HLS fill:#87CEEB
     style MB fill:#90EE90

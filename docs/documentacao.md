@@ -24,14 +24,14 @@
 
 Este Trabalho de Conclusão de Curso desenvolve uma plataforma de streaming de vídeo ao vivo com foco na análise comparativa de diferentes tecnologias de ingestão RTMP e protocolos de entrega de vídeo. O sistema permite que um streamer transmita vídeo via OBS Studio, que espectadores assistam via browser, e coleta métricas para comparar o desempenho de cada abordagem.
 
-O objetivo central é comparar o desempenho de duas implementações de ingestão RTMP, ambas utilizando HLS como protocolo de entrega e FFmpeg para transcodificação:
+O objetivo central é comparar o desempenho de quatro combinações formadas por dois servidores de ingestão RTMP e dois transcodificadores, em uma matriz 2² — eixo Y para o servidor RTMP e eixo X para o transcodificador:
 
-| | HLS + FFmpeg |
-|---|---|
-| Nginx-RTMP | **Implementação A** |
-| SRS | **Implementação B** |
+| | FFmpeg (Transcodificador A) | GStreamer (Transcodificador B) |
+|---|---|---|
+| **Nginx-RTMP (Servidor A)** | Combinação 1 | Combinação 2 |
+| **SRS (Servidor B)** | Combinação 3 | Combinação 4 |
 
-A análise foca em métricas de CPU, memória, latência e capacidade de espectadores simultâneos entre os dois servidores. A plataforma não exige cadastro de usuários. Streamers criam uma transmissão via browser, recebem as credenciais RTMP e configuram o OBS. Espectadores acessam o link compartilhável para assistir.
+A análise foca em métricas de CPU, memória, latência e capacidade de espectadores simultâneos para cada uma das quatro combinações, permitindo isolar o impacto do servidor RTMP e do transcodificador separadamente. A plataforma não exige cadastro de usuários. Streamers criam uma transmissão via browser, recebem as credenciais RTMP e configuram o OBS. Espectadores acessam o link compartilhável para assistir.
 
 ---
 
@@ -41,9 +41,9 @@ O sistema é composto por cinco camadas:
 
 **Camada de ingestão RTMP**: recebe o stream do OBS Studio via protocolo RTMP. É nessa camada que residem as alternativas comparadas — Nginx-RTMP (Implementação A) e SRS (Implementação B).
 
-**Camada de transcodificação**: o FFmpeg converte o stream recebido em múltiplas qualidades de vídeo e gera segmentos HLS. Cada servidor RTMP aciona o FFmpeg de forma diferente, mas o codec e os parâmetros de qualidade são equivalentes nas duas implementações.
+**Camada de transcodificação**: converte o stream recebido em múltiplas qualidades de vídeo e gera segmentos HLS. Essa camada é o segundo eixo da matriz comparativa — o **FFmpeg** (Transcodificador A) e o **GStreamer** (Transcodificador B) são acionados de forma equivalente por ambos os servidores RTMP, mantendo os mesmos parâmetros de qualidade para garantir comparação justa.
 
-**Camada de entrega**: serve os segmentos HLS ao browser via HTTP. Tanto o Nginx-RTMP quanto o SRS utilizam o mesmo mecanismo de entrega HLS, com segmentos gerados pelo FFmpeg servidos via servidor HTTP Nginx.
+**Camada de entrega**: serve os segmentos HLS ao browser via HTTP. Todas as quatro combinações utilizam o mesmo mecanismo de entrega HLS — segmentos gerados pelo transcodificador ativo são servidos via servidor HTTP Nginx.
 
 **Camada de backend**: serviço Spring Boot responsável por gerenciar o ciclo de vida das streams, autenticar as transmissões via callbacks HTTP dos servidores RTMP, processar eventos assíncronos via RabbitMQ, e notificar clientes via SSE.
 
@@ -77,9 +77,10 @@ Serviços de suporte: PostgreSQL para persistência, Redis para estado de viewer
 - Radix UI para componentes de interface
 
 ### Infraestrutura RTMP
-- Nginx compilado com o módulo nginx-rtmp-module — **Implementação A**
-- SRS (Simple Realtime Server) versão 6 — **Implementação B**
-- FFmpeg para transcodificação multi-qualidade (ambas as implementações)
+- Nginx compilado com o módulo nginx-rtmp-module — **Servidor A**
+- SRS (Simple Realtime Server) versão 6 — **Servidor B**
+- FFmpeg para transcodificação multi-qualidade — **Transcodificador A**
+- GStreamer para transcodificação multi-qualidade — **Transcodificador B**
 
 ### Infraestrutura Geral
 - Docker e Docker Compose para orquestração de containers
@@ -146,7 +147,7 @@ A interface web é uma SPA (Single Page Application) construída com React e Typ
 
 ## 6. Infraestrutura RTMP
 
-### Implementação A — Nginx-RTMP
+### Servidor A — Nginx-RTMP
 
 Container baseado em imagem customizada com Nginx compilado com `nginx-rtmp-module`. Recebe streams RTMP na porta 1935, application `live`.
 
@@ -154,23 +155,23 @@ Container baseado em imagem customizada com Nginx compilado com `nginx-rtmp-modu
 - `on_publish` — dispara `POST /api/streams/callback/publish` para validar e iniciar a stream
 - `on_publish_done` — dispara `POST /api/streams/callback/publish_done` para encerrar a stream
 
-**Transcodificação**: ao receber uma nova publicação, executa o script `transcode-ffmpeg.sh` passando o nome da stream. O script invoca o FFmpeg para gerar 4 qualidades de vídeo em HLS.
+**Transcodificação**: ao receber uma nova publicação, executa o script de transcodificação configurado (`transcode-ffmpeg.sh` ou `transcode-gstreamer.sh`) passando o nome da stream. O transcodificador ativo é definido pela variável de ambiente `TRANSCODER=ffmpeg|gstreamer`.
 
 **Entrega HLS**: o mesmo container serve os segmentos HLS via HTTP na porta 8081. Playlists `.m3u8` são servidas sem cache. Segmentos `.ts` são servidos com cache imutável.
 
 **Segurança**: reprodução RTMP direta bloqueada para clientes externos. Os endpoints `/stat` e `/control` são restritos à rede interna Docker.
 
-### Implementação B — SRS
+### Servidor B — SRS
 
 Container baseado na imagem `ossrs/srs:6`. Recebe streams RTMP na porta 1935 e expõe API HTTP na porta 8080 e servidor HTTP para HLS na porta 8081.
 
 **Callbacks HTTP configurados**: SRS notifica o backend com mais granularidade — `on_connect`, `on_close`, `on_publish`, `on_unpublish`, `on_play`, `on_stop`.
 
-**Transcodificação**: o SRS usa seu mecanismo interno de transcodificação para invocar o FFmpeg, gerando as mesmas 4 qualidades que a Implementação A (1080p, 720p, 480p, 360p).
+**Transcodificação**: o SRS usa seu mecanismo interno de `exec` para invocar o script de transcodificação configurado (`transcode-ffmpeg.sh` ou `transcode-gstreamer.sh`), gerando as mesmas 4 qualidades (1080p, 720p, 480p, 360p).
 
 **Entrega HLS**: segmentos armazenados em `/var/srs-hls`, servidos pelo servidor HTTP interno do SRS com fragmentos de 6 segundos e janela de 60 segundos. O protocolo de entrega ao browser é idêntico ao da Implementação A — HLS via HTTP.
 
-### Transcodificação FFmpeg
+### Transcodificador A — FFmpeg
 
 O FFmpeg gera 4 perfis de qualidade por stream transmitida:
 
@@ -182,6 +183,19 @@ O FFmpeg gera 4 perfis de qualidade por stream transmitida:
 | 360p | 640×360 | 800 kbps | faster |
 
 Codec de vídeo: H.264 (libx264). Codec de áudio: AAC, 128 kbps, 44100 Hz, estéreo. Duração de cada segmento HLS: 6 segundos. O resultado é uma master playlist `master.m3u8` referenciando as playlists de cada qualidade.
+
+### Transcodificador B — GStreamer
+
+O GStreamer é a alternativa ao FFmpeg na matriz comparativa. Gera os mesmos 4 perfis de qualidade para garantir comparação justa:
+
+| Qualidade | Resolução | Bitrate de vídeo | Encoder |
+|-----------|-----------|-----------------|--------|
+| 1080p | 1920×1080 | 5000 kbps | x264enc |
+| 720p | 1280×720 | 2800 kbps | x264enc |
+| 480p | 854×480 | 1400 kbps | x264enc |
+| 360p | 640×360 | 800 kbps | x264enc |
+
+Codec de vídeo: H.264 via `x264enc`. Codec de áudio: AAC via `voaacenc`, 128 kbps, 44100 Hz, estéreo. Duração de cada segmento HLS: 6 segundos. O pipeline GStreamer utiliza `hlssink2` para geração dos segmentos e da master playlist. O script `transcode-gstreamer.sh` encapsula o pipeline e recebe os mesmos parâmetros que a versão FFmpeg.
 
 ---
 
@@ -376,7 +390,7 @@ tcc/
 | rtmp-server | build customizado (Nginx-RTMP ou SRS) | 1935 (RTMP), 8081 (HLS) |
 | frontend | node:20-alpine | 3001 |
 
-O serviço `rtmp-server` é intercambiável: a variável `RTMP_SERVER=nginx` ativa a Implementação A e `RTMP_SERVER=srs` ativa a Implementação B. O restante do sistema (backend, frontend, banco, filas) permanece idêntico nas duas configurações.
+O serviço `rtmp-server` é intercambiável por duas variáveis de ambiente independentes: `RTMP_SERVER=nginx|srs` seleciona o servidor de ingestão e `TRANSCODER=ffmpeg|gstreamer` seleciona o transcodificador. As quatro combinações da matriz 2² são ativadas pela combinação dessas duas variáveis. O restante do sistema (backend, frontend, banco, filas) permanece idêntico em todas as configurações.
 
 ---
 

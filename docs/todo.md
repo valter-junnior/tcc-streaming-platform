@@ -193,10 +193,10 @@ Desenvolver uma plataforma de streaming de vídeo ao vivo que permita avaliar e 
 - [x] Implementar testes de integração
 - [ ] Testar conexão RTMP com OBS (teste manual pendente)
 
-#### 3.2 FFmpeg Transcodificação
+#### 3.2 Transcodificação FFmpeg — Transcodificador A
 - [x] Criar abstração com interfaces (TranscoderGateway) ⭐
 - [x] Implementar FFmpegTranscoderGateway
-- [x] Criar script de transcodificação (transcode.sh)
+- [x] Criar script de transcodificação (transcode-ffmpeg.sh)
 - [x] Configurar presets de qualidade:
   - [x] 1080p: 1920x1080, 5000kbps, H.264 medium
   - [x] 720p: 1280x720, 2800kbps, H.264 medium
@@ -210,6 +210,26 @@ Desenvolver uma plataforma de streaming de vídeo ao vivo que permita avaliar e 
 - [x] Integrar com Nginx-RTMP via exec_push
 - [x] Criar testes unitários (QualityPresetTest)
 - [ ] Testar transcodificação end-to-end com OBS (teste manual pendente)
+
+#### 3.2b Transcodificação GStreamer — Transcodificador B
+- [ ] Implementar GStreamerTranscoderGateway
+- [ ] Criar script de transcodificação (transcode-gstreamer.sh) com pipeline GStreamer
+  - [ ] Usar `x264enc` para vídeo H.264
+  - [ ] Usar `voaacenc` para áudio AAC 128kbps
+  - [ ] Usar `hlssink2` para geração de segmentos HLS
+- [ ] Configurar mesmos 4 presets de qualidade do FFmpeg:
+  - [ ] 1080p: 1920x1080, 5000kbps
+  - [ ] 720p: 1280x720, 2800kbps
+  - [ ] 480p: 854x480, 1400kbps
+  - [ ] 360p: 640x360, 800kbps
+- [ ] Gerar segmentos HLS (.ts) compatíveis com HLS.js
+- [ ] Gerar master playlist m3u8 com as 4 variantes
+- [ ] Configurar duração de segmentos (6 segundos)
+- [ ] Integrar com Nginx-RTMP via exec (variável TRANSCODER=gstreamer)
+- [ ] Integrar com SRS via exec (variável TRANSCODER=gstreamer)
+- [ ] Instalar GStreamer e plugins no Dockerfile do container rtmp
+- [ ] Criar testes unitários para GStreamerTranscoderGateway
+- [ ] Testar transcodificação end-to-end com OBS
 
 #### 3.3 Nginx HLS Server
 - [x] Configurar Nginx para servir HLS (já configurado no nginx.conf)
@@ -517,27 +537,28 @@ Desenvolver uma plataforma de streaming de vídeo ao vivo que permita avaliar e 
 - [ ] Simular múltiplos viewers
 - [ ] Coletar logs durante testes
 
-#### 8.4 Análise Comparativa — Matriz 2×2
+#### 8.4 Análise Comparativa — Matriz 2²
 Executar cada combinação da matriz com os cenários de carga definidos em 8.2:
 
-| Combinação | Servidor | Protocolo | Status |
+| Combinação | Servidor RTMP | Transcodificador | Status |
 |---|---|---|---|
-| A+HLS | Nginx-RTMP | HLS | ✅ Baseline (implementado) |
-| B+HLS | SRS | HLS | 🔲 A implementar |
-| B+WebRTC | SRS | WebRTC | 🔲 A implementar |
-| A+WebRTC | Nginx-RTMP | WebRTC | 🔲 Experimental (FFmpeg WHIP) |
+| 1 | Nginx-RTMP | FFmpeg | ✅ Baseline (implementado) |
+| 2 | Nginx-RTMP | GStreamer | 🔲 A implementar |
+| 3 | SRS | FFmpeg | 🔲 A implementar |
+| 4 | SRS | GStreamer | 🔲 A implementar |
 
-- [ ] Executar cenário Baseline com combinação A+HLS (já funcional)
-- [ ] Executar cenário Baseline com combinação B+HLS (após Fase 7.3)
-- [ ] Executar cenário Baseline com combinação B+WebRTC (após Fase 7.4)
+- [ ] Executar cenário Baseline com combinação 1 — Nginx + FFmpeg (já funcional)
+- [ ] Executar cenário Baseline com combinação 2 — Nginx + GStreamer (após Fase 3.2b)
+- [ ] Executar cenário Baseline com combinação 3 — SRS + FFmpeg (após Fase 7.3)
+- [ ] Executar cenário Baseline com combinação 4 — SRS + GStreamer (após Fases 7.3 + 3.2b)
 - [ ] Coletar métricas para cada combinação:
   - [ ] Latência RTMP → reprodução no browser
   - [ ] CPU e memória do servidor RTMP
-  - [ ] CPU do processo FFmpeg
+  - [ ] CPU e memória do processo transcodificador
   - [ ] Estabilidade do player (taxa de reconexões, stalls)
   - [ ] Bitrate efetivo recebido pelo viewer
 - [ ] Gerar gráficos comparativos por combinação
-- [ ] Documentar trade-offs identificados (latência vs complexidade vs recursos)
+- [ ] Documentar trade-offs identificados (latência vs complexidade vs recursos vs compatibilidade)
 
 #### 8.5 Otimizações
 - [ ] Otimizar queries do banco de dados
