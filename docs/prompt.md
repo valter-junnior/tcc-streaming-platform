@@ -1,1 +1,8 @@
-primeiramente implemente o webrtc no nginx, fique atento a um detalhe, quero que tudo seja controlado por variaveis de ambiente para eu dizer que servidor estou usando(nginx ou srs) e/ou protocolo(hls ou webrtc), nesse caso agora temos que fazer apenas o nginx funcionar com o rtmp (como já esta funcionando perfeitamente atualmente) e agora fazer funcionar com o webrtc, além disso o frontend deve ser responsivo e automatico sozinho que ele saiba que protocolo estamos usando para não haver conflitos, assim mesmo com o backend.
+estou atualizando a documentao e diagrams do projeto,
+
+atualmente o projeto no backend e frontend jhá está decido estamos apenas modificando o servidor que capta e envia o streaming
+
+temos dois servidores o nginx e srs e tempos atualmente apenas um protoclo que será o rtmp para os dois alem disso os dois usaram o hls para distribuição e o ffmpeg para transcode
+
+
+atualiza a documentação e diagramas com a informção

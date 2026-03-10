@@ -1,56 +1,50 @@
 flowchart TB
-    OBS["OBS Studio / Streamer\n(RTMP)"]
+    OBS["OBS Studio / Streamer (RTMP)"]
 
     subgraph Ingestion["Camada de Ingestão RTMP"]
-        NGX["Nginx-RTMP\n⭐ Implementação A"]
-        SRS["SRS Server\n⭐ Implementação B"]
+        NGX["Nginx-RTMP ⭐ Implementação A"]
+        SRS["SRS Server ⭐ Implementação B"]
     end
 
-    subgraph Transcoding["Transcodificação (FFmpeg em ambos)"]
-        FFmpeg["FFmpeg\n4 qualidades: 1080p / 720p / 480p / 360p\nmaster.m3u8 + v0..v3/playlist.m3u8"]
+    subgraph Transcoding["Transcodificação (FFmpeg — ambos os servidores)"]
+        FFmpeg["FFmpeg 4 qualidades: 1080p - 360p"]
     end
 
-    subgraph HLSDelivery["Delivery: Protocolo 1 — HLS"]
-        HLS["Nginx HTTP\nSegmentos .ts + playlists .m3u8\n~3–10s de latência"]
-    end
-
-    subgraph WebRTCDelivery["Delivery: Protocolo 2 — WebRTC"]
-        WRT["SRS WebRTC\nConversão RTMP→WebRTC nativa\n~100–300ms de latência"]
+    subgraph HLSDelivery["Entrega — HLS"]
+        HLS["HTTP Server (Nginx)"]
     end
 
     subgraph Broker["Message Broker"]
-        MB2["RabbitMQ\n⭐ Principal"]
+        MB["RabbitMQ"]
     end
 
     subgraph Backend["Backend"]
-        API["Stream Service\n(Spring Boot)"]
-        Consumer["Consumer Service\n(Spring Boot)"]
+        API["Stream Service (Spring Boot)"]
+        Consumer["Consumer Service (Spring Boot)"]
     end
 
     subgraph Data["Data Layer"]
         DB["PostgreSQL"]
-        Cache["Redis Cache"]
+        Cache["Redis"]
     end
 
     subgraph Monitoring["Monitoring"]
         Prom["Prometheus"]
-        Graf["Grafana\nDashboards comparativos"]
+        Graf["Grafana Dashboards comparativos"]
     end
 
-    Browser["Browser / Viewer\n(HLS.js ou WebRTC nativo)"]
+    Browser["Browser / Viewer (HLS.js + Plyr)"]
 
     OBS -->|RTMP :1935| NGX
     OBS -->|RTMP :1935| SRS
     NGX -->|exec transcode-ffmpeg.sh| FFmpeg
     SRS -->|exec transcode-ffmpeg.sh| FFmpeg
     FFmpeg --> HLS
-    SRS -->|nativo| WRT
     HLS --> Browser
-    WRT --> Browser
 
-    NGX & SRS -.->|callback HTTP| API
-    API --> MB2
-    MB2 --> Consumer
+    NGX & SRS -.->|callback HTTP on_publish / on_publish_done| API
+    API --> MB
+    MB --> Consumer
     Consumer --> DB
     API --> Cache
 
@@ -61,5 +55,4 @@ flowchart TB
     style SRS fill:#90EE90
     style FFmpeg fill:#FFD700
     style HLS fill:#87CEEB
-    style WRT fill:#87CEEB
-    style MB2 fill:#90EE90
+    style MB fill:#90EE90

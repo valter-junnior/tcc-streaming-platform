@@ -24,14 +24,14 @@
 
 Este Trabalho de Conclusão de Curso desenvolve uma plataforma de streaming de vídeo ao vivo com foco na análise comparativa de diferentes tecnologias de ingestão RTMP e protocolos de entrega de vídeo. O sistema permite que um streamer transmita vídeo via OBS Studio, que espectadores assistam via browser, e coleta métricas para comparar o desempenho de cada abordagem.
 
-O objetivo central é implementar e avaliar uma matriz 2×2 de combinações:
+O objetivo central é comparar o desempenho de duas implementações de ingestão RTMP, ambas utilizando HLS como protocolo de entrega e FFmpeg para transcodificação:
 
-| | HLS | WebRTC |
-|---|---|---|
-| Nginx-RTMP | Implementação A (baseline) | Experimental |
-| SRS | A implementar | A implementar |
+| | HLS + FFmpeg |
+|---|---|
+| Nginx-RTMP | **Implementação A** |
+| SRS | **Implementação B** |
 
-A plataforma não exige cadastro de usuários. Streamers criam uma transmissão via browser, recebem as credenciais RTMP e configuram o OBS. Espectadores acessam o link compartilhável para assistir.
+A análise foca em métricas de CPU, memória, latência e capacidade de espectadores simultâneos entre os dois servidores. A plataforma não exige cadastro de usuários. Streamers criam uma transmissão via browser, recebem as credenciais RTMP e configuram o OBS. Espectadores acessam o link compartilhável para assistir.
 
 ---
 
@@ -43,7 +43,7 @@ O sistema é composto por cinco camadas:
 
 **Camada de transcodificação**: o FFmpeg converte o stream recebido em múltiplas qualidades de vídeo e gera segmentos HLS. Cada servidor RTMP aciona o FFmpeg de forma diferente, mas o codec e os parâmetros de qualidade são equivalentes nas duas implementações.
 
-**Camada de entrega**: serve os segmentos HLS ao browser via HTTP. No caso do SRS, também oferece entrega via WebRTC com conversão nativa RTMP→WebRTC.
+**Camada de entrega**: serve os segmentos HLS ao browser via HTTP. Tanto o Nginx-RTMP quanto o SRS utilizam o mesmo mecanismo de entrega HLS, com segmentos gerados pelo FFmpeg servidos via servidor HTTP Nginx.
 
 **Camada de backend**: serviço Spring Boot responsável por gerenciar o ciclo de vida das streams, autenticar as transmissões via callbacks HTTP dos servidores RTMP, processar eventos assíncronos via RabbitMQ, e notificar clientes via SSE.
 
@@ -77,9 +77,9 @@ Serviços de suporte: PostgreSQL para persistência, Redis para estado de viewer
 - Radix UI para componentes de interface
 
 ### Infraestrutura RTMP
-- Nginx compilado com o módulo nginx-rtmp-module (Implementação A)
-- SRS (Simple Realtime Server) versão 6 (Implementação B)
-- FFmpeg para transcodificação multi-qualidade
+- Nginx compilado com o módulo nginx-rtmp-module — **Implementação A**
+- SRS (Simple Realtime Server) versão 6 — **Implementação B**
+- FFmpeg para transcodificação multi-qualidade (ambas as implementações)
 
 ### Infraestrutura Geral
 - Docker e Docker Compose para orquestração de containers
@@ -138,7 +138,7 @@ A interface web é uma SPA (Single Page Application) construída com React e Typ
 
 **Painel do streamer**: exibe a URL RTMP (`rtmp://localhost:1935/live`), a stream key, o status atual (WAITING / LIVE / ENDED), o contador de viewers em tempo real e o pico de espectadores. Permite encerrar a stream.
 
-**Página de visualização**: reproduz o stream HLS via Plyr com HLS.js integrado, com suporte a Adaptive Bitrate Streaming (ABR). Exibe título, status e contador de viewers. Atualiza automaticamente via SSE.
+**Página de visualização**: reproduz o stream HLS via Plyr com HLS.js integrado, com suporte a Adaptive Bitrate Streaming (ABR — seleção automática de qualidade). Exibe título, status e contador de viewers. Atualiza automaticamente via SSE.
 
 **Atualizações em tempo real**: todas as atualizações de status e contadores de viewers chegam ao frontend via SSE através do `EventSource` nativo do browser, conectado ao endpoint `GET /api/sse/stream/{streamId}/subscribe`.
 
@@ -162,15 +162,13 @@ Container baseado em imagem customizada com Nginx compilado com `nginx-rtmp-modu
 
 ### Implementação B — SRS
 
-Container baseado na imagem `ossrs/srs:6`. Recebe streams RTMP na porta 1935 e expõe API HTTP na porta 8080, servidor HTTP para HLS na porta 8081 e UDP na porta 8000 para WebRTC.
+Container baseado na imagem `ossrs/srs:6`. Recebe streams RTMP na porta 1935 e expõe API HTTP na porta 8080 e servidor HTTP para HLS na porta 8081.
 
 **Callbacks HTTP configurados**: SRS notifica o backend com mais granularidade — `on_connect`, `on_close`, `on_publish`, `on_unpublish`, `on_play`, `on_stop`.
 
 **Transcodificação**: o SRS usa seu mecanismo interno de transcodificação para invocar o FFmpeg, gerando as mesmas 4 qualidades que a Implementação A (1080p, 720p, 480p, 360p).
 
-**Entrega HLS**: segmentos armazenados em `/var/srs-hls`, servidos pelo servidor HTTP interno do SRS com fragmentos de 6 segundos e janela de 60 segundos.
-
-**Entrega WebRTC**: o SRS converte o stream RTMP para WebRTC nativamente, sem FFmpeg adicional. Isso possibilita latência de 100 a 300 milissegundos, contra os 3 a 10 segundos do HLS.
+**Entrega HLS**: segmentos armazenados em `/var/srs-hls`, servidos pelo servidor HTTP interno do SRS com fragmentos de 6 segundos e janela de 60 segundos. O protocolo de entrega ao browser é idêntico ao da Implementação A — HLS via HTTP.
 
 ### Transcodificação FFmpeg
 
@@ -308,7 +306,7 @@ O OBS conecta ao servidor RTMP na porta 1935 com a stream key. O servidor RTMP d
 
 ### Visualização
 
-O browser acessa a página de visualização e conecta ao endpoint SSE para receber atualizações em tempo real. O player HLS carrega a master playlist e adapta automaticamente a qualidade conforme as condições de rede.
+O browser acessa a página de visualização e conecta ao endpoint SSE para receber atualizações em tempo real. O player HLS (Plyr + HLS.js) carrega a master playlist gerada pelo FFmpeg e adapta automaticamente a qualidade (1080p → 360p) conforme as condições de rede do espectador.
 
 ### Encerramento
 
@@ -375,8 +373,10 @@ tcc/
 | postgres | postgres:16-alpine | 5432 |
 | rabbitmq | rabbitmq:3-management-alpine | 5672, 15672 |
 | streaming-platform | maven:3.9-eclipse-temurin-21 | 8080 |
-| rtmp-server | build customizado (Nginx-RTMP) | 1935 (RTMP), 8081 (HLS) |
+| rtmp-server | build customizado (Nginx-RTMP ou SRS) | 1935 (RTMP), 8081 (HLS) |
 | frontend | node:20-alpine | 3001 |
+
+O serviço `rtmp-server` é intercambiável: a variável `RTMP_SERVER=nginx` ativa a Implementação A e `RTMP_SERVER=srs` ativa a Implementação B. O restante do sistema (backend, frontend, banco, filas) permanece idêntico nas duas configurações.
 
 ---
 
@@ -386,7 +386,6 @@ tcc/
 - [SRS Documentation](https://github.com/ossrs/srs)
 - [FFmpeg Documentation](https://ffmpeg.org/documentation.html)
 - [HLS Specification — RFC 8216](https://tools.ietf.org/html/rfc8216)
-- [WebRTC Specification](https://www.w3.org/TR/webrtc/)
 - [Spring Boot Reference](https://docs.spring.io/spring-boot/docs/current/reference/htmlsingle/)
 - [Spring AMQP Reference](https://docs.spring.io/spring-amqp/reference/)
 - [RabbitMQ Documentation](https://www.rabbitmq.com/documentation.html)
