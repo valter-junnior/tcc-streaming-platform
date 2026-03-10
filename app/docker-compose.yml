@@ -73,8 +73,7 @@ services:
       SPRING_RABBITMQ_PORT: 5672
       SPRING_RABBITMQ_USERNAME: ${RABBITMQ_USER}
       SPRING_RABBITMQ_PASSWORD: ${RABBITMQ_PASSWORD}
-      RTMP_HOST: rtmp-server
-      RTMP_PORT: 1935
+      TRANSCODER: ${TRANSCODER:-ffmpeg}
     depends_on:
       postgres:
         condition: service_healthy
@@ -100,6 +99,7 @@ services:
       HLS_PATH: ${HLS_PATH}
       HLS_HTTP_PORT: ${HLS_HTTP_PORT}
       HLS_RETENTION_HOURS: ${HLS_RETENTION_HOURS}
+      TRANSCODER: ${TRANSCODER:-ffmpeg}
     depends_on:
       - streaming-platform
     restart: unless-stopped
@@ -120,12 +120,10 @@ services:
     environment:
       FRONTEND_PORT: ${FRONTEND_PORT}
       VITE_API_URL: ${VITE_API_URL}
-      VITE_WS_URL: ${VITE_WS_URL}
+      VITE_API_BASE_URL: ${VITE_API_BASE_URL}
       VITE_RTMP_URL: ${VITE_RTMP_URL}
       VITE_HLS_URL: ${VITE_HLS_URL}
       VITE_APP_URL: ${VITE_APP_URL}
-      VITE_BACKEND_HOST: ${VITE_BACKEND_HOST}
-      VITE_BACKEND_PORT: ${VITE_BACKEND_PORT}
     depends_on:
       - streaming-platform
     restart: unless-stopped

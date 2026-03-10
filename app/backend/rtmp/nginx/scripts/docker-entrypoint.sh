@@ -9,6 +9,7 @@ export BACKEND_HOST="${BACKEND_HOST:-streaming-platform}"
 export BACKEND_PORT="${BACKEND_PORT:-8080}"
 export HLS_HTTP_PORT="${HLS_HTTP_PORT:-8081}"
 export HLS_RETENTION_HOURS="${HLS_RETENTION_HOURS:-6}"
+export TRANSCODER="${TRANSCODER:-ffmpeg}"
 
 echo "=== RTMP Server Configuration ==="
 echo "RTMP_PORT: $RTMP_PORT"
@@ -18,7 +19,21 @@ echo "BACKEND_HOST: $BACKEND_HOST"
 echo "BACKEND_PORT: $BACKEND_PORT"
 echo "HLS_HTTP_PORT: $HLS_HTTP_PORT"
 echo "HLS_RETENTION_HOURS: $HLS_RETENTION_HOURS"
+echo "TRANSCODER: $TRANSCODER"
 echo "================================="
+
+# Select the transcoding script based on TRANSCODER env var
+# nginx.conf always calls /usr/local/bin/transcode.sh — the symlink points to the active script
+case "${TRANSCODER,,}" in
+    gstreamer)
+        echo "Transcoder selected: GStreamer"
+        ln -sf /usr/local/bin/transcode-gstreamer.sh /usr/local/bin/transcode.sh
+        ;;
+    *)
+        echo "Transcoder selected: FFmpeg (default)"
+        ln -sf /usr/local/bin/transcode-ffmpeg.sh /usr/local/bin/transcode.sh
+        ;;
+esac
 
 # Replace environment variables in nginx configuration
 echo "Generating nginx.conf from template..."

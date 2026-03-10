@@ -28,6 +28,7 @@ spring:
       pool-name: StreamingHikariPool
   
   jpa:
+    open-in-view: false
     hibernate:
       ddl-auto: update
     properties:
@@ -54,6 +55,9 @@ management:
     metrics:
       export:
         enabled: true
+
+transcoder:
+  type: ${TRANSCODER:ffmpeg}
 
 stream:
   cleanup:

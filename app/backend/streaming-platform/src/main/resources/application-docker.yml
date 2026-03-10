@@ -12,10 +12,6 @@ spring:
     username: ${SPRING_DATASOURCE_USERNAME:streaming_user}
     password: ${SPRING_DATASOURCE_PASSWORD:streaming_pass}
   
-  redis:
-    host: ${SPRING_REDIS_HOST:redis}
-    port: ${SPRING_REDIS_PORT:6379}
-  
   rabbitmq:
     host: ${SPRING_RABBITMQ_HOST:rabbitmq}
     port: ${SPRING_RABBITMQ_PORT:5672}

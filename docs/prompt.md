@@ -1,3 +1,7 @@
-crie  um diagrama mermaid com uma matriz de comparação 2²
+gere um readme.md no projeto que tenha:
 
-sendo dois servidores nginx e srs e dois transcode ffmepg e gstreamer
+- resumo rapido do projeto
+-  tecnologias
+- instalacao e configuracao
+- configuracao do obs
+- principais desafios

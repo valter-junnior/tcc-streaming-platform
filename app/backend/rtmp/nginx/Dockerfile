@@ -13,6 +13,12 @@ RUN apt-get update && apt-get install -y \
     wget \
     git \
     ffmpeg \
+    gstreamer1.0-tools \
+    gstreamer1.0-plugins-base \
+    gstreamer1.0-plugins-good \
+    gstreamer1.0-plugins-bad \
+    gstreamer1.0-plugins-ugly \
+    gstreamer1.0-libav \
     netcat-openbsd \
     dnsutils \
     cron \
@@ -46,9 +52,12 @@ RUN rm -rf /tmp/nginx-1.24.0* /tmp/nginx-rtmp-module
 # Copy nginx configuration template
 COPY configs/nginx.conf /usr/local/nginx/conf/nginx.conf.template
 
-# Copy transcoding script
+# Copy transcoding scripts
 COPY scripts/transcode-ffmpeg.sh /usr/local/bin/transcode-ffmpeg.sh
 RUN chmod +x /usr/local/bin/transcode-ffmpeg.sh
+
+COPY scripts/transcode-gstreamer.sh /usr/local/bin/transcode-gstreamer.sh
+RUN chmod +x /usr/local/bin/transcode-gstreamer.sh
 
 # Copy HLS cleanup script
 COPY scripts/cleanup-hls.sh /usr/local/bin/cleanup-hls.sh
