@@ -1,8 +1,3 @@
-estou atualizando a documentao e diagrams do projeto,
+crie  um diagrama mermaid com uma matriz de comparação 2²
 
-atualmente o projeto no backend e frontend jhá está decido estamos apenas modificando o servidor que capta e envia o streaming
-
-temos dois servidores o nginx e srs e tempos atualmente apenas um protoclo que será o rtmp para os dois alem disso os dois usaram o hls para distribuição e o ffmpeg para transcode
-
-
-atualiza a documentação e diagramas com a informção
+sendo dois servidores nginx e srs e dois transcode ffmepg e gstreamer
