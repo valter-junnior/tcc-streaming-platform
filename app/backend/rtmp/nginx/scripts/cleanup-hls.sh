@@ -12,7 +12,7 @@ DELETED_COUNT=0
 
 if [ -d "$HLS_DIR" ]; then
     # Find e delete arquivos antigos
-    DELETED_COUNT=$(find "$HLS_DIR" -type f \( -name "*.ts" -o -name "*.m3u8" \) -mmin +$((RETENTION_HOURS * 60)) -delete -print 2>/dev/null | wc -l)
+    DELETED_COUNT=$(find "$HLS_DIR" -type f \( -name "*.ts" -o -name "*.m3u8" -o -name "*.log" \) -mmin +$((RETENTION_HOURS * 60)) -delete -print 2>/dev/null | wc -l)
     
     # Remover diretórios vazios
     find "$HLS_DIR" -mindepth 1 -type d -empty -delete 2>/dev/null
