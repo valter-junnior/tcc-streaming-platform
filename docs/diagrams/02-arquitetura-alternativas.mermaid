@@ -1,67 +1,69 @@
 flowchart TB
-    subgraph Frontend
-        React[React App<br/>]
+    OBS["OBS Studio / Streamer\n(RTMP)"]
+
+    subgraph Ingestion["Camada de Ingestão RTMP"]
+        NGX["Nginx-RTMP\n⭐ Implementação A"]
+        SRS["SRS Server\n⭐ Implementação B"]
     end
-    
-    subgraph "Backend Services"
-        StreamAPI[Stream Service<br/>Spring Boot]
-        Consumer[Consumer Service<br/>Spring Boot]
-        Metrics[Metrics Service<br/>Spring Boot]
+
+    subgraph Transcoding["Transcodificação (FFmpeg em ambos)"]
+        FFmpeg["FFmpeg\n4 qualidades: 1080p / 720p / 480p / 360p\nmaster.m3u8 + v0..v3/playlist.m3u8"]
     end
-    
-    subgraph "RTMP Ingestion (Escolha 1 de 2)"
-        RTMP1[Nginx-RTMP<br/>⭐ Principal]
-        RTMP2[SRS<br/>Alternativa 1]
+
+    subgraph HLSDelivery["Delivery: Protocolo 1 — HLS"]
+        HLS["Nginx HTTP\nSegmentos .ts + playlists .m3u8\n~3–10s de latência"]
     end
-    
-    subgraph "Video Processing"
-        Proc1[FFmpeg<br/>⭐ via exec Nginx-RTMP]
+
+    subgraph WebRTCDelivery["Delivery: Protocolo 2 — WebRTC"]
+        WRT["SRS WebRTC\nConversão RTMP→WebRTC nativa\n~100–300ms de latência"]
     end
-    
-    subgraph "HLS Serving"
-        HLS1[Nginx<br/>]
+
+    subgraph Broker["Message Broker"]
+        MB2["RabbitMQ\n⭐ Principal"]
+        MB3["Redis Streams\nAlternativa"]
     end
-    
-    subgraph "Message Broker (Escolha 1 de 3)"
-        MB2[RabbitMQ<br/>⭐ Principal]
-        MB3[Redis Streams<br/>Alternativa 1]
-        MB4[NATS<br/>Alternativa 2]
+
+    subgraph Backend["Backend"]
+        API["Stream Service\n(Spring Boot)"]
+        Consumer["Consumer Service\n(Spring Boot)"]
     end
-    
-    subgraph "Cache"
-        Cache1[Redis<br/>]
+
+    subgraph Data["Data Layer"]
+        DB["PostgreSQL"]
+        Cache["Redis Cache"]
     end
-    
-    subgraph "Database (Escolha 1 de 2)"
-        DB1[PostgreSQL<br/> ⭐ Principal]
-        DB3[MongoDB<br/>Alternativa 1]
+
+    subgraph Monitoring["Monitoring"]
+        Prom["Prometheus"]
+        Graf["Grafana\nDashboards comparativos"]
     end
-    
-    subgraph "Monitoring"
-        Prom[Prometheus]
-        Graf[Grafana]
-    end
-    
-    %% Connections
-    React --> StreamAPI
-    StreamAPI --> Cache1
-    StreamAPI --> DB1 & DB3
-    StreamAPI --> MB2 & MB3 & MB4
-    
-    RTMP1 & RTMP2 --> Proc1 & Proc2
-    Proc1 & Proc2 --> HLS1
-    HLS1 --> React
-    
-    RTMP1 & RTMP2 & RTMP3 -.-> MB2 & MB3 & MB4
-    MB2 & MB3 & MB4 --> Consumer
-    Consumer --> StreamAPI
-    
-    StreamAPI & Consumer & Metrics --> Prom
+
+    Browser["Browser / Viewer\n(HLS.js ou WebRTC nativo)"]
+
+    OBS -->|RTMP :1935| NGX
+    OBS -->|RTMP :1935| SRS
+    NGX -->|exec transcode-ffmpeg.sh| FFmpeg
+    SRS -->|exec transcode-ffmpeg.sh| FFmpeg
+    FFmpeg --> HLS
+    SRS -->|nativo| WRT
+    HLS --> Browser
+    WRT --> Browser
+
+    NGX & SRS -.->|callback HTTP| API
+    API --> MB2 & MB3
+    MB2 & MB3 --> Consumer
+    Consumer --> DB
+    API --> Cache
+
+    API & Consumer --> Prom
     Prom --> Graf
-    
-    style RTMP1 fill:#90EE90
-    style Proc1 fill:#90EE90
-    style HLS1 fill:#90EE90
+
+    %% Matriz 2x2
+    note1["Matriz 2×2:\nA+HLS | A+WebRTC\nB+HLS | B+WebRTC"]
+
+    style NGX fill:#90EE90
+    style SRS fill:#90EE90
+    style FFmpeg fill:#FFD700
+    style HLS fill:#87CEEB
+    style WRT fill:#87CEEB
     style MB2 fill:#90EE90
-    style Cache1 fill:#90EE90
-    style DB1 fill:#90EE90

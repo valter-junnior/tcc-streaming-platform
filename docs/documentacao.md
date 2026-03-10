@@ -66,11 +66,13 @@ Este projeto fornece **dados concretos e análises objetivas** para auxiliar na 
 | **Arquitetura** | Microserviços desacoplados e substituíveis |
 | **Containerização** | 100% em Docker para portabilidade |
 | **Ambiente** | Local (desenvolvimento e testes) |
-| **Protocolo de Ingestão** | RTMP (padrão da indústria) |
-| **Protocolo de Entrega** | HLS (HTTP Live Streaming) |
-| **Transcodificação** | Múltiplas qualidades (360p a 1080p) |
-| **Comunicação** | REST API + WebSocket para tempo real |
-| **Observabilidade** | Prometheus + Grafana para métricas |
+| **Protocolo de Ingestão** | RTMP (padrão da indústria, via OBS) |
+| **Servidores RTMP** | Nginx-RTMP + SRS (análise comparativa 1×2) |
+| **Protocolo de Entrega** | HLS + WebRTC (análise comparativa 1×2) |
+| **Matriz Comparativa** | 2 servidores × 2 protocolos = 4 combinações |
+| **Transcodificação** | FFmpeg — múltiplas qualidades (360p a 1080p), utilizado em ambos os servidores |
+| **Comunicação** | REST API + SSE para tempo real |
+| **Observabilidade** | Prometheus + Grafana para métricas e comparação |
 
 ---
 
@@ -1561,8 +1563,69 @@ Seguir [Semantic Versioning](https://semver.org/):
 
 ---
 
-**Versão**: 2.0  
-**Última Atualização**: 02/02/2026  
+---
+
+## 🔬 Análise Comparativa — Matriz 2×2
+
+### Visão Geral
+
+O objetivo central do TCC é comparar tecnologias que implementam as mesmas funcionalidades. Com o novo direcionamento, a análise se organiza em uma **matriz 2×2**:
+
+| | **HLS (HTTP Live Streaming)** | **WebRTC (Ultra-low latency)** |
+|---|---|---|
+| **Nginx-RTMP** | ✅ Implementado (FFmpeg exec) | 🔬 A implementar (FFmpeg WHIP/experimental) |
+| **SRS Server** | 🔬 A implementar (FFmpeg exec) | 🔬 A implementar (nativo no SRS) |
+
+### Combinações
+
+1. **Nginx-RTMP + HLS** (baseline — já implementado)
+   - Ingestão: RTMP porta 1935
+   - Transcodificação: FFmpeg via `exec` do nginx.conf
+   - Entrega: Nginx HTTP porta 8081, `master.m3u8` e segmentos `.ts`
+
+2. **SRS + HLS** (a implementar)
+   - Ingestão: RTMP porta 1935 (via SRS)
+   - Transcodificação: FFmpeg via `exec` da config SRS
+   - Entrega: Nginx HTTP ou SRS HTTP, mesmo formato HLS
+
+3. **SRS + WebRTC** (a implementar — diferencial do TCC)
+   - Ingestão: RTMP porta 1935 (via SRS)
+   - Conversão: SRS converte RTMP → WebRTC nativamente
+   - Entrega: WebRTC (~100–300ms de latência)
+
+4. **Nginx-RTMP + WebRTC** (experimental)
+   - Ingestão: RTMP porta 1935
+   - Conversão: FFmpeg com saída WHIP (protocolo WebRTC push)
+   - Entrega: WebRTC (mais complexo, requer WHIP endpoint)
+
+### Métricas de Comparação
+
+| Métrica | O que mede |
+|---|---|
+| **Latência ponta-a-ponta** | Tempo desde `exec` até reprodução no browser |
+| **Latência de ingestão** | OBS → servidor RTMP |
+| **Latência de entrega** | Servidor → browser |
+| **Uso de CPU** | Consumo do servidor durante transcodificação |
+| **Uso de memória** | RSS do processo principal |
+| **Estabilidade** | Taxa de reconexões e erros do player |
+| **Complexidade de setup** | Linhas de config, curva de aprendizado |
+
+### FFmpeg em Todos os Cenários
+
+O FFmpeg é utilizado como transcodificador em **todos os cenários** para isolar a variável sendo comparada (servidor ou protocolo), não o transcodificador:
+
+```bash
+# Mesmo script em Nginx-RTMP e SRS:
+ffmpeg -i rtmp://127.0.0.1/live/{key} \
+  -filter_complex "[v:0]split=4[v0][v1][v2][v3]; ..." \
+  -f hls -master_pl_name master.m3u8 \
+  /tmp/hls/{key}/v%v/playlist.m3u8
+```
+
+---
+
+**Versão**: 3.0  
+**Última Atualização**: 09/03/2026  
 **Autor**: [Seu Nome]  
 **Orientador**: [Nome do Orientador]  
 **Instituição**: [Nome da Instituição]

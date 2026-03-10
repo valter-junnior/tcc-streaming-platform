@@ -1,48 +1,57 @@
 C4Container
-    title Diagrama de Containers - Plataforma de Streaming
+    title Diagrama de Containers - Plataforma de Streaming (2 servidores × 2 protocolos)
 
     Person(user, "Usuário", "Streamer ou Espectador")
     Person(obs, "OBS Studio", "Software de streaming")
 
     Container_Boundary(frontend, "Frontend") {
-        Container(web, "React App", "React, TypeScript", "Interface web para streaming")
+        Container(web, "React App", "React, TypeScript, HLS.js + Plyr", "Interface web — seleção de qualidade e protocolo (HLS / WebRTC)")
     }
 
     Container_Boundary(backend, "Backend Services") {
-        Container(stream_service, "Stream Service", "Spring Boot", "API REST e WebSocket")
-        Container(consumer_service, "Consumer Service", "Spring Boot", "Processa eventos")
-        Container(metrics_service, "Metrics Service", "Spring Boot", "Coleta métricas")
+        Container(stream_service, "Stream Service", "Spring Boot", "API REST + SSE em tempo real")
+        Container(consumer_service, "Consumer Service", "Spring Boot", "Processa eventos de stream e viewers")
     }
 
-    Container_Boundary(streaming, "Streaming Infrastructure") {
-        Container(nginx_rtmp, "Nginx RTMP", "Nginx + RTMP Module", "Recebe streams RTMP")
-        Container(ffmpeg, "FFmpeg", "FFmpeg", "Transcodifica vídeo")
-        Container(nginx_hls, "Nginx", "Nginx", "Serve HLS")
+    Container_Boundary(streaming_a, "Implementação A: Nginx-RTMP") {
+        Container(nginx_rtmp, "Nginx-RTMP", "Nginx + nginx-rtmp-module", "Ingestão RTMP :1935, executa FFmpeg via exec")
+        Container(ffmpeg_a, "FFmpeg", "FFmpeg", "Transcodifica 4 qualidades → HLS")
+        Container(nginx_hls, "Nginx HTTP", "Nginx", "Serve segmentos HLS na porta :8081")
+    }
+
+    Container_Boundary(streaming_b, "Implementação B: SRS") {
+        Container(srs, "SRS Server", "Simple Realtime Server", "Ingestão RTMP :1935, HLS nativo e WebRTC nativo")
+        Container(ffmpeg_b, "FFmpeg", "FFmpeg", "Transcodifica 4 qualidades → HLS")
     }
 
     Container_Boundary(data, "Data Layer") {
-        ContainerDb(postgres, "PostgreSQL", "PostgreSQL", "Dados persistentes")
-        ContainerDb(redis, "Redis", "Redis", "Cache e sessões")
-        ContainerQueue(kafka, "Kafka", "Apache Kafka", "Message broker")
+        ContainerDb(postgres, "PostgreSQL", "PostgreSQL", "Dados persistentes: streams, eventos, métricas")
+        ContainerDb(redis, "Redis", "Redis", "Cache de streams ativas")
+        ContainerQueue(rabbitmq, "RabbitMQ", "RabbitMQ", "Message broker para eventos assíncronos")
     }
 
     Container_Boundary(monitoring, "Monitoring") {
-        Container(prometheus, "Prometheus", "Prometheus", "Métricas")
-        Container(grafana, "Grafana", "Grafana", "Dashboards")
+        Container(prometheus, "Prometheus", "Prometheus", "Coleta métricas de todos os serviços")
+        Container(grafana, "Grafana", "Grafana", "Dashboards comparativos Nginx-RTMP vs SRS, HLS vs WebRTC")
     }
 
     Rel(user, web, "Acessa", "HTTPS")
-    Rel(obs, nginx_rtmp, "Envia stream", "RTMP")
-    Rel(web, stream_service, "Usa", "REST/WebSocket")
-    Rel(web, nginx_hls, "Assiste", "HLS/HTTP")
-    
+    Rel(obs, nginx_rtmp, "Envia stream [Impl A]", "RTMP :1935")
+    Rel(obs, srs, "Envia stream [Impl B]", "RTMP :1935")
+    Rel(web, stream_service, "Usa", "REST + SSE")
+    Rel(web, nginx_hls, "Assiste HLS [Impl A]", "HTTP :8081")
+    Rel(web, srs, "Assiste HLS ou WebRTC [Impl B]", "HTTP / WebRTC")
+
+    Rel(nginx_rtmp, stream_service, "on_publish / on_publish_done", "HTTP callback")
+    Rel(srs, stream_service, "on_publish / on_publish_done", "HTTP callback")
+
+    Rel(nginx_rtmp, ffmpeg_a, "exec transcode-ffmpeg.sh")
+    Rel(ffmpeg_a, nginx_hls, "Segmentos HLS /tmp/hls/")
+    Rel(srs, ffmpeg_b, "exec transcode-ffmpeg.sh")
+
     Rel(stream_service, postgres, "Lê/Escreve")
     Rel(stream_service, redis, "Cache")
-    Rel(stream_service, kafka, "Publica eventos")
-    
-    Rel(nginx_rtmp, ffmpeg, "Stream bruto")
-    Rel(ffmpeg, nginx_hls, "Segmentos HLS")
-    
-    Rel(consumer_service, kafka, "Consome eventos")
-    Rel(metrics_service, prometheus, "Expõe métricas")
+    Rel(stream_service, rabbitmq, "Publica eventos")
+    Rel(consumer_service, rabbitmq, "Consome eventos")
+    Rel(stream_service, prometheus, "Expõe métricas /actuator/prometheus")
     Rel(prometheus, grafana, "Datasource")
