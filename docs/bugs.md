@@ -1,0 +1,1 @@
+analise os logs do nginx + ffmpeg e entenda o que esta causando o erro na transmissao 

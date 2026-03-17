@@ -1,7 +1,1 @@
-gere um readme.md no projeto que tenha:
-
-- resumo rapido do projeto
--  tecnologias
-- instalacao e configuracao
-- configuracao do obs
-- principais desafios
+Analise todo os arquivos e codigos dentro de backend/rtmp/ningx e veja o que pode ser melhorado e otimizado tanto em questão de codigo(limpenza de comentários, evitar implementação desnecessária se puder ser feito direto no arquivo do conf, verificacao de uso das variaveis de ambiente) quando em questão de desempenho
