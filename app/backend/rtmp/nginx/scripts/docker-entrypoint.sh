@@ -11,16 +11,7 @@ export HLS_HTTP_PORT="${HLS_HTTP_PORT:-8081}"
 export HLS_RETENTION_HOURS="${HLS_RETENTION_HOURS:-6}"
 export TRANSCODER="${TRANSCODER:-ffmpeg}"
 
-echo "=== RTMP Server Configuration ==="
-echo "RTMP_PORT: $RTMP_PORT"
-echo "RTMP_CHUNK_SIZE: $RTMP_CHUNK_SIZE"
-echo "HLS_PATH: $HLS_PATH"
-echo "BACKEND_HOST: $BACKEND_HOST"
-echo "BACKEND_PORT: $BACKEND_PORT"
-echo "HLS_HTTP_PORT: $HLS_HTTP_PORT"
-echo "HLS_RETENTION_HOURS: $HLS_RETENTION_HOURS"
-echo "TRANSCODER: $TRANSCODER"
-echo "================================="
+echo "Starting RTMP server: RTMP=$RTMP_PORT, HLS=$HLS_HTTP_PORT, TRANSCODER=$TRANSCODER"
 
 # Select the transcoding script based on TRANSCODER env var
 # nginx.conf always calls /usr/local/bin/transcode.sh — the symlink points to the active script

@@ -1,44 +1,33 @@
 #!/bin/bash
 
-# FFmpeg Transcoding Script for HLS Multi-Bitrate Streaming
-# This script is called by Nginx-RTMP when a stream starts
-# Stream key must be passed as first argument
-
 STREAM_KEY=$1
 
-# Debug: Log all parameters
-echo "[DEBUG] transcode.sh called with args: $@" >> /tmp/transcode-debug.log
-echo "[DEBUG] STREAM_KEY: '$STREAM_KEY'" >> /tmp/transcode-debug.log
-echo "[DEBUG] PWD: $(pwd)" >> /tmp/transcode-debug.log
-
 if [ -z "$STREAM_KEY" ]; then
-    echo "[ERROR] No stream key provided. Usage: $0 <stream_key>" >> /tmp/transcode-debug.log
+    echo "[ERROR] No stream key provided. Usage: $0 <stream_key>" >&2
     exit 1
 fi
 
 # Sanitize STREAM_KEY to prevent command injection
 if ! [[ "$STREAM_KEY" =~ ^[a-zA-Z0-9_-]+$ ]]; then
-    echo "[ERROR] Invalid stream key format. Only alphanumeric, underscore and hyphen allowed." >> /tmp/transcode-debug.log
+    echo "[ERROR] Invalid stream key format. Only alphanumeric, underscore and hyphen allowed." >&2
     exit 1
 fi
 
-# Configuration
 OUTPUT_DIR="/tmp/hls/${STREAM_KEY}"
 INPUT_URL="rtmp://127.0.0.1/live/${STREAM_KEY}"
 SEGMENT_DURATION=6
 PLAYLIST_LENGTH=10
 
-# Setup cleanup trap for orphaned FFmpeg processes
-trap 'echo "[$(date)] Cleaning up FFmpeg processes..." >> "$LOG_FILE"; kill $(jobs -p) 2>/dev/null' EXIT SIGTERM SIGINT
-
 # Create output directory
 if ! mkdir -p "${OUTPUT_DIR}/v0" "${OUTPUT_DIR}/v1" "${OUTPUT_DIR}/v2" "${OUTPUT_DIR}/v3"; then
-    echo "[ERROR] Failed to create output directories" >> /tmp/transcode-debug.log
+    echo "[ERROR] Failed to create output directories for stream: ${STREAM_KEY}" >&2
     exit 1
 fi
 
-# Log file
 LOG_FILE="${OUTPUT_DIR}/transcode.log"
+
+# Setup cleanup trap for orphaned FFmpeg processes
+trap 'echo "[$(date)] Cleaning up FFmpeg processes..." >> "$LOG_FILE"; kill $(jobs -p) 2>/dev/null' EXIT SIGTERM SIGINT
 
 echo "[$(date)] Starting transcoding for stream: ${STREAM_KEY}" >> "$LOG_FILE"
 echo "[$(date)] INPUT_URL: ${INPUT_URL}" >> "$LOG_FILE"
