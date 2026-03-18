@@ -1,1 +1,3 @@
-Analise todo os arquivos e codigos dentro de backend/rtmp/ningx e veja o que pode ser melhorado e otimizado tanto em questão de codigo(limpenza de comentários, evitar implementação desnecessária se puder ser feito direto no arquivo do conf, verificacao de uso das variaveis de ambiente) quando em questão de desempenho
+implemente por completo o transcode-gstreamer.sh 
+
+ele deve ser implementado inicialmente junto ao nginx.conf ele vai ser usado como uma alternativa ao ffmpeg enão voce pode quando implementar verificar como o ffmpeg está implementado para caso precise aplicar regras de negócio especifica ao código do gstreamer além de manter o padrão na hora de servi o hls para evitar alterações complicadas no frontend

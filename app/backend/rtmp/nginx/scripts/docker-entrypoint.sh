@@ -34,24 +34,45 @@ envsubst '${RTMP_PORT} ${RTMP_CHUNK_SIZE} ${HLS_PATH} ${BACKEND_HOST} ${BACKEND_
 
 echo "nginx.conf generated successfully"
 
+# Ensure persisted HLS volume is writable by nginx workers (user: nobody).
+mkdir -p "${HLS_PATH}"
+chown -R nobody:nogroup "${HLS_PATH}" 2>/dev/null || true
+find "${HLS_PATH}" -type d -exec chmod 0777 {} + 2>/dev/null || true
+find "${HLS_PATH}" -type f -exec chmod 0666 {} + 2>/dev/null || true
+echo "HLS path normalized: ${HLS_PATH}"
+
 # Function to wait for backend to be available
+# Exits after BACKEND_WAIT_TIMEOUT seconds (default: 120) to avoid hanging forever.
 wait_for_backend() {
-    echo "Waiting for backend (${BACKEND_HOST}:${BACKEND_PORT}) to be available..."
-    
-    # Try to resolve the hostname first
+    local TIMEOUT="${BACKEND_WAIT_TIMEOUT:-120}"
+    local ELAPSED=0
+
+    echo "Waiting for backend (${BACKEND_HOST}:${BACKEND_PORT}) — timeout: ${TIMEOUT}s"
+
+    # Wait for hostname to resolve
     while ! getent hosts "${BACKEND_HOST}" > /dev/null 2>&1; do
-        echo "Waiting for ${BACKEND_HOST} hostname to resolve..."
+        if [ "$ELAPSED" -ge "$TIMEOUT" ]; then
+            echo "[ERROR] Timed out waiting for ${BACKEND_HOST} to resolve after ${TIMEOUT}s" >&2
+            exit 1
+        fi
+        echo "Waiting for ${BACKEND_HOST} hostname to resolve... (${ELAPSED}s)"
         sleep 2
+        ELAPSED=$(( ELAPSED + 2 ))
     done
-    
-    echo "${BACKEND_HOST} hostname resolved successfully"
-    
-    # Now wait for the actual service to be ready
+
+    echo "${BACKEND_HOST} hostname resolved"
+
+    # Wait for the port to be reachable
     while ! nc -z "${BACKEND_HOST}" "${BACKEND_PORT}"; do
-        echo "Waiting for ${BACKEND_HOST}:${BACKEND_PORT} to be ready..."
+        if [ "$ELAPSED" -ge "$TIMEOUT" ]; then
+            echo "[ERROR] Timed out waiting for ${BACKEND_HOST}:${BACKEND_PORT} after ${TIMEOUT}s" >&2
+            exit 1
+        fi
+        echo "Waiting for ${BACKEND_HOST}:${BACKEND_PORT} to be ready... (${ELAPSED}s)"
         sleep 2
+        ELAPSED=$(( ELAPSED + 2 ))
     done
-    
+
     echo "${BACKEND_HOST}:${BACKEND_PORT} is ready!"
 }
 
