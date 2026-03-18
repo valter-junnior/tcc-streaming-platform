@@ -1,4 +1,5 @@
 #!/bin/bash
+set -u
 
 STREAM_KEY=$1
 
@@ -15,8 +16,31 @@ fi
 
 OUTPUT_DIR="/tmp/hls/${STREAM_KEY}"
 INPUT_URL="rtmp://127.0.0.1/live/${STREAM_KEY}"
-SEGMENT_DURATION=6
-PLAYLIST_LENGTH=10
+SEGMENT_DURATION="${HLS_SEGMENT_DURATION:-6}"
+PLAYLIST_LENGTH="${HLS_PLAYLIST_LENGTH:-10}"
+MAX_RETRIES="${TRANSCODER_MAX_RETRIES:-10}"
+RETRY_WAIT="${TRANSCODER_RETRY_WAIT:-3}"
+STARTUP_TIMEOUT="${TRANSCODER_STARTUP_TIMEOUT:-20}"
+STREAM_STABILIZE_SECONDS="${TRANSCODER_STREAM_STABILIZE_SECONDS:-8}"
+
+if ! [[ "$SEGMENT_DURATION" =~ ^[0-9]+$ ]] || [ "$SEGMENT_DURATION" -le 0 ]; then
+    SEGMENT_DURATION=6
+fi
+if ! [[ "$PLAYLIST_LENGTH" =~ ^[0-9]+$ ]] || [ "$PLAYLIST_LENGTH" -le 0 ]; then
+    PLAYLIST_LENGTH=10
+fi
+if ! [[ "$MAX_RETRIES" =~ ^[0-9]+$ ]] || [ "$MAX_RETRIES" -le 0 ]; then
+    MAX_RETRIES=10
+fi
+if ! [[ "$RETRY_WAIT" =~ ^[0-9]+$ ]] || [ "$RETRY_WAIT" -lt 0 ]; then
+    RETRY_WAIT=3
+fi
+if ! [[ "$STARTUP_TIMEOUT" =~ ^[0-9]+$ ]] || [ "$STARTUP_TIMEOUT" -le 0 ]; then
+    STARTUP_TIMEOUT=20
+fi
+if ! [[ "$STREAM_STABILIZE_SECONDS" =~ ^[0-9]+$ ]] || [ "$STREAM_STABILIZE_SECONDS" -lt 0 ]; then
+    STREAM_STABILIZE_SECONDS=8
+fi
 
 # Create output directory structure for stable GStreamer renditions.
 if ! mkdir -p "${OUTPUT_DIR}/v0" "${OUTPUT_DIR}/v2"; then
@@ -103,20 +127,16 @@ run_variant() {
 }
 
 # Wait for stream to be established by the publisher (keyframe buffering)
-echo "[$(date)] Waiting 8 seconds for stream to stabilize..." >> "$LOG_FILE"
-sleep 8
+echo "[$(date)] Waiting ${STREAM_STABILIZE_SECONDS}s for stream to stabilize..." >> "$LOG_FILE"
+sleep "$STREAM_STABILIZE_SECONDS"
 
 # Retry loop with bootstrap validation.
 # If variant playlists are not created quickly, kill pipelines and retry.
-MAX_RETRIES=10
-RETRY_WAIT=3
-STARTUP_TIMEOUT=20
 ATTEMPT=0
-EXIT_CODE=1
 
 while [ $ATTEMPT -lt $MAX_RETRIES ]; do
     ATTEMPT=$((ATTEMPT + 1))
-    echo "[$(date)] GStreamer attempt $ATTEMPT of $MAX_RETRIES — launching 4 variant pipelines..." >> "$LOG_FILE"
+    echo "[$(date)] GStreamer attempt $ATTEMPT of $MAX_RETRIES — launching 2 variant pipelines..." >> "$LOG_FILE"
 
     run_variant 0 1920 1080 5000 128000 & PIDS[0]=$!
     run_variant 2 854  480  1400 96000  & PIDS[1]=$!
@@ -161,7 +181,6 @@ while [ $ATTEMPT -lt $MAX_RETRIES ]; do
 
     if $ALL_OK; then
         echo "[$(date)] Transcoding completed successfully" >> "$LOG_FILE"
-        EXIT_CODE=0
         break
     fi
 

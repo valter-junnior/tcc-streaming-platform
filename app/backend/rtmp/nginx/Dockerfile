@@ -3,7 +3,9 @@ FROM ubuntu:22.04
 ENV DEBIAN_FRONTEND=noninteractive
 
 RUN apt-get update && apt-get install -y \
+    --no-install-recommends \
     build-essential \
+    ca-certificates \
     libpcre3 \
     libpcre3-dev \
     libssl-dev \
@@ -18,9 +20,7 @@ RUN apt-get update && apt-get install -y \
     gstreamer1.0-plugins-ugly \
     gstreamer1.0-libav \
     netcat-openbsd \
-    dnsutils \
     cron \
-    bc \
     gettext-base \
     && rm -rf /var/lib/apt/lists/*
 
@@ -36,7 +36,7 @@ RUN ./configure \
     --prefix=/usr/local/nginx \
     --with-http_ssl_module \
     --add-module=/tmp/nginx-rtmp-module \
-    && make \
+    && make -j"$(nproc)" \
     && make install
 
 RUN mkdir -p /tmp/hls /var/log/nginx && \

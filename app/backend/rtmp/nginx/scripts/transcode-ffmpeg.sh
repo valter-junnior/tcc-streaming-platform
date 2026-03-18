@@ -1,4 +1,5 @@
 #!/bin/bash
+set -u
 
 STREAM_KEY=$1
 
@@ -15,8 +16,27 @@ fi
 
 OUTPUT_DIR="/tmp/hls/${STREAM_KEY}"
 INPUT_URL="rtmp://127.0.0.1/live/${STREAM_KEY}"
-SEGMENT_DURATION=6
-PLAYLIST_LENGTH=10
+SEGMENT_DURATION="${HLS_SEGMENT_DURATION:-6}"
+PLAYLIST_LENGTH="${HLS_PLAYLIST_LENGTH:-10}"
+MAX_RETRIES="${TRANSCODER_MAX_RETRIES:-10}"
+RETRY_WAIT="${TRANSCODER_RETRY_WAIT:-3}"
+STREAM_STABILIZE_SECONDS="${TRANSCODER_STREAM_STABILIZE_SECONDS:-8}"
+
+if ! [[ "$SEGMENT_DURATION" =~ ^[0-9]+$ ]] || [ "$SEGMENT_DURATION" -le 0 ]; then
+    SEGMENT_DURATION=6
+fi
+if ! [[ "$PLAYLIST_LENGTH" =~ ^[0-9]+$ ]] || [ "$PLAYLIST_LENGTH" -le 0 ]; then
+    PLAYLIST_LENGTH=10
+fi
+if ! [[ "$MAX_RETRIES" =~ ^[0-9]+$ ]] || [ "$MAX_RETRIES" -le 0 ]; then
+    MAX_RETRIES=10
+fi
+if ! [[ "$RETRY_WAIT" =~ ^[0-9]+$ ]] || [ "$RETRY_WAIT" -lt 0 ]; then
+    RETRY_WAIT=3
+fi
+if ! [[ "$STREAM_STABILIZE_SECONDS" =~ ^[0-9]+$ ]] || [ "$STREAM_STABILIZE_SECONDS" -lt 0 ]; then
+    STREAM_STABILIZE_SECONDS=8
+fi
 
 # Create output directory
 if ! mkdir -p "${OUTPUT_DIR}/v0" "${OUTPUT_DIR}/v1" "${OUTPUT_DIR}/v2" "${OUTPUT_DIR}/v3"; then
@@ -43,14 +63,12 @@ fi
 echo "[$(date)] Disk space check passed. Available: ${AVAILABLE_SPACE}KB" >> "$LOG_FILE"
 
 # Wait for stream to be established by the publisher (keyframe buffering)
-echo "[$(date)] Waiting 8 seconds for stream to stabilize..." >> "$LOG_FILE"
-sleep 8
+echo "[$(date)] Waiting ${STREAM_STABILIZE_SECONDS}s for stream to stabilize..." >> "$LOG_FILE"
+sleep "$STREAM_STABILIZE_SECONDS"
 
 # Retry loop: handles its own retries instead of relying on nginx-rtmp respawn.
 # nginx-rtmp respawns exec on non-zero exit, creating a slow 23s-per-cycle loop.
 # By retrying internally we go from >2min delay to <30s on first success.
-MAX_RETRIES=10
-RETRY_WAIT=3
 ATTEMPT=0
 EXIT_CODE=1
 

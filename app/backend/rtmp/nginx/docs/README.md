@@ -43,8 +43,17 @@ Todas as configurações podem ser ajustadas via variáveis de ambiente no arqui
 
 ### Configurações Transcodição
 
-A transcodição é feita pelo FFmpeg, invocado automaticamente pelo Nginx-RTMP via diretiva `exec`.
-Não há variáveis de ambiente adicionais - os parâmetros estão diretamente em `transcode-ffmpeg.sh`.
+| Variável | Padrão | Descrição |
+|----------|--------|-----------|
+| `TRANSCODER` | ffmpeg | Motor de transcodificação (`ffmpeg` ou `gstreamer`) |
+| `HLS_SEGMENT_DURATION` | 6 | Duração dos segmentos HLS (segundos) |
+| `HLS_PLAYLIST_LENGTH` | 10 | Tamanho da janela deslizante da playlist HLS |
+| `TRANSCODER_MAX_RETRIES` | 10 | Quantidade máxima de tentativas por publish |
+| `TRANSCODER_RETRY_WAIT` | 3 | Intervalo entre tentativas (segundos) |
+| `TRANSCODER_STREAM_STABILIZE_SECONDS` | 8 | Espera inicial para estabilização do stream |
+| `TRANSCODER_STARTUP_TIMEOUT` | 20 | Timeout de bootstrap para playlists (GStreamer) |
+
+O entrypoint seleciona automaticamente o script correto via symlink em `/usr/local/bin/transcode.sh`.
 
 ## Como Funciona
 
@@ -61,9 +70,13 @@ O `docker-entrypoint.sh`:
 
 Quando um stream RTMP é iniciado:
 1. Nginx-RTMP chama o callback `on_publish` no backend para validar
-2. Se aprovado, o Nginx-RTMP executa `exec /usr/local/bin/transcode-ffmpeg.sh $name`
-3. FFmpeg lê o stream de `rtmp://127.0.0.1/live/{key}` e gera 4 qualidades HLS (1080p, 720p, 480p, 360p)
-4. Arquivos gerados em `/tmp/hls/{key}/master.m3u8` e `/tmp/hls/{key}/v{0-3}/playlist.m3u8`
+2. Se aprovado, o Nginx-RTMP executa `exec /usr/local/bin/transcode.sh $name`
+3. O transcoder selecionado lê `rtmp://127.0.0.1/live/{key}` e gera HLS adaptativo
+4. Arquivos gerados em `/tmp/hls/{key}/master.m3u8` e subpastas de variante
+
+Perfis atuais:
+- `ffmpeg`: 4 qualidades (`v0` 1080p, `v1` 720p, `v2` 480p, `v3` 360p)
+- `gstreamer`: 2 qualidades estáveis (`v0` 1080p, `v2` 480p)
 5. Frontend lê `master.m3u8` para ABR automático
 
 ### 3. Limpeza HLS
@@ -106,9 +119,12 @@ docker compose exec rtmp-server cat /tmp/hls/<stream_key>/transcode.log
 
 ### Qualidade ruim
 
-Ajuste parâmetros de transcodificação em `transcode-ffmpeg.sh`:
-- Bitrate: `-b:v:0 5000k`
-- Preset: `-preset fast` (veryfast, fast, medium, slow)
+Ajuste variáveis no `.env` e reinicie o container:
+- `HLS_SEGMENT_DURATION`
+- `HLS_PLAYLIST_LENGTH`
+- `TRANSCODER_MAX_RETRIES`
+- `TRANSCODER_RETRY_WAIT`
+- `TRANSCODER_STREAM_STABILIZE_SECONDS`
 
 ### Disco cheio
 
