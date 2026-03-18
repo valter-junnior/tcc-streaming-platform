@@ -1,3 +1,3 @@
-iniciei uma nova live com o id 620b7beab54f4507 e ainda não gerou a live apenas dar erro na playlist de 404
+implementamos o gstreamer mas agora o ffmpeg está bugado analise os 2 ultimos commit  eveja qual o erro alem de analisar os logs
 
-entenda que eu uso o obs e obs manda os videos para o rtmp do nginx e lá tem que haver o trancode e servir hls mas o transcode não está funciona se olhar bem o ffmepg está totalmente funcional mas o gstremer não funciona de forma nenhuma, além disto quando finalizar as alterações atualize os container atraves do docker compose e verifique se ainda está gerando logs de erros(nesse caso sempre é bom apagar os logs antigos para nao confundi), se estiver dando problema ainda reveja onde está o erro e corrija o gstreamer
+

@@ -21,6 +21,7 @@ PLAYLIST_LENGTH="${HLS_PLAYLIST_LENGTH:-10}"
 MAX_RETRIES="${TRANSCODER_MAX_RETRIES:-10}"
 RETRY_WAIT="${TRANSCODER_RETRY_WAIT:-3}"
 STREAM_STABILIZE_SECONDS="${TRANSCODER_STREAM_STABILIZE_SECONDS:-8}"
+RTMP_STAT_URL="http://127.0.0.1:${HLS_HTTP_PORT:-8081}/stat"
 
 if ! [[ "$SEGMENT_DURATION" =~ ^[0-9]+$ ]] || [ "$SEGMENT_DURATION" -le 0 ]; then
     SEGMENT_DURATION=6
@@ -45,9 +46,21 @@ if ! mkdir -p "${OUTPUT_DIR}/v0" "${OUTPUT_DIR}/v1" "${OUTPUT_DIR}/v2" "${OUTPUT
 fi
 
 LOG_FILE="${OUTPUT_DIR}/transcode.log"
+LOCK_FILE="${OUTPUT_DIR}/transcode.lock"
+
+# Avoid concurrent ffmpeg instances for the same stream key (common on quick reconnects).
+exec 9>"${LOCK_FILE}"
+if ! flock -n 9; then
+    echo "[$(date)] Another FFmpeg transcoder is already running for stream: ${STREAM_KEY}" >> "$LOG_FILE"
+    exit 0
+fi
 
 # Setup cleanup trap for orphaned FFmpeg processes
 trap 'echo "[$(date)] Cleaning up FFmpeg processes..." >> "$LOG_FILE"; kill $(jobs -p) 2>/dev/null' EXIT SIGTERM SIGINT
+
+is_stream_active() {
+    wget -q -O - "$RTMP_STAT_URL" 2>/dev/null | grep -q "<name>${STREAM_KEY}</name>"
+}
 
 echo "[$(date)] Starting transcoding for stream: ${STREAM_KEY}" >> "$LOG_FILE"
 echo "[$(date)] INPUT_URL: ${INPUT_URL}" >> "$LOG_FILE"
@@ -73,13 +86,18 @@ ATTEMPT=0
 EXIT_CODE=1
 
 while [ $ATTEMPT -lt $MAX_RETRIES ]; do
+    if ! is_stream_active; then
+        echo "[$(date)] No active publisher for stream ${STREAM_KEY}; stopping retries." >> "$LOG_FILE"
+        break
+    fi
+
     ATTEMPT=$((ATTEMPT + 1))
     echo "[$(date)] FFmpeg attempt $ATTEMPT of $MAX_RETRIES — connecting to ${INPUT_URL}..." >> "$LOG_FILE"
 
     ffmpeg \
         -loglevel warning \
         -rtmp_live live \
-        -rw_timeout 30000000 \
+        -rw_timeout 10000000 \
         -i "${INPUT_URL}" \
         -filter_complex \
         "[v:0]split=4[v0][v1][v2][v3]; \
