@@ -440,6 +440,11 @@ export function StreamerDashboard() {
                     readOnly
                     className="flex-1 px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white font-mono text-sm"
                   />
+                  <button className="px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white flex items-center justify-center">
+                    <a href={watchUrl} target="_blank" rel="noopener noreferrer">
+                      <Eye className="w-4 h-4 text-purple-400" />
+                    </a>
+                  </button>
                   <button
                     onClick={() => handleCopy(watchUrl, "watch")}
                     className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-colors flex items-center gap-2"
