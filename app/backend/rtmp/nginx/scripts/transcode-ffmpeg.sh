@@ -22,6 +22,8 @@ MAX_RETRIES="${TRANSCODER_MAX_RETRIES:-10}"
 RETRY_WAIT="${TRANSCODER_RETRY_WAIT:-3}"
 STREAM_STABILIZE_SECONDS="${TRANSCODER_STREAM_STABILIZE_SECONDS:-8}"
 RTMP_STAT_URL="http://127.0.0.1:${HLS_HTTP_PORT:-8081}/stat"
+BACKEND_LIVE_URL="${STREAM_BACKEND_LIVE_URL:-http://streaming-platform:8080/api/streams/live}"
+INPUT_PROBE_TIMEOUT_SECONDS="${TRANSCODER_INPUT_PROBE_TIMEOUT_SECONDS:-3}"
 
 if ! [[ "$SEGMENT_DURATION" =~ ^[0-9]+$ ]] || [ "$SEGMENT_DURATION" -le 0 ]; then
     SEGMENT_DURATION=6
@@ -37,6 +39,9 @@ if ! [[ "$RETRY_WAIT" =~ ^[0-9]+$ ]] || [ "$RETRY_WAIT" -lt 0 ]; then
 fi
 if ! [[ "$STREAM_STABILIZE_SECONDS" =~ ^[0-9]+$ ]] || [ "$STREAM_STABILIZE_SECONDS" -lt 0 ]; then
     STREAM_STABILIZE_SECONDS=8
+fi
+if ! [[ "$INPUT_PROBE_TIMEOUT_SECONDS" =~ ^[0-9]+$ ]] || [ "$INPUT_PROBE_TIMEOUT_SECONDS" -le 0 ]; then
+    INPUT_PROBE_TIMEOUT_SECONDS=3
 fi
 
 # Create output directory
@@ -59,7 +64,52 @@ fi
 trap 'echo "[$(date)] Cleaning up FFmpeg processes..." >> "$LOG_FILE"; kill $(jobs -p) 2>/dev/null' EXIT SIGTERM SIGINT
 
 is_stream_active() {
-    wget -q -O - "$RTMP_STAT_URL" 2>/dev/null | grep -q "<name>${STREAM_KEY}</name>"
+    # Primary detection: authoritative backend status (stream marked LIVE).
+    if wget -q -O - "$BACKEND_LIVE_URL" 2>/dev/null | tr -d '\n' | grep -q "\"streamKey\":\"${STREAM_KEY}\""; then
+        return 0
+    fi
+
+    # Primary detection: probe the actual RTMP input URL for this stream key.
+    # This is resilient even when /stat omits per-stream nodes.
+    if command -v ffprobe >/dev/null 2>&1; then
+        if timeout "${INPUT_PROBE_TIMEOUT_SECONDS}" ffprobe \
+            -v error \
+            -rw_timeout 3000000 \
+            -i "${INPUT_URL}" \
+            -show_entries format=format_name \
+            -of default=nokey=1:noprint_wrappers=1 \
+            >/dev/null 2>&1; then
+            return 0
+        fi
+    fi
+
+    # Fallback: parse RTMP /stat XML when ffprobe is unavailable or times out.
+    wget -q -O - "$RTMP_STAT_URL" 2>/dev/null | awk -v key="$STREAM_KEY" '
+        /<stream>/ { in_stream=1; name=""; publishing=0; clients=0 }
+        /<name>/ && in_stream {
+            line=$0
+            gsub(/^.*<name>/, "", line)
+            gsub(/<\/name>.*$/, "", line)
+            name=line
+        }
+        /<publishing\/>/ && in_stream { publishing=1 }
+        /<publishing>[[:space:]]*1[[:space:]]*<\/publishing>/ && in_stream { publishing=1 }
+        /<active\/>/ && in_stream { publishing=1 }
+        /<nclients>/ && in_stream {
+            line=$0
+            gsub(/^.*<nclients>/, "", line)
+            gsub(/<\/nclients>.*$/, "", line)
+            clients=line+0
+        }
+        /<\/stream>/ {
+            if (in_stream && name==key && (publishing==1 || clients>0)) {
+                found=1
+                exit
+            }
+            in_stream=0
+        }
+        END { exit(found ? 0 : 1) }
+    '
 }
 
 echo "[$(date)] Starting transcoding for stream: ${STREAM_KEY}" >> "$LOG_FILE"
@@ -86,12 +136,8 @@ ATTEMPT=0
 EXIT_CODE=1
 
 while [ $ATTEMPT -lt $MAX_RETRIES ]; do
-    if ! is_stream_active; then
-        echo "[$(date)] No active publisher for stream ${STREAM_KEY}; stopping retries." >> "$LOG_FILE"
-        break
-    fi
-
     ATTEMPT=$((ATTEMPT + 1))
+    ATTEMPT_STARTED_AT=$(date +%s)
     echo "[$(date)] FFmpeg attempt $ATTEMPT of $MAX_RETRIES — connecting to ${INPUT_URL}..." >> "$LOG_FILE"
 
     ffmpeg \
@@ -121,11 +167,20 @@ while [ $ATTEMPT -lt $MAX_RETRIES ]; do
         >> "$LOG_FILE" 2>&1
 
     EXIT_CODE=$?
+    ATTEMPT_DURATION=$(( $(date +%s) - ATTEMPT_STARTED_AT ))
     echo "[$(date)] FFmpeg attempt $ATTEMPT finished with exit code: $EXIT_CODE" >> "$LOG_FILE"
+    echo "[$(date)] FFmpeg attempt $ATTEMPT duration: ${ATTEMPT_DURATION}s" >> "$LOG_FILE"
 
     # Exit code 0 means stream ended normally — no retry needed
     if [ $EXIT_CODE -eq 0 ]; then
         echo "[$(date)] Transcoding completed successfully" >> "$LOG_FILE"
+        break
+    fi
+
+    # If FFmpeg ran for a while before exiting, this is usually a normal stream end
+    # (or publisher disconnect), not a startup failure. Avoid retry loops in this case.
+    if [ "$ATTEMPT_DURATION" -ge "$STREAM_STABILIZE_SECONDS" ]; then
+        echo "[$(date)] FFmpeg ran for ${ATTEMPT_DURATION}s before exit; treating as stream ended and stopping retries." >> "$LOG_FILE"
         break
     fi
 
