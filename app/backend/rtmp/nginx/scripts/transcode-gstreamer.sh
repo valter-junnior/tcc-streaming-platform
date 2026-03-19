@@ -22,6 +22,9 @@ MAX_RETRIES="${TRANSCODER_MAX_RETRIES:-10}"
 RETRY_WAIT="${TRANSCODER_RETRY_WAIT:-3}"
 STARTUP_TIMEOUT="${TRANSCODER_STARTUP_TIMEOUT:-20}"
 STREAM_STABILIZE_SECONDS="${TRANSCODER_STREAM_STABILIZE_SECONDS:-8}"
+RTMP_STAT_URL="http://127.0.0.1:${HLS_HTTP_PORT:-8081}/stat"
+BACKEND_LIVE_URL="${STREAM_BACKEND_LIVE_URL:-http://streaming-platform:8080/api/streams/live}"
+INPUT_PROBE_TIMEOUT_SECONDS="${TRANSCODER_INPUT_PROBE_TIMEOUT_SECONDS:-3}"
 
 if ! [[ "$SEGMENT_DURATION" =~ ^[0-9]+$ ]] || [ "$SEGMENT_DURATION" -le 0 ]; then
     SEGMENT_DURATION=6
@@ -41,6 +44,9 @@ fi
 if ! [[ "$STREAM_STABILIZE_SECONDS" =~ ^[0-9]+$ ]] || [ "$STREAM_STABILIZE_SECONDS" -lt 0 ]; then
     STREAM_STABILIZE_SECONDS=8
 fi
+if ! [[ "$INPUT_PROBE_TIMEOUT_SECONDS" =~ ^[0-9]+$ ]] || [ "$INPUT_PROBE_TIMEOUT_SECONDS" -le 0 ]; then
+    INPUT_PROBE_TIMEOUT_SECONDS=3
+fi
 
 # Create output directory structure for stable GStreamer renditions.
 if ! mkdir -p "${OUTPUT_DIR}/v0" "${OUTPUT_DIR}/v2"; then
@@ -49,6 +55,13 @@ if ! mkdir -p "${OUTPUT_DIR}/v0" "${OUTPUT_DIR}/v2"; then
 fi
 
 LOG_FILE="${OUTPUT_DIR}/transcode.log"
+LOCK_FILE="${OUTPUT_DIR}/transcode.lock"
+
+exec 9>"${LOCK_FILE}"
+if ! flock -n 9; then
+    echo "[$(date)] Another GStreamer transcoder is already running for stream: ${STREAM_KEY}" >> "$LOG_FILE"
+    exit 0
+fi
 
 # Keep track of children so we can terminate all variant pipelines on exit/retry.
 PIDS=()
@@ -60,6 +73,86 @@ cleanup_children() {
 }
 
 trap 'echo "[$(date)] Cleaning up GStreamer processes..." >> "$LOG_FILE"; cleanup_children' EXIT SIGTERM SIGINT
+
+probe_input_ready() {
+    if ! command -v ffprobe >/dev/null 2>&1; then
+        return 1
+    fi
+
+    timeout "${INPUT_PROBE_TIMEOUT_SECONDS}" ffprobe \
+        -v error \
+        -rw_timeout 3000000 \
+        -i "${INPUT_URL}" \
+        -show_entries format=format_name \
+        -of default=nokey=1:noprint_wrappers=1 \
+        >/dev/null 2>&1
+}
+
+is_stream_active() {
+    # Primary detection: authoritative backend status (stream marked LIVE).
+    if wget -q -O - "$BACKEND_LIVE_URL" 2>/dev/null | tr -d '\n' | grep -q "\"streamKey\":\"${STREAM_KEY}\""; then
+        return 0
+    fi
+
+    # Primary detection: probe the actual RTMP input URL for this stream key.
+    # This is resilient even when /stat omits per-stream nodes.
+    if probe_input_ready; then
+        return 0
+    fi
+
+    # Fallback: parse RTMP /stat XML when ffprobe is unavailable or times out.
+    wget -q -O - "$RTMP_STAT_URL" 2>/dev/null | awk -v key="$STREAM_KEY" '
+        /<stream>/ { in_stream=1; name=""; publishing=0; clients=0 }
+        /<name>/ && in_stream {
+            line=$0
+            gsub(/^.*<name>/, "", line)
+            gsub(/<\/name>.*$/, "", line)
+            name=line
+        }
+        /<publishing\/>/ && in_stream { publishing=1 }
+        /<publishing>[[:space:]]*1[[:space:]]*<\/publishing>/ && in_stream { publishing=1 }
+        /<active\/>/ && in_stream { publishing=1 }
+        /<nclients>/ && in_stream {
+            line=$0
+            gsub(/^.*<nclients>/, "", line)
+            gsub(/<\/nclients>.*$/, "", line)
+            clients=line+0
+        }
+        /<\/stream>/ {
+            if (in_stream && name==key && (publishing==1 || clients>0)) {
+                found=1
+                exit
+            }
+            in_stream=0
+        }
+        END { exit(found ? 0 : 1) }
+    '
+}
+
+wait_for_input_ready() {
+    local TIMEOUT_SECONDS=$1
+    local ELAPSED=0
+
+    echo "[$(date)] Waiting up to ${TIMEOUT_SECONDS}s for RTMP input to become readable..." >> "$LOG_FILE"
+
+    while [ "$ELAPSED" -lt "$TIMEOUT_SECONDS" ]; do
+        if probe_input_ready; then
+            echo "[$(date)] RTMP input became readable after ${ELAPSED}s" >> "$LOG_FILE"
+            return 0
+        fi
+
+        if ! is_stream_active; then
+            echo "[$(date)] No active publisher detected while waiting for RTMP input" >> "$LOG_FILE"
+            return 1
+        fi
+
+        sleep 1
+        ELAPSED=$((ELAPSED + 1))
+    done
+
+    echo "[$(date)] Timed out waiting ${TIMEOUT_SECONDS}s for readable RTMP input" >> "$LOG_FILE"
+    return 1
+}
 
 echo "[$(date)] Starting transcoding for stream: ${STREAM_KEY}" >> "$LOG_FILE"
 echo "[$(date)] INPUT_URL: ${INPUT_URL}" >> "$LOG_FILE"
@@ -126,16 +219,27 @@ run_variant() {
         >> "$LOG_FILE" 2>&1
 }
 
-# Wait for stream to be established by the publisher (keyframe buffering)
-echo "[$(date)] Waiting ${STREAM_STABILIZE_SECONDS}s for stream to stabilize..." >> "$LOG_FILE"
-sleep "$STREAM_STABILIZE_SECONDS"
+# Wait for stream to be established by the publisher before launching GStreamer.
+if ! wait_for_input_ready "$STARTUP_TIMEOUT"; then
+    echo "[$(date)] WARNING: RTMP input never became readable; aborting GStreamer launch" >> "$LOG_FILE"
+    echo "[$(date)] Script execution finished" >> "$LOG_FILE"
+    exit 0
+fi
+
+if [ "$STREAM_STABILIZE_SECONDS" -gt 0 ]; then
+    echo "[$(date)] Waiting ${STREAM_STABILIZE_SECONDS}s for stream to stabilize after input detection..." >> "$LOG_FILE"
+    sleep "$STREAM_STABILIZE_SECONDS"
+fi
 
 # Retry loop with bootstrap validation.
 # If variant playlists are not created quickly, kill pipelines and retry.
 ATTEMPT=0
+SCRIPT_STARTED_AT=$(date +%s)
+MAX_TOTAL_RUNTIME=$(((STARTUP_TIMEOUT * MAX_RETRIES) + (RETRY_WAIT * (MAX_RETRIES - 1))))
 
 while [ $ATTEMPT -lt $MAX_RETRIES ]; do
     ATTEMPT=$((ATTEMPT + 1))
+    ATTEMPT_STARTED_AT=$(date +%s)
     echo "[$(date)] GStreamer attempt $ATTEMPT of $MAX_RETRIES — launching 2 variant pipelines..." >> "$LOG_FILE"
 
     run_variant 0 1920 1080 5000 128000 & PIDS[0]=$!
@@ -151,14 +255,27 @@ while [ $ATTEMPT -lt $MAX_RETRIES ]; do
     done
 
     if ! $BOOTSTRAP_OK; then
+        TOTAL_RUNTIME=$(( $(date +%s) - SCRIPT_STARTED_AT ))
         echo "[$(date)] Attempt $ATTEMPT failed bootstrap: no variant playlist created after ${STARTUP_TIMEOUT}s" >> "$LOG_FILE"
         cleanup_children
 
+        if [ "$TOTAL_RUNTIME" -ge "$MAX_TOTAL_RUNTIME" ]; then
+            echo "[$(date)] Retry budget exhausted after bootstrap failure (total runtime: ${TOTAL_RUNTIME}s)." >> "$LOG_FILE"
+            break
+        fi
+
+        if ! is_stream_active; then
+            echo "[$(date)] No active publisher for stream ${STREAM_KEY} after bootstrap failure; stopping retries." >> "$LOG_FILE"
+            break
+        fi
+
         if [ $ATTEMPT -lt $MAX_RETRIES ]; then
-            echo "[$(date)] Retrying in ${RETRY_WAIT}s..." >> "$LOG_FILE"
-            sleep $RETRY_WAIT
+            echo "[$(date)] Stream is still active after bootstrap failure; retrying in ${RETRY_WAIT}s..." >> "$LOG_FILE"
+            sleep "$RETRY_WAIT"
             continue
         fi
+
+        echo "[$(date)] ERROR: All $MAX_RETRIES attempts failed bootstrap. Giving up." >> "$LOG_FILE"
         break
     fi
 
@@ -184,9 +301,28 @@ while [ $ATTEMPT -lt $MAX_RETRIES ]; do
         break
     fi
 
+    ATTEMPT_DURATION=$(( $(date +%s) - ATTEMPT_STARTED_AT ))
+    echo "[$(date)] GStreamer attempt $ATTEMPT duration: ${ATTEMPT_DURATION}s" >> "$LOG_FILE"
+
+    # If pipelines ran for a while before exiting non-zero, this is usually a normal
+    # stream end/disconnect rather than startup failure. Avoid retry loops in this case.
+    if [ "$ATTEMPT_DURATION" -ge "$STREAM_STABILIZE_SECONDS" ]; then
+        echo "[$(date)] GStreamer ran for ${ATTEMPT_DURATION}s before exit; treating as stream ended and stopping retries." >> "$LOG_FILE"
+        break
+    fi
+
     cleanup_children
 
     if [ $ATTEMPT -lt $MAX_RETRIES ]; then
+        TOTAL_RUNTIME=$(( $(date +%s) - SCRIPT_STARTED_AT ))
+        if [ "$TOTAL_RUNTIME" -ge "$MAX_TOTAL_RUNTIME" ]; then
+            echo "[$(date)] Retry budget exhausted after ${TOTAL_RUNTIME}s; stopping retries." >> "$LOG_FILE"
+            break
+        fi
+        if ! is_stream_active; then
+            echo "[$(date)] No active publisher for stream ${STREAM_KEY}; stopping retries." >> "$LOG_FILE"
+            break
+        fi
         echo "[$(date)] One or more variants failed, retrying in ${RETRY_WAIT}s..." >> "$LOG_FILE"
         sleep $RETRY_WAIT
     else
