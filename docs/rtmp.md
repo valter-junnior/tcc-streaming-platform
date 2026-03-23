@@ -1,139 +1,104 @@
-# RTMP Server - Nginx Configuration
+# RTMP/HLS - Nginx e Transcodificacao
 
-## Estrutura de Diretórios
+Atualizado em: 2026-03-23
 
-```
-nginx/
-├── Dockerfile              # Imagem Docker do servidor RTMP
-├── configs/                # Configurações
-│   └── nginx.conf         # Template de configuração do Nginx-RTMP
-├── scripts/               # Scripts de operação
-│   ├── docker-entrypoint.sh    # Script de inicialização
-│   ├── transcode-ffmpeg.sh     # Transcodição com FFmpeg (multi-qualidade HLS)
-│   └── cleanup-hls.sh          # Limpeza de arquivos HLS antigos
-└── docs/                  # Documentação
-    └── README.md          # Este arquivo
-```
+## Estrutura relevante
 
-## Variáveis de Ambiente
-
-Todas as configurações podem ser ajustadas via variáveis de ambiente no arquivo `.env`:
-
-### Configurações RTMP
-
-| Variável | Padrão | Descrição |
-|----------|--------|-----------|
-| `RTMP_PORT` | 1935 | Porta do servidor RTMP |
-| `RTMP_CHUNK_SIZE` | 4096 | Tamanho do chunk RTMP |
-
-### Configurações HLS
-
-| Variável | Padrão | Descrição |
-|----------|--------|-----------|
-| `HLS_PATH` | /tmp/hls | Diretório de saída dos arquivos HLS |
-| `HLS_HTTP_PORT` | 8081 | Porta do servidor HTTP para HLS |
-| `HLS_RETENTION_HOURS` | 6 | Tempo de retenção dos arquivos HLS |
-
-### Configurações Backend
-
-| Variável | Padrão | Descrição |
-|----------|--------|-----------|
-| `BACKEND_HOST` | streaming-platform | Hostname do backend |
-| `BACKEND_PORT` | 8080 | Porta do backend |
-
-### Configurações Transcodição
-
-| Variável | Padrão | Descrição |
-|----------|--------|-----------|
-| `TRANSCODER` | ffmpeg | Motor de transcodificação (`ffmpeg` ou `gstreamer`) |
-| `HLS_SEGMENT_DURATION` | 6 | Duração dos segmentos HLS (segundos) |
-| `HLS_PLAYLIST_LENGTH` | 10 | Tamanho da janela deslizante da playlist HLS |
-| `TRANSCODER_MAX_RETRIES` | 10 | Quantidade máxima de tentativas por publish |
-| `TRANSCODER_RETRY_WAIT` | 3 | Intervalo entre tentativas (segundos) |
-| `TRANSCODER_STREAM_STABILIZE_SECONDS` | 8 | Espera inicial para estabilização do stream |
-| `TRANSCODER_STARTUP_TIMEOUT` | 20 | Timeout de bootstrap para playlists (GStreamer) |
-
-O entrypoint seleciona automaticamente o script correto via symlink em `/usr/local/bin/transcode.sh`.
-
-## Como Funciona
-
-### 1. Inicialização
-
-O `docker-entrypoint.sh`:
-1. Define valores padrão para todas as variáveis de ambiente
-2. Substitui as variáveis no template `nginx.conf.template` usando `envsubst`
-3. Aguarda o backend estar disponível
-4. Inicia o serviço cron para limpeza HLS
-5. Inicia o Nginx em foreground
-
-### 2. Transcodição
-
-Quando um stream RTMP é iniciado:
-1. Nginx-RTMP chama o callback `on_publish` no backend para validar
-2. Se aprovado, o Nginx-RTMP executa `exec /usr/local/bin/transcode.sh $name`
-3. O transcoder selecionado lê `rtmp://127.0.0.1/live/{key}` e gera HLS adaptativo
-4. Arquivos gerados em `/tmp/hls/{key}/master.m3u8` e subpastas de variante
-
-Perfis atuais:
-- `ffmpeg`: 4 qualidades (`v0` 1080p, `v1` 720p, `v2` 480p, `v3` 360p)
-- `gstreamer`: 2 qualidades estáveis (`v0` 1080p, `v2` 480p)
-5. Frontend lê `master.m3u8` para ABR automático
-
-### 3. Limpeza HLS
-
-O `cleanup-hls.sh` roda a cada hora via cron e remove:
-- Arquivos `.ts` e `.m3u8` mais antigos que `HLS_RETENTION_HOURS`
-- Diretórios vazios resultantes
-
-## Callbacks HTTP
-
-O Nginx-RTMP faz callbacks para o backend:
-
-- **on_publish**: `POST http://${BACKEND_HOST}:${BACKEND_PORT}/api/streams/callback/publish`
-  - Valida stream key
-  - Retorna 200 para aceitar, 403 para rejeitar
-  
-- **on_publish_done**: `POST http://${BACKEND_HOST}:${BACKEND_PORT}/api/streams/callback/publish_done`
-  - Notifica quando o streamer desconecta
-
-## Logs
-
-- **Nginx Error**: `/var/log/nginx/error.log`
-- **Nginx Access**: `/var/log/nginx/access.log`
-- **HLS Cleanup**: `/var/log/nginx/hls-cleanup.log`
-- **Transcodificação**: `/tmp/hls/<stream_key>/transcode.log`
-
-## Troubleshooting
-
-### Stream não inicia
-
-1. Verifique se o backend está acessível:
-```bash
-docker compose logs rtmp-server | grep "is ready"
+```text
+app/backend/rtmp/
+  nginx/
+    Dockerfile
+    configs/nginx.conf
+    scripts/
+      docker-entrypoint.sh
+      transcode-ffmpeg.sh
+      transcode-gstreamer.sh
+      cleanup-hls.sh
+  srs/
+    Dockerfile
+    srs.conf
+    cleanup-hls.sh
 ```
 
-2. Verifique logs de transcodificação:
-```bash
-docker compose exec rtmp-server cat /tmp/hls/<stream_key>/transcode.log
-```
+## Como o container RTMP funciona hoje
 
-### Qualidade ruim
+No compose principal (`app/docker-compose.yml`) o servico `rtmp-server` usa a imagem custom de `nginx/`.
 
-Ajuste variáveis no `.env` e reinicie o container:
-- `HLS_SEGMENT_DURATION`
-- `HLS_PLAYLIST_LENGTH`
-- `TRANSCODER_MAX_RETRIES`
-- `TRANSCODER_RETRY_WAIT`
-- `TRANSCODER_STREAM_STABILIZE_SECONDS`
+Fluxo de inicializacao (`docker-entrypoint.sh`):
+1. Define defaults das variaveis de ambiente.
+2. Escolhe o script de transcodificacao (`ffmpeg` ou `gstreamer`) via symlink em `/usr/local/bin/transcode.sh`.
+3. Renderiza `nginx.conf` com `envsubst`.
+4. Normaliza permissoes em `${HLS_PATH}`.
+5. Aguarda backend (`streaming-platform`) e sobe Nginx.
 
-### Disco cheio
+## Variaveis de ambiente principais
 
-Reduza retenção de HLS:
-```bash
-HLS_RETENTION_HOURS=3  # no .env
-```
+### Ingestao/HTTP
+- `RTMP_PORT` (default `1935`)
+- `RTMP_CHUNK_SIZE` (default `4096`)
+- `HLS_PATH` (default `/tmp/hls`)
+- `HLS_HTTP_PORT` (default `8081`)
+- `BACKEND_HOST` (default `streaming-platform`)
+- `BACKEND_PORT` (default `8080`)
+- `HLS_RETENTION_HOURS` (default `6`)
 
-Ou execute limpeza manual:
-```bash
-docker compose exec rtmp-server /usr/local/bin/cleanup-hls.sh
-```
+### Transcodificacao
+- `TRANSCODER=ffmpeg|gstreamer`
+- `HLS_SEGMENT_DURATION` (default `6`)
+- `HLS_PLAYLIST_LENGTH` (default `10`)
+- `TRANSCODER_MAX_RETRIES` (default `10`)
+- `TRANSCODER_RETRY_WAIT` (default `3`)
+- `TRANSCODER_STREAM_STABILIZE_SECONDS` (default `8`)
+- `TRANSCODER_STARTUP_TIMEOUT` (default `20`, usado no GStreamer)
+
+## Callbacks configurados no Nginx
+
+Arquivo: `app/backend/rtmp/nginx/configs/nginx.conf`
+
+- `on_publish -> POST /api/streams/callback/publish`
+- `on_publish_done -> POST /api/streams/callback/publish_done`
+
+Esses callbacks controlam autorizacao de stream key e transicao de status da stream.
+
+## Perfis de transcodificacao no estado atual
+
+### FFmpeg (`transcode-ffmpeg.sh`)
+- Entrada: `rtmp://127.0.0.1/live/{streamKey}`
+- Saida: `master.m3u8` com variantes:
+  - `v0` 1080p
+  - `v1` 720p
+  - `v2` 480p
+  - `v3` 360p
+- Implementa retry interno e validacao de stream key por regex.
+
+### GStreamer (`transcode-gstreamer.sh`)
+- Entrada: `rtmp://127.0.0.1/live/{streamKey}`
+- Saida atual estabilizada: `master.m3u8` com variantes:
+  - `v0` 1080p
+  - `v2` 480p
+- Implementa:
+  - checagem de input RTMP antes de iniciar pipelines;
+  - bootstrap/retry interno;
+  - cleanup de processos filhos;
+  - lock por stream key para evitar concorrencia.
+
+## Entrega HLS
+
+- URL base esperada no frontend: `http://localhost:8081/hls/{streamKey}/master.m3u8`
+- `location /hls/` usa `alias ${HLS_PATH}/`.
+- CORS e headers para playlists/segmentos estao configurados no Nginx.
+
+## Limpeza de arquivos HLS
+
+`cleanup-hls.sh` roda via cron (a cada hora) e remove arquivos antigos conforme `HLS_RETENTION_HOURS`.
+
+Logs:
+- Nginx: `/var/log/nginx/error.log`, `/var/log/nginx/access.log`
+- Limpeza: `/var/log/nginx/hls-cleanup.log`
+- Transcodificacao por stream: `/tmp/hls/{streamKey}/transcode.log`
+
+## SRS no repositorio
+
+A pasta `app/backend/rtmp/srs/` contem Dockerfile e configuracao de SRS para estudos/alternativas, mas o compose principal atual nao sobe um servico SRS.
+
+`Nao confirmado`: fluxo completo de SRS integrado ao backend/frontend no mesmo pipeline principal desta branch.

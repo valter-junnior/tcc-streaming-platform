@@ -1,5 +1,7 @@
 # TODO - Plataforma de Streaming com Análise Comparativa
 
+> Nota de atualização (2026-03-23): este arquivo é um roadmap histórico de planejamento. Para o estado técnico real e atual da implementação, consulte `README.md`, `docs/documentacao.md` e `docs/rtmp.md`.
+
 ## 📋 Informações do Projeto
 
 **Nome do Projeto**: Plataforma de Streaming com Análise Comparativa de Desempenho  

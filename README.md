@@ -1,15 +1,24 @@
 # Plataforma de Streaming — TCC
 
-Plataforma de streaming ao vivo desenvolvida como Trabalho de Conclusão de Curso. O objetivo principal é comparar quatro combinações de servidor RTMP × transcodificador em uma matriz 2²:
+Plataforma de streaming ao vivo desenvolvida para comparação de tecnologias de ingestão RTMP e transcodificação.
+
+No estado atual do código, o ambiente principal em `app/docker-compose.yml` sobe:
+- PostgreSQL
+- RabbitMQ
+- Backend Spring Boot (`streaming-platform`)
+- RTMP Server (`Nginx + nginx-rtmp-module`)
+- Frontend React
+
+O streamer transmite via OBS, o backend valida a stream key por callback HTTP, o transcodificador ativo gera HLS, e o espectador assiste no navegador com HLS.js + Plyr.
+
+## Matriz comparativa (objetivo do TCC)
 
 | | FFmpeg | GStreamer |
 |---|---|---|
-| **Nginx-RTMP** | Combinação 1 | Combinação 2 |
-| **SRS** | Combinação 3 | Combinação 4 |
+| **Nginx-RTMP** | Ativo no compose atual | Ativo no compose atual |
+| **SRS** | Alternativa de laboratório | Alternativa de laboratório |
 
-O streamer transmite via OBS Studio → o backend valida a stream key → o transcodificador gera HLS em 4 qualidades → o espectador assiste via browser com ABR automático.
-
----
+`Nao confirmado`: integração completa do SRS no fluxo principal de execução via compose atual.
 
 ## Tecnologias
 
@@ -17,119 +26,85 @@ O streamer transmite via OBS Studio → o backend valida a stream key → o tran
 |---|---|
 | Backend | Java 21, Spring Boot 3.2, Spring Data JPA, Spring AMQP |
 | Banco de dados | PostgreSQL 16 |
-| Mensageria | RabbitMQ 3 |
-| Servidor RTMP A | Nginx + nginx-rtmp-module (container customizado) |
-| Servidor RTMP B | SRS 6 |
-| Transcodificador A | FFmpeg |
-| Transcodificador B | GStreamer |
-| Frontend | React 18, TypeScript, Vite, HLS.js, Plyr |
-| Notificações | Server-Sent Events (SSE) |
-| Infraestrutura | Docker Compose |
+| Mensageria | RabbitMQ 3 (management) |
+| Ingestão RTMP | Nginx compilado com `nginx-rtmp-module` |
+| Transcodificação | FFmpeg ou GStreamer (seleção via `TRANSCODER`) |
+| Entrega | HLS via HTTP no container RTMP |
+| Frontend | React 19, TypeScript, Vite, React Router 7, TanStack Query 5 |
+| Player | HLS.js + Plyr |
+| Tempo real | Server-Sent Events (SSE) |
 
----
-
-## Instalação e Configuração
+## Subida do ambiente
 
 ### Pré-requisitos
 
-- Docker e Docker Compose instalados
-- Portas livres: `1935` (RTMP), `8080` (API), `8081` (HLS), `3001` (frontend), `5672` e `15672` (RabbitMQ)
+- Docker e Docker Compose
+- Portas livres: `1935`, `8080`, `8081`, `3001`, `5672`, `15672`
 
-### 1. Clonar e configurar variáveis
+### 1. Configurar ambiente
 
 ```bash
-git clone <repo>
-cd tcc/app
+cd app
 cp .env.example .env
 ```
 
-O `.env` já vem com valores padrão funcionais para desenvolvimento local. As variáveis relevantes:
-
-```env
-# Transcodificador ativo: ffmpeg | gstreamer
-TRANSCODER=ffmpeg
-
-# Portas expostas
-BACKEND_PORT=8080
-RTMP_PORT=1935
-HLS_PORT=8081
-FRONTEND_PORT=3001
-```
-
-### 2. Subir os serviços
+### 2. Subir serviços
 
 ```bash
 docker compose up -d --build
-```
-
-Aguardar todos os containers ficarem healthy. Para verificar:
-
-```bash
 docker compose ps
 ```
 
-### 3. Verificar se o backend está pronto
+### 3. Validar backend
 
 ```bash
 curl http://localhost:8080/actuator/health
-# {"status":"UP"}
 ```
 
-### 4. Acessar o frontend
+### 4. Abrir frontend
 
-Abrir `http://localhost:3001` no browser.
+`http://localhost:3001`
 
-### Trocar o transcodificador
+## Trocar transcodificador
 
-Editar `.env`:
+No `.env`:
+
 ```env
-TRANSCODER=gstreamer  # ou ffmpeg
+TRANSCODER=ffmpeg
+# ou
+TRANSCODER=gstreamer
 ```
 
-Recriar o container RTMP:
+Recriar o serviço RTMP:
+
 ```bash
 docker compose up -d --force-recreate rtmp-server
 ```
 
----
+Observação importante:
+- `ffmpeg` gera 4 variantes (`1080p`, `720p`, `480p`, `360p`).
+- `gstreamer` está estabilizado com 2 variantes (`1080p`, `480p`) no `master.m3u8` atual.
 
-## Configuração do OBS Studio
+## Configuração do OBS
 
-1. No OBS, abrir **Configurações → Transmissão**
-2. Serviço: **Personalizado**
-3. Servidor: `rtmp://localhost:1935/live`
-4. Chave de transmissão: copiar do painel do streamer em `http://localhost:3001`
+1. Serviço: `Personalizado`
+2. Servidor: `rtmp://localhost:1935/live`
+3. Stream key: gerada ao criar a stream no frontend
 
-> A stream key é gerada pelo sistema ao criar uma transmissão. Sem uma key válida o Nginx rejeita a conexão.
+Parâmetros recomendados:
+- Encoder: `x264`
+- Bitrate: `4000-6000 kbps`
+- Keyframe interval: `2s`
 
-**Configurações de vídeo recomendadas (OBS → Saída → Codificador):**
-- Encoder: x264
-- Taxa de bits: 4000–6000 kbps
-- Keyframe interval: 2 segundos
-- Perfil: main ou high
+## Endpoints úteis
 
-**Fluxo completo:**
-1. Criar transmissão no frontend → receber stream key
-2. Configurar OBS com a key
-3. Clicar "Iniciar Transmissão" no OBS
-4. O painel muda para LIVE em ~8 segundos (tempo de estabilização do HLS)
-5. Compartilhar o link de espectador
+- Root API: `GET /`
+- Swagger: `http://localhost:8080/swagger-ui.html`
+- Actuator health: `GET /actuator/health`
+- Streams: `POST /api/streams`, `GET /api/streams/live`, `GET /api/streams/{id}`
+- SSE: `GET /api/sse/stream/{streamId}/subscribe`
 
----
+## Limitações conhecidas
 
-## Principais Desafios
-
-### Latência de inicialização do HLS
-O FFmpeg precisa receber o primeiro keyframe do OBS antes de abrir a conexão RTMP interna. Isso causava um loop de falha onde cada tentativa levava ~23 segundos (timeout + respawn pelo nginx-rtmp). Solução: o script de transcodificação implementa retry interno com até 10 tentativas e espera de 3 segundos entre elas, eliminando a dependência do respawn externo.
-
-### Reconexão do streamer com stream em status ENDED
-Ao reconectar o OBS após uma queda, o callback `on_publish` chegava com a stream em status `ENDED`, e o backend rejeitava a transmissão. Solução: a entidade `Stream.start()` aceita qualquer status (não apenas `WAITING`), permitindo reconexão sem necessidade de reiniciar manualmente a stream pelo frontend.
-
-### Connection leak no HikariCP com SSE
-Com `spring.jpa.open-in-view=true` (padrão do Spring), cada conexão SSE mantinha uma conexão de banco aberta pelo tempo total da sessão (até 30 minutos por viewer). Solução: desabilitado com `spring.jpa.open-in-view: false`.
-
-### Double-decrement de viewers
-O callback `onDisconnect` do SSE e o endpoint REST `/leave` podiam ser chamados simultaneamente ao fechar a aba, decrementando o contador duas vezes. Mitigado com flag de idempotência por `viewerId` no `SseEmitterManager`.
-
-### Segurança no exec do nginx-rtmp
-A diretiva `exec /usr/local/bin/transcode.sh $name` passa a stream key sem aspas. Com IDs em UUID (apenas hex e hífens) o risco é baixo, mas a validação no script (`^[a-zA-Z0-9_-]+$`) bloqueia qualquer chave fora desse padrão antes de chegar ao FFmpeg.
+- O compose principal não possui serviço SRS ativo.
+- Monitoramento com Prometheus/Grafana não está orquestrado no compose atual.
