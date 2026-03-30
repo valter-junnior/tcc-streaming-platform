@@ -80,12 +80,14 @@ services:
       rabbitmq:
         condition: service_healthy
 
-  # RTMP Server (Nginx-RTMP - default)
-  rtmp-server:
+  # RTMP Server (Nginx-RTMP)
+  rtmp-server-nginx:
     build:
       context: ./backend/rtmp/nginx
       dockerfile: Dockerfile
-    container_name: streaming-rtmp-server
+    container_name: streaming-rtmp-server-nginx
+    profiles:
+      - nginx
     networks:
       - streaming-network
     volumes:
@@ -97,6 +99,35 @@ services:
       RTMP_PORT: ${RTMP_PORT}
       RTMP_CHUNK_SIZE: ${RTMP_CHUNK_SIZE}
       HLS_PATH: ${HLS_PATH}
+      BACKEND_HOST: streaming-platform
+      BACKEND_PORT: 8080
+      HLS_HTTP_PORT: ${HLS_HTTP_PORT}
+      HLS_RETENTION_HOURS: ${HLS_RETENTION_HOURS}
+      TRANSCODER: ${TRANSCODER:-ffmpeg}
+    depends_on:
+      - streaming-platform
+    restart: unless-stopped
+
+  # RTMP Server (SRS)
+  rtmp-server-srs:
+    build:
+      context: ./backend/rtmp/srs
+      dockerfile: Dockerfile
+    container_name: streaming-rtmp-server-srs
+    profiles:
+      - srs
+    networks:
+      - streaming-network
+    volumes:
+      - hls-data:/tmp/hls
+    ports:
+      - "${RTMP_PORT}:${RTMP_PORT}"    # RTMP
+      - "${HLS_PORT}:${HLS_HTTP_PORT}" # HLS HTTP Server
+    environment:
+      RTMP_PORT: ${RTMP_PORT}
+      HLS_PATH: ${HLS_PATH}
+      BACKEND_HOST: streaming-platform
+      BACKEND_PORT: 8080
       HLS_HTTP_PORT: ${HLS_HTTP_PORT}
       HLS_RETENTION_HOURS: ${HLS_RETENTION_HOURS}
       TRANSCODER: ${TRANSCODER:-ffmpeg}

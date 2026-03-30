@@ -6,7 +6,7 @@ No estado atual do código, o ambiente principal em `app/docker-compose.yml` sob
 - PostgreSQL
 - RabbitMQ
 - Backend Spring Boot (`streaming-platform`)
-- RTMP Server (`Nginx + nginx-rtmp-module`)
+- RTMP Server selecionável por profile (`Nginx` ou `SRS`)
 - Frontend React
 
 O streamer transmite via OBS, o backend valida a stream key por callback HTTP, o transcodificador ativo gera HLS, e o espectador assiste no navegador com HLS.js + Plyr.
@@ -16,9 +16,7 @@ O streamer transmite via OBS, o backend valida a stream key por callback HTTP, o
 | | FFmpeg | GStreamer |
 |---|---|---|
 | **Nginx-RTMP** | Ativo no compose atual | Ativo no compose atual |
-| **SRS** | Alternativa de laboratório | Alternativa de laboratório |
-
-`Nao confirmado`: integração completa do SRS no fluxo principal de execução via compose atual.
+| **SRS** | Ativo no compose atual | Ativo no compose atual |
 
 ## Tecnologias
 
@@ -51,9 +49,13 @@ cp .env.example .env
 ### 2. Subir serviços
 
 ```bash
-docker compose up -d --build
+docker compose --profile "${RTMP_SERVER:-nginx}" up -d --build
 docker compose ps
 ```
+
+`RTMP_SERVER` define qual servidor RTMP será iniciado:
+- `nginx`: sobe `rtmp-server-nginx`
+- `srs`: sobe `rtmp-server-srs`
 
 ### 3. Validar backend
 
@@ -78,12 +80,37 @@ TRANSCODER=gstreamer
 Recriar o serviço RTMP:
 
 ```bash
-docker compose up -d --force-recreate rtmp-server
+docker compose --profile "${RTMP_SERVER:-nginx}" up -d --build --force-recreate
 ```
 
 Observação importante:
 - `ffmpeg` gera 4 variantes (`1080p`, `720p`, `480p`, `360p`).
 - `gstreamer` está estabilizado com 2 variantes (`1080p`, `480p`) no `master.m3u8` atual.
+
+## Cenários mínimos (RTMP + Transcoder)
+
+Todos os cenários usam o mesmo comando base:
+
+```bash
+RTMP_SERVER=<nginx|srs> TRANSCODER=<ffmpeg|gstreamer> \
+docker compose --profile "$RTMP_SERVER" up -d --build --force-recreate
+```
+
+Exemplos:
+
+```bash
+# 1) nginx + ffmpeg
+RTMP_SERVER=nginx TRANSCODER=ffmpeg docker compose --profile nginx up -d --build --force-recreate
+
+# 2) nginx + gstreamer
+RTMP_SERVER=nginx TRANSCODER=gstreamer docker compose --profile nginx up -d --build --force-recreate
+
+# 3) srs + ffmpeg
+RTMP_SERVER=srs TRANSCODER=ffmpeg docker compose --profile srs up -d --build --force-recreate
+
+# 4) srs + gstreamer
+RTMP_SERVER=srs TRANSCODER=gstreamer docker compose --profile srs up -d --build --force-recreate
+```
 
 ## Configuração do OBS
 
