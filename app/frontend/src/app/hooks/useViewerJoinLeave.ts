@@ -64,8 +64,7 @@ export function useViewerJoinLeave(
     // Garantir leave ao fechar aba/navegador
     const handleBeforeUnload = () => {
       if (hasJoined.current && countAsViewer) {
-          const url = `${API_BASE_URL}/api/streams/${streamId}/leave`;
-        );
+        const url = `${API_BASE_URL}/api/streams/${streamId}/leave`;
 
         // Usar fetch com keepalive (executa mesmo após página fechar)
         fetch(`${url}?viewerId=${viewerId}&countAsViewer=${countAsViewer}`, {
