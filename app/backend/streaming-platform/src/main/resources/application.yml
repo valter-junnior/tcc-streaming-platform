@@ -56,6 +56,9 @@ management:
       export:
         enabled: true
 
+rtmp:
+  server: ${RTMP_SERVER:nginx}
+
 transcoder:
   type: ${TRANSCODER:ffmpeg}
 
