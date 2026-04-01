@@ -17,11 +17,11 @@ Objetivo principal:
 Resultado esperado da implementacao:
 - `nginx + ffmpeg` e `nginx + gstreamer` continuam funcionando.
 - `srs + ffmpeg` e `srs + gstreamer` passam a funcionar.
-- A troca de servidor RTMP usa `profiles` do Docker Compose e variavel `RTMP_SERVER` documentada para padronizar os comandos de inicializacao.
+- A troca de servidor RTMP usa `profiles` do Docker Compose e variavel `COMPOSE_PROFILES` documentada para padronizar os comandos de inicializacao.
 
 Requisitos tecnicos:
 1. Revisar e ajustar `docker-compose` e/ou arquivos de override para habilitar alternancia de servidor RTMP por `profiles` (`nginx` e `srs`).
-2. Padronizar e documentar o uso de `RTMP_SERVER` como variavel de referencia para os comandos de subida.
+2. Padronizar e documentar o uso de `COMPOSE_PROFILES` como variavel de referencia para os comandos de subida.
 3. Garantir que o container SRS tenha scripts e entrypoint equivalentes ao modelo do nginx para selecionar o transcodificador via `TRANSCODER`.
 4. Criar/ajustar scripts necessarios para SRS + GStreamer sem quebrar SRS + FFmpeg.
 5. Manter nomes de variaveis simples e documentados, evitando duplicacao de logica.

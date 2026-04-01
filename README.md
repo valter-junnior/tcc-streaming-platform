@@ -49,11 +49,11 @@ cp .env.example .env
 ### 2. Subir serviços
 
 ```bash
-docker compose --profile "${RTMP_SERVER:-nginx}" up -d --build
+docker compose --profile "${COMPOSE_PROFILES:-nginx}" up -d --build
 docker compose ps
 ```
 
-`RTMP_SERVER` define qual servidor RTMP será iniciado:
+`COMPOSE_PROFILES` define qual servidor RTMP será iniciado:
 - `nginx`: sobe `rtmp-server-nginx`
 - `srs`: sobe `rtmp-server-srs`
 
@@ -80,7 +80,7 @@ TRANSCODER=gstreamer
 Recriar o serviço RTMP:
 
 ```bash
-docker compose --profile "${RTMP_SERVER:-nginx}" up -d --build --force-recreate
+docker compose --profile "${COMPOSE_PROFILES:-nginx}" up -d --build --force-recreate
 ```
 
 Observação importante:
@@ -92,24 +92,24 @@ Observação importante:
 Todos os cenários usam o mesmo comando base:
 
 ```bash
-RTMP_SERVER=<nginx|srs> TRANSCODER=<ffmpeg|gstreamer> \
-docker compose --profile "$RTMP_SERVER" up -d --build --force-recreate
+COMPOSE_PROFILES=<nginx|srs> TRANSCODER=<ffmpeg|gstreamer> \
+docker compose --profile "$COMPOSE_PROFILES" up -d --build --force-recreate
 ```
 
 Exemplos:
 
 ```bash
 # 1) nginx + ffmpeg
-RTMP_SERVER=nginx TRANSCODER=ffmpeg docker compose --profile nginx up -d --build --force-recreate
+COMPOSE_PROFILES=nginx TRANSCODER=ffmpeg docker compose --profile nginx up -d --build --force-recreate
 
 # 2) nginx + gstreamer
-RTMP_SERVER=nginx TRANSCODER=gstreamer docker compose --profile nginx up -d --build --force-recreate
+COMPOSE_PROFILES=nginx TRANSCODER=gstreamer docker compose --profile nginx up -d --build --force-recreate
 
 # 3) srs + ffmpeg
-RTMP_SERVER=srs TRANSCODER=ffmpeg docker compose --profile srs up -d --build --force-recreate
+COMPOSE_PROFILES=srs TRANSCODER=ffmpeg docker compose --profile srs up -d --build --force-recreate
 
 # 4) srs + gstreamer
-RTMP_SERVER=srs TRANSCODER=gstreamer docker compose --profile srs up -d --build --force-recreate
+COMPOSE_PROFILES=srs TRANSCODER=gstreamer docker compose --profile srs up -d --build --force-recreate
 ```
 
 ## Configuração do OBS

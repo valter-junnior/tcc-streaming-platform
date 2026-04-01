@@ -57,7 +57,7 @@ management:
         enabled: true
 
 rtmp:
-  server: ${RTMP_SERVER:nginx}
+  server: ${COMPOSE_PROFILES:nginx}
 
 transcoder:
   type: ${TRANSCODER:ffmpeg}
