@@ -1,6 +1,7 @@
 import { useEffect, useRef } from "react";
 import { viewerService, type ViewerResponse } from "../services/viewerService";
 import { logger } from "../../shared/lib/logger";
+import { API_BASE_URL } from "../config/env";
 
 /**
  * Hook para gerenciar entrada/saída de viewers em uma stream
@@ -63,15 +64,7 @@ export function useViewerJoinLeave(
     // Garantir leave ao fechar aba/navegador
     const handleBeforeUnload = () => {
       if (hasJoined.current && countAsViewer) {
-        const url = `http://localhost:8080/api/streams/${streamId}/leave`;
-
-        logger.warn(
-          "[useViewerJoinLeave] BEFOREUNLOAD TRIGGERED - Sending leave",
-          {
-            streamId,
-            viewerId,
-            countAsViewer,
-          },
+          const url = `${API_BASE_URL}/api/streams/${streamId}/leave`;
         );
 
         // Usar fetch com keepalive (executa mesmo após página fechar)

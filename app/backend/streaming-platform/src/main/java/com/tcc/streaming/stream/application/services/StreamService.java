@@ -1,4 +1,21 @@
 package com.tcc.streaming.stream.application.services;
+
+import com.tcc.streaming.stream.core.dtos.stream.CreateStreamDto;
+import com.tcc.streaming.stream.core.dtos.stream.StreamDto;
+import com.tcc.streaming.stream.core.dtos.stream.StreamStatusDto;
+import com.tcc.streaming.stream.core.dtos.stream.UpdateStreamDto;
+import com.tcc.streaming.stream.core.entities.Stream;
+import com.tcc.streaming.stream.core.entities.StreamStatus;
+import com.tcc.streaming.stream.core.exceptions.StreamNotFoundException;
+import com.tcc.streaming.stream.core.exceptions.UnauthorizedException;
+import com.tcc.streaming.stream.core.repositories.StreamRepository;
+import com.tcc.streaming.stream.core.usecases.CreateStreamUseCase;
+import com.tcc.streaming.stream.core.usecases.DeleteStreamUseCase;
+import com.tcc.streaming.stream.core.usecases.GetStreamStatusUseCase;
+import com.tcc.streaming.stream.core.usecases.GetStreamUseCase;
+import com.tcc.streaming.stream.core.usecases.ListLiveStreamsUseCase;
+import com.tcc.streaming.stream.core.usecases.ListUserStreamsUseCase;
+import com.tcc.streaming.stream.core.usecases.UpdateStreamUseCase;
 import com.tcc.streaming.stream.core.usecases.ValidateStreamKeyUseCase;
 import com.tcc.streaming.stream.core.events.StreamCreatedEvent;
 import com.tcc.streaming.stream.core.events.StreamEndedEvent;
@@ -338,6 +355,38 @@ public class StreamService implements CreateStreamUseCase, GetStreamUseCase, Get
             new StreamStartedEvent(stream.getId(), stream.getStreamKey())
         );
         
+        return stream.getId();
+    }
+
+    /**
+     * Atomic operation to validate stream key and end stream if found
+     * @param streamKey Stream key to find and end
+     * @return Stream ID if found, null otherwise
+     */
+    @Transactional
+    public UUID validateAndEndStream(String streamKey) {
+        log.info("[StreamService] Atomic validate and end stream - Key: {}", streamKey);
+
+        Stream stream = streamRepository.findByStreamKey(streamKey).orElse(null);
+
+        if (stream == null) {
+            log.warn("[StreamService] Stream key not found for end - Key: {}", streamKey);
+            return null;
+        }
+
+        log.info("[StreamService] Ending stream - ID: {}, Key: {}, Status: {}",
+                 stream.getId(), streamKey, stream.getStatus());
+
+        stream.end();
+        streamRepository.save(stream);
+
+        log.info("[StreamService] Stream ended - ID: {}, Peak viewers: {}",
+                 stream.getId(), stream.getViewersPeak());
+
+        applicationEventPublisher.publishEvent(
+            new StreamEndedEvent(stream.getId(), stream.getStreamKey(), stream.getViewersPeak())
+        );
+
         return stream.getId();
     }
 }

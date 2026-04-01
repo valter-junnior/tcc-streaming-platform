@@ -15,7 +15,8 @@ export TRANSCODER="${TRANSCODER:-ffmpeg}"
 export TRANSCODER_MAX_RETRIES="${TRANSCODER_MAX_RETRIES:-10}"
 export TRANSCODER_RETRY_WAIT="${TRANSCODER_RETRY_WAIT:-3}"
 export TRANSCODER_STARTUP_TIMEOUT="${TRANSCODER_STARTUP_TIMEOUT:-20}"
-export TRANSCODER_STREAM_STABILIZE_SECONDS="${TRANSCODER_STREAM_STABILIZE_SECONDS:-8}"
+export TRANSCODER_STREAM_STABILIZE_SECONDS="${TRANSCODER_STREAM_STABILIZE_SECONDS:-3}"
+export TRANSCODER_STREAM_END_DURATION_SECONDS="${TRANSCODER_STREAM_END_DURATION_SECONDS:-30}"
 
 echo "Starting RTMP server (SRS): RTMP=$RTMP_PORT, HLS=$HLS_HTTP_PORT, TRANSCODER=$TRANSCODER"
 
@@ -83,6 +84,11 @@ wait_for_backend
 
 # Start cron service
 service cron start
+
+# Start Python HTTP server to serve HLS files (SRS http_server intercepts .m3u8 files).
+# Serve from HLS_ROOT_PATH (/tmp) so files at /tmp/hls/{key}/ are accessible at /hls/{key}/
+python3 -m http.server "${HLS_HTTP_PORT}" --directory "${HLS_ROOT_PATH}" &
+echo "HLS HTTP server started on port ${HLS_HTTP_PORT}, serving from ${HLS_ROOT_PATH}"
 
 # Start SRS in foreground
 exec /usr/local/srs/objs/srs -c /usr/local/srs/conf/srs.conf

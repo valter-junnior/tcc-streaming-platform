@@ -20,7 +20,8 @@ SEGMENT_DURATION="${HLS_SEGMENT_DURATION:-6}"
 PLAYLIST_LENGTH="${HLS_PLAYLIST_LENGTH:-10}"
 MAX_RETRIES="${TRANSCODER_MAX_RETRIES:-10}"
 RETRY_WAIT="${TRANSCODER_RETRY_WAIT:-3}"
-STREAM_STABILIZE_SECONDS="${TRANSCODER_STREAM_STABILIZE_SECONDS:-8}"
+STREAM_STABILIZE_SECONDS="${TRANSCODER_STREAM_STABILIZE_SECONDS:-3}"
+STREAM_END_DURATION_SECONDS="${TRANSCODER_STREAM_END_DURATION_SECONDS:-30}"
 RTMP_STAT_URL="http://127.0.0.1:${HLS_HTTP_PORT:-8081}/stat"
 BACKEND_LIVE_URL="${STREAM_BACKEND_LIVE_URL:-http://streaming-platform:8080/api/streams/live}"
 INPUT_PROBE_TIMEOUT_SECONDS="${TRANSCODER_INPUT_PROBE_TIMEOUT_SECONDS:-3}"
@@ -38,7 +39,10 @@ if ! [[ "$RETRY_WAIT" =~ ^[0-9]+$ ]] || [ "$RETRY_WAIT" -lt 0 ]; then
     RETRY_WAIT=3
 fi
 if ! [[ "$STREAM_STABILIZE_SECONDS" =~ ^[0-9]+$ ]] || [ "$STREAM_STABILIZE_SECONDS" -lt 0 ]; then
-    STREAM_STABILIZE_SECONDS=8
+    STREAM_STABILIZE_SECONDS=3
+fi
+if ! [[ "$STREAM_END_DURATION_SECONDS" =~ ^[0-9]+$ ]] || [ "$STREAM_END_DURATION_SECONDS" -le 0 ]; then
+    STREAM_END_DURATION_SECONDS=30
 fi
 if ! [[ "$INPUT_PROBE_TIMEOUT_SECONDS" =~ ^[0-9]+$ ]] || [ "$INPUT_PROBE_TIMEOUT_SECONDS" -le 0 ]; then
     INPUT_PROBE_TIMEOUT_SECONDS=3
@@ -143,7 +147,7 @@ while [ $ATTEMPT -lt $MAX_RETRIES ]; do
     ffmpeg \
         -loglevel warning \
         -rtmp_live live \
-        -rw_timeout 10000000 \
+        -rw_timeout 15000000 \
         -i "${INPUT_URL}" \
         -filter_complex \
         "[v:0]split=4[v0][v1][v2][v3]; \
@@ -179,7 +183,7 @@ while [ $ATTEMPT -lt $MAX_RETRIES ]; do
 
     # If FFmpeg ran for a while before exiting, this is usually a normal stream end
     # (or publisher disconnect), not a startup failure. Avoid retry loops in this case.
-    if [ "$ATTEMPT_DURATION" -ge "$STREAM_STABILIZE_SECONDS" ]; then
+    if [ "$ATTEMPT_DURATION" -ge "$STREAM_END_DURATION_SECONDS" ]; then
         echo "[$(date)] FFmpeg ran for ${ATTEMPT_DURATION}s before exit; treating as stream ended and stopping retries." >> "$LOG_FILE"
         break
     fi

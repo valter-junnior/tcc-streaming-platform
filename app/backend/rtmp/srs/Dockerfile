@@ -15,6 +15,7 @@ RUN apt-get update && apt-get install -y \
 	cron \
 	gettext-base \
 	wget \
+	python3 \
 	&& rm -rf /var/lib/apt/lists/*
 
 COPY srs.conf /usr/local/srs/conf/srs.conf.template
@@ -40,6 +41,6 @@ RUN mkdir -p /tmp/hls
 EXPOSE 1935 8080 8081
 
 HEALTHCHECK --interval=30s --timeout=5s --start-period=15s --retries=3 \
-	CMD wget -q -O /dev/null http://localhost:${HLS_HTTP_PORT:-8081}/hls/ || exit 1
+	CMD wget -q -O /dev/null http://localhost:${HLS_HTTP_PORT:-8081}/ || exit 1
 
 ENTRYPOINT ["/usr/local/bin/docker-entrypoint.sh"]
