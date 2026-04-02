@@ -78,6 +78,12 @@ sse:
   # Emitter TTL in hours (2 hours)
   emitter-ttl-hours: 2
 
+logging:
+  level:
+    # AsyncRequestTimeoutException em SSE é comportamento normal — o handler em GlobalExceptionHandler
+    # já trata silenciosamente. Suprimir o WARN do ExceptionHandlerExceptionResolver.
+    org.springframework.web.servlet.mvc.method.annotation.ExceptionHandlerExceptionResolver: ERROR
+
 springdoc:
   api-docs:
     path: /api-docs

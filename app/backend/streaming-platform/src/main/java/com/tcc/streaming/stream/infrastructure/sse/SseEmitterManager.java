@@ -81,8 +81,15 @@ public class SseEmitterManager {
             synchronized (callbackExecuted) {
                 if (!callbackExecuted[0]) {
                     callbackExecuted[0] = true;
-                    removeEmitterInternal(viewerId);
-                    onDisconnect.run();
+                    ViewerEmitter current = viewerEmitters.get(viewerId);
+                    if (current == viewerEmitter) {
+                        // Este ainda é o emitter ativo — remover e notificar
+                        removeEmitterInternal(viewerId);
+                        onDisconnect.run();
+                    } else {
+                        // Emitter foi substituído por reconexão — ignorar para não decrementar duas vezes
+                        log.debug("[SSE] Stale emitter callback suppressed (viewer reconnected) - ViewerId: {}", viewerId);
+                    }
                 }
             }
         };
