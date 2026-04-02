@@ -1,1 +1,0 @@
-faça novamente o review code no backend, rtmp e frontend e apenas elimine comentários inuteis e redundantes
