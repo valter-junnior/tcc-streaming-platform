@@ -343,7 +343,10 @@ public class StreamService implements CreateStreamUseCase, GetStreamUseCase, Get
         
         log.info("[StreamService] Starting stream - ID: {}, Key: {}, Status: {}", 
                  stream.getId(), streamKey, stream.getStatus());
-        
+
+        if (stream.getStatus() == StreamStatus.ENDED) {
+            stream.restart();
+        }
         stream.start();
         streamRepository.save(stream);
         
@@ -388,6 +391,34 @@ public class StreamService implements CreateStreamUseCase, GetStreamUseCase, Get
         );
 
         return stream.getId();
+    }
+
+    /**
+     * Force-end all streams currently LIVE (para uso em shutdown/swap de servidor).
+     * @return Quantidade de streams encerradas forçosamente
+     */
+    @Transactional
+    public int forceEndAllLiveStreams() {
+        List<Stream> liveStreams = streamRepository.findByStatus(StreamStatus.LIVE);
+        log.info("[StreamService] Force-ending {} LIVE stream(s)", liveStreams.size());
+
+        int count = 0;
+        for (Stream stream : liveStreams) {
+            try {
+                stream.forceEnd();
+                streamRepository.save(stream);
+                applicationEventPublisher.publishEvent(
+                    new StreamEndedEvent(stream.getId(), stream.getStreamKey(), stream.getViewersPeak())
+                );
+                log.info("[StreamService] Force-ended stream - ID: {}, Key: {}", stream.getId(), stream.getStreamKey());
+                count++;
+            } catch (Exception e) {
+                log.error("[StreamService] Error force-ending stream {}: {}", stream.getId(), e.getMessage(), e);
+            }
+        }
+
+        log.info("[StreamService] Force-end completed - {} stream(s) ended", count);
+        return count;
     }
 }
 

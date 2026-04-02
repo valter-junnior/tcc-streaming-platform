@@ -250,4 +250,17 @@ public class StreamController {
         log.info("[Stream] Stream {} deleted successfully", id);
         return ResponseEntity.noContent().build();
     }
+
+    @PostMapping("/cleanup/stale")
+    @Operation(
+        summary = "Encerrar streams LIVE presas",
+        description = "Força o encerramento de todas as streams com status LIVE. Útil após reinicialização do servidor RTMP."
+    )
+    @ApiResponse(responseCode = "200", description = "Streams encerradas com sucesso")
+    public ResponseEntity<java.util.Map<String, Object>> cleanupStaleLiveStreams() {
+        log.info("[Stream] Force-ending all LIVE streams (stale cleanup)");
+        int count = streamService.forceEndAllLiveStreams();
+        log.info("[Stream] Stale cleanup done - {} stream(s) ended", count);
+        return ResponseEntity.ok(java.util.Map.of("endedStreams", count));
+    }
 }

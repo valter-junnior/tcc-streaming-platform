@@ -1,1 +1,1 @@
-Estou rodando uma live com a chave b7fceb9d9ae64128 com as config srs e ffmpeg e nada da live iniciar ainda ja faz 1minuto
+verifique os logs da live de chave 81412d9818ff4c9a no rtmp e verifque o erro.
