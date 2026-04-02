@@ -53,68 +53,13 @@
 
 ## 2. Diagrama de Containers
 
-```mermaid
-flowchart TB
-    OBS["OBS Studio\n(Streamer)"]
-    Browser["Navegador\n(Espectador)"]
-
-    subgraph Docker["Docker Compose"]
-        Frontend["frontend\nReact + Vite\n:3001"]
-        Backend["streaming-platform\nSpring Boot\n:8080"]
-        RTMP["rtmp-server\nNginx-RTMP ou SRS\n:1935 / :8081"]
-        Rabbit["rabbitmq\n:5672 / :15672"]
-        DB["postgres\n:5432"]
-    end
-
-    OBS -->|RTMP :1935| RTMP
-    RTMP -->|callback HTTP| Backend
-    RTMP -->|HLS :8081| Browser
-    Browser -->|REST + SSE :8080| Backend
-    Browser -->|SPA :3001| Frontend
-    Backend -->|AMQP| Rabbit
-    Rabbit -->|consume| Backend
-    Backend -->|SQL| DB
-```
+![Diagrama de Containers](diagrama-containers.png)
 
 ---
 
 ## 3. Diagrama de Arquitetura (com Alternativas)
 
-```mermaid
-flowchart TB
-    OBS["OBS Studio / Streamer"]
-    Browser["Browser / Viewer\nReact + HLS.js + Plyr"]
-
-    subgraph Compose["Compose principal (ativo)"]
-        RTMP["rtmp-server\nNginx + nginx-rtmp-module"]
-        Backend["streaming-platform\nSpring Boot"]
-        Rabbit["rabbitmq"]
-        DB["postgres"]
-        Front["frontend\nVite dev server"]
-    end
-
-    subgraph Transcoding["Transcodificação selecionada por TRANSCODER"]
-        FFmpeg["FFmpeg\nvariantes v0,v1,v2,v3"]
-        GST["GStreamer\nvariantes estáveis v0,v2"]
-    end
-
-    SRSAlt["SRS (alternativa)\nIntegrável ao compose via profile"]
-
-    OBS -->|RTMP :1935| RTMP
-    RTMP -->|exec transcode-ffmpeg.sh| FFmpeg
-    RTMP -->|exec transcode-gstreamer.sh| GST
-    FFmpeg -->|HLS /hls/streamKey/master.m3u8| Browser
-    GST -->|HLS /hls/streamKey/master.m3u8| Browser
-
-    RTMP -.->|callbacks /publish e /publish_done| Backend
-    Browser -->|REST /api + SSE /api/sse| Backend
-    Backend --> Rabbit
-    Rabbit --> Backend
-    Backend --> DB
-    Front -->|carrega SPA| Browser
-
-    SRSAlt -. opção de benchmark .- OBS
-```
+![Diagrama de Arquitetura](diagrama-arquitetura.png)
 
 As quatro combinações possíveis são:
 
@@ -179,16 +124,7 @@ O cron executa `cleanup-hls.sh` a cada hora. Arquivos `.ts`, `.m3u8` e `.log` ma
 
 ## 5. Matriz de Comparação
 
-```mermaid
-quadrantChart
-    title Matriz RTMP x Transcodificador
-    x-axis FFmpeg --> GStreamer
-    y-axis Nginx --> SRS
-    quadrant-1 SRS + GStreamer
-    quadrant-2 SRS + FFmpeg
-    quadrant-3 Nginx + FFmpeg - referência
-    quadrant-4 Nginx + GStreamer
-```
+![Matriz de Comparação](diagrama-comparacao.png)
 
 As quatro combinações são o objeto central do estudo comparativo. As métricas coletadas permitirão posicionar cada combinação quanto a latência, uso de recursos e qualidade de entrega.
 

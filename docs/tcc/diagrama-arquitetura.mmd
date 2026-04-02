@@ -1,0 +1,33 @@
+flowchart TB
+    OBS["OBS Studio / Streamer"]
+    Browser["Browser / Viewer\nReact + HLS.js + Plyr"]
+
+    subgraph Compose["Compose principal (ativo)"]
+        RTMP["rtmp-server\nNginx + nginx-rtmp-module"]
+        Backend["streaming-platform\nSpring Boot"]
+        Rabbit["rabbitmq"]
+        DB["postgres"]
+        Front["frontend\nVite dev server"]
+    end
+
+    subgraph Transcoding["Transcodificação selecionada por TRANSCODER"]
+        FFmpeg["FFmpeg\nvariantes v0,v1,v2,v3"]
+        GST["GStreamer\nvariantes estáveis v0,v2"]
+    end
+
+    SRSAlt["SRS (alternativa)\nIntegrável ao compose via profile"]
+
+    OBS -->|RTMP :1935| RTMP
+    RTMP -->|exec transcode-ffmpeg.sh| FFmpeg
+    RTMP -->|exec transcode-gstreamer.sh| GST
+    FFmpeg -->|HLS /hls/streamKey/master.m3u8| Browser
+    GST -->|HLS /hls/streamKey/master.m3u8| Browser
+
+    RTMP -.->|callbacks /publish e /publish_done| Backend
+    Browser -->|REST /api + SSE /api/sse| Backend
+    Backend --> Rabbit
+    Rabbit --> Backend
+    Backend --> DB
+    Front -->|carrega SPA| Browser
+
+    SRSAlt -. opção de benchmark .- OBS
