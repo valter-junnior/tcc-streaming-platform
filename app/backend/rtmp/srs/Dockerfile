@@ -24,12 +24,14 @@ COPY scripts/transcode-ffmpeg.sh /usr/local/bin/transcode-ffmpeg.sh
 COPY scripts/transcode-gstreamer.sh /usr/local/bin/transcode-gstreamer.sh
 COPY scripts/cleanup-hls.sh /usr/local/bin/cleanup-hls.sh
 COPY scripts/docker-entrypoint.sh /usr/local/bin/docker-entrypoint.sh
+COPY scripts/hls-server.py /usr/local/bin/hls-server.py
 
 RUN chmod +x \
 	/usr/local/bin/transcode-ffmpeg.sh \
 	/usr/local/bin/transcode-gstreamer.sh \
 	/usr/local/bin/cleanup-hls.sh \
-	/usr/local/bin/docker-entrypoint.sh
+	/usr/local/bin/docker-entrypoint.sh \
+	/usr/local/bin/hls-server.py
 
 RUN echo "0 * * * * /usr/local/bin/cleanup-hls.sh >> /var/log/srs-hls-cleanup.log 2>&1" > /etc/cron.d/hls-cleanup && \
 	chmod 0644 /etc/cron.d/hls-cleanup && \

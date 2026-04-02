@@ -85,9 +85,11 @@ wait_for_backend
 # Start cron service
 service cron start
 
-# Start Python HTTP server to serve HLS files (SRS http_server intercepts .m3u8 files).
+# Start Python HTTP server with CORS headers to serve HLS files.
+# SRS built-in http_server crossdomain=on only serves crossdomain.xml (Flash policy),
+# it does NOT add Access-Control-Allow-Origin HTTP headers.
 # Serve from HLS_ROOT_PATH (/tmp) so files at /tmp/hls/{key}/ are accessible at /hls/{key}/
-python3 -m http.server "${HLS_HTTP_PORT}" --directory "${HLS_ROOT_PATH}" &
+python3 /usr/local/bin/hls-server.py "${HLS_HTTP_PORT}" "${HLS_ROOT_PATH}" &
 echo "HLS HTTP server started on port ${HLS_HTTP_PORT}, serving from ${HLS_ROOT_PATH}"
 
 # Start SRS in foreground
