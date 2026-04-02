@@ -55,7 +55,6 @@ if ! [[ "$INPUT_PROBE_TIMEOUT_SECONDS" =~ ^[0-9]+$ ]] || [ "$INPUT_PROBE_TIMEOUT
     INPUT_PROBE_TIMEOUT_SECONDS=3
 fi
 
-# Create output directory structure for stable GStreamer renditions.
 if ! mkdir -p "${OUTPUT_DIR}/v0" "${OUTPUT_DIR}/v1" "${OUTPUT_DIR}/v2" "${OUTPUT_DIR}/v3"; then
     echo "[ERROR] Failed to create output directories for stream: ${STREAM_KEY}" >&2
     exit 1
@@ -153,7 +152,6 @@ if [ "$AVAILABLE_SPACE" -lt "$REQUIRED_SPACE" ]; then
 fi
 echo "[$(date)] Disk space check passed. Available: ${AVAILABLE_SPACE}KB" >> "$LOG_FILE"
 
-# Pre-generate the master playlist.
 # Structure mirrors what FFmpeg generates so the frontend needs no changes.
 cat > "${OUTPUT_DIR}/master.m3u8" << 'MASTER_EOF'
 #EXTM3U

@@ -34,9 +34,7 @@ export function WatchPage() {
   const unsubscribeRef = useRef<(() => void) | null>(null);
   const hasConnectedRef = useRef(false);
 
-  // Automaticamente faz join/leave quando viewer entra/sai da página
   useViewerJoinLeave(streamId, viewerId, true, (response) => {
-    // Atualizar viewers imediatamente após join
     logger.info("[WatchPage] Updating viewers from join response", response);
     setStream((prev) =>
       prev
@@ -122,10 +120,8 @@ export function WatchPage() {
       }
     };
 
-    // Check immediately
     poll();
 
-    // Then check every 5 seconds
     hlsCheckIntervalRef.current = window.setInterval(poll, 5000);
   };
 

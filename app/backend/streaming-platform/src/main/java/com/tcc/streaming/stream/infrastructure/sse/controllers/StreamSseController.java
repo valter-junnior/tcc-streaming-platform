@@ -65,14 +65,15 @@ public class StreamSseController {
         log.info("[SSE] Broadcasting stream started - StreamId: {}", streamId);
         emitterManager.broadcastToStream(streamId, "stream_status", 
             new StreamStatusMessage("STREAM_STARTED", "LIVE"));
+        log.info("[SSE] Broadcast stream_started sent - StreamId: {}", streamId);
     }
 
     public void broadcastStreamEnded(UUID streamId) {
         log.info("[SSE] Broadcasting stream ended - StreamId: {}", streamId);
         emitterManager.broadcastToStream(streamId, "stream_status", 
             new StreamStatusMessage("STREAM_ENDED", "ENDED"));
+        log.info("[SSE] Broadcast stream_ended sent - StreamId: {}", streamId);
         
-        // Cleanup assincrono dos emitters após delay
         cleanupEmittersAfterDelay(streamId);
     }
 
@@ -99,7 +100,6 @@ public class StreamSseController {
             new ViewersUpdateMessage(currentViewers, viewersPeak));
     }
 
-    // DTOs para mensagens SSE
     public record StreamStatusMessage(String type, String status) {}
     public record ViewersUpdateMessage(int currentViewers, int viewersPeak) {}
 }

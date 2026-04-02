@@ -7,6 +7,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
+import jakarta.annotation.PreDestroy;
 import java.io.IOException;
 import java.time.LocalDateTime;
 import java.util.*;
@@ -131,9 +132,6 @@ public class SseEmitterManager {
         }
     }
 
-    /**
-     * Envia evento para todos os viewers de uma stream
-     */
     public void broadcastToStream(UUID streamId, String eventType, Object data) {
         Set<ViewerEmitter> emitters = streamEmitters.get(streamId);
         if (emitters == null || emitters.isEmpty()) {
@@ -169,7 +167,14 @@ public class SseEmitterManager {
         Set<ViewerEmitter> emitters = streamEmitters.remove(streamId);
         if (emitters != null) {
             emitters.forEach(ve -> {
+                // Chamar onDisconnect explicitamente antes de remover do mapa
+                // para garantir que o contador de viewers seja decrementado
                 viewerEmitters.remove(ve.viewerId());
+                try {
+                    ve.onDisconnect().run();
+                } catch (Exception e) {
+                    log.debug("[SSE] Error calling onDisconnect for viewer {}: {}", ve.viewerId(), e.getMessage());
+                }
                 try {
                     ve.emitter().complete();
                 } catch (Exception e) {
@@ -258,4 +263,10 @@ public class SseEmitterManager {
     }
 
     private record ViewerEmitter(UUID streamId, String viewerId, SseEmitter emitter, Runnable onDisconnect, LocalDateTime createdAt) {}
+
+    @PreDestroy
+    public void shutdown() {
+        log.info("[SSE] Shutting down keepalive scheduler");
+        keepaliveScheduler.shutdownNow();
+    }
 }

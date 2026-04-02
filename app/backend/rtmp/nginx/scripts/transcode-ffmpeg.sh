@@ -51,7 +51,6 @@ if ! [[ "$INPUT_PROBE_TIMEOUT_SECONDS" =~ ^[0-9]+$ ]] || [ "$INPUT_PROBE_TIMEOUT
     INPUT_PROBE_TIMEOUT_SECONDS=3
 fi
 
-# Create output directory
 if ! mkdir -p "${OUTPUT_DIR}/v0" "${OUTPUT_DIR}/v1" "${OUTPUT_DIR}/v2" "${OUTPUT_DIR}/v3"; then
     echo "[ERROR] Failed to create output directories for stream: ${STREAM_KEY}" >&2
     exit 1

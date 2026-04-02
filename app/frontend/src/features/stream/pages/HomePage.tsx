@@ -146,14 +146,30 @@ export function HomePage() {
             Sobre o Projeto
           </h3>
           <p className="text-slate-300 leading-relaxed mb-4">
-            Este é um <strong>Trabalho de Conclusão de Curso (TCC)</strong> que
-            desenvolve uma plataforma de streaming de vídeo ao vivo com foco em{" "}
-            <strong>análise comparativa de tecnologias</strong>.
+            O <strong>StreamLab</strong> é um{" "}
+            <strong>Trabalho de Conclusão de Curso (TCC)</strong> que implementa
+            uma plataforma completa de streaming de vídeo ao vivo para avaliar
+            comparativamente diferentes combinações de tecnologias de ingestão e
+            transcodificação.
+          </p>
+          <p className="text-slate-300 leading-relaxed mb-4">
+            O fluxo principal é: o streamer transmite via{" "}
+            <strong>OBS Studio</strong> usando o protocolo <strong>RTMP</strong>
+            , o servidor de ingestão (<strong>Nginx-RTMP</strong> ou{" "}
+            <strong>SRS</strong>) aciona o transcodificador (
+            <strong>FFmpeg</strong> ou <strong>GStreamer</strong>), que gera
+            segmentos <strong>HLS</strong> em quatro qualidades (1080p, 720p,
+            480p, 360p), e o espectador assiste no navegador via{" "}
+            <strong>HLS.js + Plyr</strong>.
           </p>
           <p className="text-slate-300 leading-relaxed">
-            O objetivo é comparar o desempenho de diferentes stacks tecnológicos
-            (RabbitMQ vs Redis Streams vs NATS, Nginx-RTMP vs SRS) através de
-            métricas quantitativas e qualitativas.
+            O backend em <strong>Java 21 / Spring Boot</strong> gerencia os
+            estados da stream, o contador de viewers em tempo real via{" "}
+            <strong>SSE</strong>, e os eventos de métricas através do{" "}
+            <strong>RabbitMQ</strong>. O objetivo do TCC é comparar as quatro
+            combinações (Nginx × SRS) × (FFmpeg × GStreamer) por meio de
+            métricas quantitativas de latência, uso de recursos e
+            confiabilidade.
           </p>
         </div>
       </div>

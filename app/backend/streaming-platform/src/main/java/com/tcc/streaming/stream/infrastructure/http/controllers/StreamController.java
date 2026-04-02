@@ -1,14 +1,15 @@
 package com.tcc.streaming.stream.infrastructure.http.controllers;
 
-import com.tcc.streaming.stream.application.services.StreamService;
 import com.tcc.streaming.stream.core.dtos.stream.CreateStreamDto;
 import com.tcc.streaming.stream.core.dtos.stream.UpdateStreamDto;
 import com.tcc.streaming.stream.core.usecases.CreateStreamUseCase;
 import com.tcc.streaming.stream.core.usecases.DeleteStreamUseCase;
+import com.tcc.streaming.stream.core.usecases.ForceEndAllLiveStreamsUseCase;
 import com.tcc.streaming.stream.core.usecases.GetStreamStatusUseCase;
 import com.tcc.streaming.stream.core.usecases.GetStreamUseCase;
 import com.tcc.streaming.stream.core.usecases.ListLiveStreamsUseCase;
 import com.tcc.streaming.stream.core.usecases.ListUserStreamsUseCase;
+import com.tcc.streaming.stream.core.usecases.RestartStreamUseCase;
 import com.tcc.streaming.stream.core.usecases.UpdateStreamUseCase;
 import com.tcc.streaming.stream.core.usecases.ValidateStreamKeyUseCase;
 import com.tcc.streaming.stream.infrastructure.http.presenters.StreamPresenter;
@@ -47,7 +48,8 @@ public class StreamController {
     private final ListLiveStreamsUseCase listLiveStreamsUseCase;
     private final ListUserStreamsUseCase listUserStreamsUseCase;
     private final UpdateStreamUseCase updateStreamUseCase;
-    private final StreamService streamService;
+    private final RestartStreamUseCase restartStreamUseCase;
+    private final ForceEndAllLiveStreamsUseCase forceEndAllLiveStreamsUseCase;
 
     public StreamController(
         CreateStreamUseCase createStreamUseCase,
@@ -58,7 +60,8 @@ public class StreamController {
         ListLiveStreamsUseCase listLiveStreamsUseCase,
         ListUserStreamsUseCase listUserStreamsUseCase,
         UpdateStreamUseCase updateStreamUseCase,
-        StreamService streamService
+        RestartStreamUseCase restartStreamUseCase,
+        ForceEndAllLiveStreamsUseCase forceEndAllLiveStreamsUseCase
     ) {
         this.createStreamUseCase = createStreamUseCase;
         this.getStreamUseCase = getStreamUseCase;
@@ -68,7 +71,8 @@ public class StreamController {
         this.listLiveStreamsUseCase = listLiveStreamsUseCase;
         this.listUserStreamsUseCase = listUserStreamsUseCase;
         this.updateStreamUseCase = updateStreamUseCase;
-        this.streamService = streamService;
+        this.restartStreamUseCase = restartStreamUseCase;
+        this.forceEndAllLiveStreamsUseCase = forceEndAllLiveStreamsUseCase;
     }
 
     @PostMapping
@@ -149,8 +153,7 @@ public class StreamController {
         description = "Valida se uma stream key existe e está ativa no sistema"
     )
     @ApiResponses(value = {
-        @ApiResponse(responseCode = "200", description = "Validação realizada com sucesso"),
-        @ApiResponse(responseCode = "400", description = "Stream key inválida")
+        @ApiResponse(responseCode = "200", description = "Validação realizada com sucesso — true se a key existe, false se não encontrada")
     })
     public ResponseEntity<Boolean> validateStreamKey(
         @Parameter(description = "Stream key a ser validada")
@@ -176,7 +179,7 @@ public class StreamController {
         @Parameter(description = "ID único da stream (UUID)")
         @PathVariable UUID id) {
         log.info("[Stream] Restarting stream - ID: {}", id);
-        streamService.restartStream(id);
+        restartStreamUseCase.restartStream(id);
         var result = getStreamUseCase.execute(id);
         log.info("[Stream] Stream restarted successfully - ID: {}", id);
         return ResponseEntity.ok(StreamPresenter.from(result));
@@ -259,7 +262,7 @@ public class StreamController {
     @ApiResponse(responseCode = "200", description = "Streams encerradas com sucesso")
     public ResponseEntity<java.util.Map<String, Object>> cleanupStaleLiveStreams() {
         log.info("[Stream] Force-ending all LIVE streams (stale cleanup)");
-        int count = streamService.forceEndAllLiveStreams();
+        int count = forceEndAllLiveStreamsUseCase.forceEndAllLiveStreams();
         log.info("[Stream] Stale cleanup done - {} stream(s) ended", count);
         return ResponseEntity.ok(java.util.Map.of("endedStreams", count));
     }

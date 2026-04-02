@@ -33,6 +33,11 @@ public class StreamEventProcessorService implements ProcessStreamEventUseCase {
         try {
             StreamEventType eventType = mapEventType(eventDto.eventType());
             
+            if (eventType == null) {
+                // Tipo desconhecido — ignorar para evitar poison pill no RabbitMQ
+                return;
+            }
+            
             // Construir metadata JSON
             String metadata = buildMetadata(eventDto);
             
@@ -56,7 +61,10 @@ public class StreamEventProcessorService implements ProcessStreamEventUseCase {
             case "stream_ended" -> StreamEventType.ENDED;
             case "viewer_joined" -> StreamEventType.VIEWER_JOINED;
             case "viewer_left" -> StreamEventType.VIEWER_LEFT;
-            default -> throw new IllegalArgumentException("Unknown event type: " + eventType);
+            default -> {
+                log.warn("[StreamEventProcessor] Unknown event type '{}' - skipping", eventType);
+                yield null;
+            }
         };
     }
     

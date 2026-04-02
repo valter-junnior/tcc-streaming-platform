@@ -12,9 +12,6 @@ import java.time.LocalDateTime;
 import java.util.Map;
 import java.util.UUID;
 
-/**
- * Consumer de eventos de stream do RabbitMQ
- */
 @Component
 @ConditionalOnProperty(name = "spring.rabbitmq.host", matchIfMissing = false)
 public class StreamEventConsumer {
@@ -26,9 +23,6 @@ public class StreamEventConsumer {
         this.processStreamEventUseCase = processStreamEventUseCase;
     }
 
-    /**
-     * Consome eventos stream_created
-     */
     @RabbitListener(queues = "stream.events", containerFactory = "rabbitListenerContainerFactory")
     public void handleStreamEvent(Map<String, Object> message) {
         try {
@@ -40,7 +34,6 @@ public class StreamEventConsumer {
             Integer viewersPeak = (Integer) message.get("viewersPeak");
             String viewerId = (String) message.get("viewerId");
             
-            // Criar DTO
             StreamEventDto eventDto = new StreamEventDto(
                 streamId,
                 eventType,
@@ -51,7 +44,6 @@ public class StreamEventConsumer {
                 LocalDateTime.now()
             );
             
-            // Processar evento
             processStreamEventUseCase.execute(eventDto);
             
             switch (eventType) {
@@ -68,19 +60,13 @@ public class StreamEventConsumer {
     
     private void handleStreamCreated(UUID streamId, String title) {
         log.info("[StreamEventConsumer] Stream created - ID: {}, Title: {}", streamId, title);
-        // Registrar métricas iniciais
-        // Pode adicionar lógica adicional aqui
     }
     
     private void handleStreamStarted(UUID streamId, String streamKey) {
         log.info("[StreamEventConsumer] Stream started - ID: {}, Key: {}", streamId, streamKey);
-        // Iniciar coleta de métricas
-        // Pode adicionar lógica adicional aqui
     }
     
     private void handleStreamEnded(UUID streamId, Integer viewersPeak) {
         log.info("[StreamEventConsumer] Stream ended - ID: {}, Peak viewers: {}", streamId, viewersPeak);
-        // Calcular estatísticas finais
-        // Pode adicionar lógica adicional aqui
     }
 }

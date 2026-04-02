@@ -22,7 +22,6 @@ import { logger } from "../../../shared/lib/logger";
 import { getErrorMessage } from "../../../shared/utils/errorHandler";
 import { StreamingTime } from "../components/StreamingTime";
 import type { Stream, StreamStatus } from "../../../app/types/stream";
-import { logger } from "../../../shared/lib/logger";
 
 export function StreamerDashboard() {
   const { streamId } = useParams<{ streamId: string }>();
@@ -39,7 +38,6 @@ export function StreamerDashboard() {
 
   // Streamer não deve contar nos viewers (countAsViewer=false)
   useViewerJoinLeave(streamId, userId, false, (response) => {
-    // Atualizar viewers mesmo que streamer não conte
     logger.info("[StreamerDashboard] Received join response", response);
     setStream((prev) =>
       prev
@@ -95,7 +93,6 @@ export function StreamerDashboard() {
     // Usar um viewerId fixo para o streamer (baseado no streamId)
     const streamerViewerId = `streamer-${streamId}`;
 
-    // Passar countAsViewer=false para não contar o streamer como viewer
     unsubscribeRef.current = sseService.subscribe(
       streamId!,
       streamerViewerId,

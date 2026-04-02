@@ -60,9 +60,9 @@ public class Stream {
         if (this.status == StreamStatus.LIVE) {
             return; // idempotente: reconexão do broadcaster
         }
-        /*if (this.status != StreamStatus.WAITING) {
-            throw new IllegalStateException("Stream can only be started from WAITING status, current: " + this.status);
-        }*/
+        // A validação de status está intencionalmente relaxada:
+        // validateAndStartStream() em StreamService garante restart() antes de start()
+        // para streams ENDED, tornando esta guarda desnecessária aqui.
         this.status = StreamStatus.LIVE;
         this.startedAt = LocalDateTime.now();
         this.updatedAt = LocalDateTime.now();

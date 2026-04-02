@@ -33,10 +33,6 @@ public class ViewerController {
         this.sseEmitterManager = sseEmitterManager;
     }
 
-    /**
-     * Viewer entra na stream (incrementa contador)
-     * Chamado via axios quando usuário acessa a página
-     */
     @PostMapping("/{streamId}/join")
     public ResponseEntity<ViewerResponse> joinStream(
             @PathVariable UUID streamId,
@@ -46,54 +42,41 @@ public class ViewerController {
         log.info("[Viewer] Join request - StreamId: {}, ViewerId: {}, CountAsViewer: {}", 
                  streamId, viewerId, countAsViewer);
 
-        try {
-            // Verificar se já está conectado nesta stream
-            if (countAsViewer && sseEmitterManager.isViewerConnectedToStream(streamId, viewerId)) {
-                log.info("[Viewer] Already connected to this stream - ViewerId: {}", viewerId);
-                StreamDto stream = streamService.execute(streamId);
-                return ResponseEntity.ok(new ViewerResponse(
-                    stream.currentViewers(),
-                    stream.viewersPeak(),
-                    "already_connected"
-                ));
-            }
+        if (countAsViewer && sseEmitterManager.isViewerConnectedToStream(streamId, viewerId)) {
+            log.info("[Viewer] Already connected to this stream - ViewerId: {}", viewerId);
+            StreamDto stream = streamService.execute(streamId);
+            return ResponseEntity.ok(new ViewerResponse(
+                stream.currentViewers(),
+                stream.viewersPeak(),
+                "already_connected"
+            ));
+        }
 
-            if (countAsViewer) {
-                // Incrementar contador de viewers
-                StreamDto stream = streamService.incrementViewers(streamId);
-                
-                // Registrar viewer como ativo para detectar reconexões
-                sseEmitterManager.registerActiveViewer(streamId, viewerId);
-                
-                log.info("[Viewer] Joined stream - StreamId: {}, Current: {}, Peak: {}", 
-                         streamId, stream.currentViewers(), stream.viewersPeak());
-                
-                // Publicar evento no RabbitMQ
-                eventPublisher.publishViewerJoined(streamId, viewerId);
-                
-                // Broadcast via SSE para todos os viewers
-                sseEmitterManager.broadcastToStream(streamId, "viewers_update", 
-                    new ViewersUpdateMessage(stream.currentViewers(), stream.viewersPeak()));
-                
-                return ResponseEntity.ok(new ViewerResponse(
-                    stream.currentViewers(),
-                    stream.viewersPeak(),
-                    "joined"
-                ));
-            } else {
-                // Streamer apenas consultando
-                StreamDto stream = streamService.execute(streamId);
-                log.info("[Viewer] Streamer consulting - ViewerId: {}", viewerId);
-                
-                return ResponseEntity.ok(new ViewerResponse(
-                    stream.currentViewers(),
-                    stream.viewersPeak(),
-                    "streamer"
-                ));
-            }
-        } catch (Exception e) {
-            log.error("[Viewer] Error joining stream: {}", e.getMessage(), e);
-            return ResponseEntity.internalServerError().build();
+        if (countAsViewer) {
+            StreamDto stream = streamService.incrementViewers(streamId);
+            sseEmitterManager.registerActiveViewer(streamId, viewerId);
+            
+            log.info("[Viewer] Joined stream - StreamId: {}, Current: {}, Peak: {}", 
+                     streamId, stream.currentViewers(), stream.viewersPeak());
+            
+            eventPublisher.publishViewerJoined(streamId, viewerId);
+            sseEmitterManager.broadcastToStream(streamId, "viewers_update", 
+                new ViewersUpdateMessage(stream.currentViewers(), stream.viewersPeak()));
+            
+            return ResponseEntity.ok(new ViewerResponse(
+                stream.currentViewers(),
+                stream.viewersPeak(),
+                "joined"
+            ));
+        } else {
+            StreamDto stream = streamService.execute(streamId);
+            log.info("[Viewer] Streamer consulting - ViewerId: {}", viewerId);
+            
+            return ResponseEntity.ok(new ViewerResponse(
+                stream.currentViewers(),
+                stream.viewersPeak(),
+                "streamer"
+            ));
         }
     }
 
@@ -126,45 +109,32 @@ public class ViewerController {
         log.info("[Viewer] Leave request - StreamId: {}, ViewerId: {}, CountAsViewer: {}", 
                  streamId, viewerId, countAsViewer);
 
-        try {
-            if (countAsViewer) {
-                // Decrementar contador de viewers
-                StreamDto stream = streamService.decrementViewers(streamId);
-                
-                // Desregistrar viewer da lista de ativos
-                sseEmitterManager.unregisterActiveViewer(viewerId);
-                
-                log.info("[Viewer] Left stream - StreamId: {}, Current: {}", 
-                         streamId, stream.currentViewers());
-                
-                // Publicar evento no RabbitMQ
-                eventPublisher.publishViewerLeft(streamId, viewerId);
-                
-                // Broadcast via SSE para todos os viewers
-                sseEmitterManager.broadcastToStream(streamId, "viewers_update", 
-                    new ViewersUpdateMessage(stream.currentViewers(), stream.viewersPeak()));
-                
-                return ResponseEntity.ok(new ViewerResponse(
-                    stream.currentViewers(),
-                    stream.viewersPeak(),
-                    "left"
-                ));
-            } else {
-                // Streamer apenas consultando
-                StreamDto stream = streamService.execute(streamId);
-                return ResponseEntity.ok(new ViewerResponse(
-                    stream.currentViewers(),
-                    stream.viewersPeak(),
-                    "streamer"
-                ));
-            }
-        } catch (Exception e) {
-            log.error("[Viewer] Error leaving stream: {}", e.getMessage(), e);
-            return ResponseEntity.internalServerError().build();
+        if (countAsViewer) {
+            StreamDto stream = streamService.decrementViewers(streamId);
+            sseEmitterManager.unregisterActiveViewer(viewerId);
+            
+            log.info("[Viewer] Left stream - StreamId: {}, Current: {}", 
+                     streamId, stream.currentViewers());
+            
+            eventPublisher.publishViewerLeft(streamId, viewerId);
+            sseEmitterManager.broadcastToStream(streamId, "viewers_update", 
+                new ViewersUpdateMessage(stream.currentViewers(), stream.viewersPeak()));
+            
+            return ResponseEntity.ok(new ViewerResponse(
+                stream.currentViewers(),
+                stream.viewersPeak(),
+                "left"
+            ));
+        } else {
+            StreamDto stream = streamService.execute(streamId);
+            return ResponseEntity.ok(new ViewerResponse(
+                stream.currentViewers(),
+                stream.viewersPeak(),
+                "streamer"
+            ));
         }
     }
 
-    // DTOs
     public record ViewerResponse(int currentViewers, int viewersPeak, String status) {}
     public record ViewersUpdateMessage(int currentViewers, int viewersPeak) {}
 }

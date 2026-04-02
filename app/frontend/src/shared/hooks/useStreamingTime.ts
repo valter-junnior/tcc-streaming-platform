@@ -54,7 +54,6 @@ export function useStreamingTime(
       return;
     }
 
-    // Se não está LIVE, não fazer nada
     if (status !== "LIVE") {
       // ✅ Limpar interval se não está LIVE
       if (intervalRef.current) {
@@ -74,14 +73,12 @@ export function useStreamingTime(
 
     const initializeTimer = async () => {
       try {
-        // Buscar configuração do backend para timezone
         const config = await configService.getConfig();
 
         // Calcular offset entre servidor e cliente no momento da config
         const clientNow = Date.now();
         const serverClientDiff = clientNow - config.serverTimestamp;
 
-        // Parsear data do backend
         let startTime = new Date(startedAt);
 
         // Se o backend retorna timestamp no futuro, há problema de timezone
