@@ -79,10 +79,6 @@ class ApiService {
     return response.data;
   }
 
-  async endStream(id: string, ownerId: string): Promise<void> {
-    await this.api.delete(`/streams/${id}?ownerId=${ownerId}`);
-  }
-
   async restartStream(id: string): Promise<Stream> {
     const response = await this.api.post<Stream>(`/streams/${id}/restart`);
     return response.data;
@@ -108,6 +104,11 @@ class ApiService {
   async deleteStream(id: string, ownerId: string): Promise<void> {
     await this.api.delete(`/streams/${id}?ownerId=${ownerId}`);
   }
+
+  getAxiosInstance() {
+    return this.api;
+  }
 }
 
 export const apiService = new ApiService();
+export type { ApiService };

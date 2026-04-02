@@ -18,6 +18,8 @@ import { RTMP_URL, APP_URL } from "../../../app/config/env";
 import { routes } from "../../../app/routes";
 import { useUserId } from "../../../shared/hooks/useUserId";
 import { useViewerJoinLeave } from "../../../app/hooks/useViewerJoinLeave";
+import { logger } from "../../../shared/lib/logger";
+import { getErrorMessage } from "../../../shared/utils/errorHandler";
 import { StreamingTime } from "../components/StreamingTime";
 import type { Stream, StreamStatus } from "../../../app/types/stream";
 import { logger } from "../../../shared/lib/logger";
@@ -30,8 +32,6 @@ export function StreamerDashboard() {
   const [stream, setStream] = useState<Stream | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  // @ts-expect-error - Used in commented code for future implementation
-  const [isEnding, setIsEnding] = useState(false);
   const [isRestarting, setIsRestarting] = useState(false);
   const [copiedField, setCopiedField] = useState<string | null>(null);
   const unsubscribeRef = useRef<(() => void) | null>(null);
@@ -81,9 +81,9 @@ export function StreamerDashboard() {
       setIsLoading(true);
       const data = await apiService.getStream(streamId!);
       setStream(data);
-    } catch (err: any) {
+    } catch (err: unknown) {
       logger.error("Error loading stream", err);
-      setError("Erro ao carregar stream");
+      setError(getErrorMessage(err));
     } finally {
       setIsLoading(false);
     }
@@ -157,37 +157,6 @@ export function StreamerDashboard() {
     navigator.clipboard.writeText(text);
     setCopiedField(field);
     setTimeout(() => setCopiedField(null), 2000);
-  };
-
-  // @ts-expect-error - Used in commented code for future implementation
-  const handleEndStream = async () => {
-    if (!confirm("Tem certeza que deseja encerrar esta transmissão?")) {
-      return;
-    }
-
-    if (!userId) {
-      alert("Erro de autenticação");
-      return;
-    }
-
-    setIsEnding(true);
-    try {
-      await apiService.endStream(streamId!, userId);
-      setStream((prev) =>
-        prev
-          ? {
-              ...prev,
-              status: "ENDED" as StreamStatus,
-              endedAt: new Date().toISOString(),
-            }
-          : null,
-      );
-    } catch (err: any) {
-      logger.error("Error ending stream", err);
-      alert("Erro ao encerrar stream");
-    } finally {
-      setIsEnding(false);
-    }
   };
 
   const handleRestartStream = async () => {
@@ -441,7 +410,11 @@ export function StreamerDashboard() {
                     className="flex-1 px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white font-mono text-sm"
                   />
                   <button className="px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white flex items-center justify-center">
-                    <a href={watchUrl} target="_blank" rel="noopener noreferrer">
+                    <a
+                      href={watchUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                    >
                       <Eye className="w-4 h-4 text-purple-400" />
                     </a>
                   </button>

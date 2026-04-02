@@ -18,6 +18,7 @@ import { StreamingTime } from "../components/StreamingTime";
 import type { Stream, StreamStatus } from "../../../app/types/stream";
 import { logger } from "../../../shared/lib/logger";
 import { getErrorMessage } from "../../../shared/utils/errorHandler";
+import axios from "axios";
 
 export function WatchPage() {
   const { streamId } = useParams<{ streamId: string }>();
@@ -80,7 +81,11 @@ export function WatchPage() {
       setStream(data);
     } catch (error) {
       logger.error("Error loading stream", error);
-      setError(getErrorMessage(error));
+      if (axios.isAxiosError(error) && error.response?.status === 400) {
+        setError("ID de stream inválido.");
+      } else {
+        setError(getErrorMessage(error));
+      }
     } finally {
       setIsLoading(false);
     }

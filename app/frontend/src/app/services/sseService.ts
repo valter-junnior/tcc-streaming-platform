@@ -93,6 +93,7 @@ class SseService {
     });
 
     eventSource.onopen = () => {
+      subscription.reconnectAttempts = 0;
       logger.info("[SSE] Connection established", { streamId, viewerId });
     };
 

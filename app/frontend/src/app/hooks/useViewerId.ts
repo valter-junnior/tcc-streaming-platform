@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 
 export function useViewerId(): string {
   const [viewerId] = useState(() => {
@@ -13,13 +13,6 @@ export function useViewerId(): string {
 
     return newId;
   });
-
-  useEffect(() => {
-    const stored = localStorage.getItem("viewerId");
-    if (stored !== viewerId) {
-      localStorage.setItem("viewerId", viewerId);
-    }
-  }, [viewerId]);
 
   return viewerId;
 }

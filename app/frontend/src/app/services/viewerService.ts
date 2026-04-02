@@ -1,5 +1,4 @@
-import axios from "axios";
-import { API_BASE_URL } from "../config/env";
+import { apiService } from "./apiService";
 import { logger } from "../../shared/lib/logger";
 
 export interface ViewerResponse {
@@ -29,16 +28,14 @@ class ViewerService {
         countAsViewer,
       });
 
-      const response = await axios.post<ViewerResponse>(
-        `${API_BASE_URL}/api/streams/${streamId}/join`,
-        null,
-        {
+      const response = await apiService
+        .getAxiosInstance()
+        .post<ViewerResponse>(`/streams/${streamId}/join`, null, {
           params: {
             viewerId,
             countAsViewer,
           },
-        },
-      );
+        });
 
       logger.info("[Viewer] Joined stream successfully", response.data);
       return response.data;
@@ -64,16 +61,14 @@ class ViewerService {
         countAsViewer,
       });
 
-      const response = await axios.post<ViewerResponse>(
-        `${API_BASE_URL}/api/streams/${streamId}/leave`,
-        null,
-        {
+      const response = await apiService
+        .getAxiosInstance()
+        .post<ViewerResponse>(`/streams/${streamId}/leave`, null, {
           params: {
             viewerId,
             countAsViewer,
           },
-        },
-      );
+        });
 
       logger.info("[Viewer] Left stream successfully", response.data);
       return response.data;

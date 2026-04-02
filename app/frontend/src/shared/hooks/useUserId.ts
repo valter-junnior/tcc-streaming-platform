@@ -39,8 +39,3 @@ function generateUserId(): string {
     return v.toString(16);
   });
 }
-
-export function clearUserId(): void {
-  localStorage.removeItem(USER_ID_KEY);
-  localStorage.removeItem(EXPIRATION_KEY);
-}

@@ -85,8 +85,13 @@ export function useViewerJoinLeave(
     return () => {
       window.removeEventListener("beforeunload", handleBeforeUnload);
 
-      // Não resetar hasJoined aqui para evitar recontagem no refresh
-      // O leave será chamado pelo beacon ou SSE disconnect
+      // useRef é reiniciado em cada mount, então não há risco de recontagem
+      if (hasJoined.current && countAsViewer) {
+        viewerService
+          .leaveStream(streamId, viewerId, countAsViewer)
+          .catch(() => {});
+        hasJoined.current = false;
+      }
     };
   }, [streamId, viewerId, countAsViewer, onJoinSuccess]);
 }

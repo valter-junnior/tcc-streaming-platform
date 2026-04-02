@@ -1,5 +1,4 @@
 import { useEffect, useRef } from "react";
-// @ts-ignore - Plyr doesn't have proper TypeScript exports
 import Plyr from "plyr";
 import Hls from "hls.js";
 import "plyr/dist/plyr.css";
@@ -8,11 +7,13 @@ import { logger } from "../../../shared/lib/logger";
 interface VideoPlayerProps {
   hlsUrl: string;
   autoPlay?: boolean;
+  onError?: () => void;
 }
 
 export function VideoPlayerPlyr({
   hlsUrl,
   autoPlay = false,
+  onError,
 }: VideoPlayerProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const playerRef = useRef<Plyr | null>(null);
@@ -97,6 +98,7 @@ export function VideoPlayerPlyr({
             default:
               logger.error("Cannot recover from error, destroying HLS");
               hls.destroy();
+              onError?.();
               break;
           }
         }
