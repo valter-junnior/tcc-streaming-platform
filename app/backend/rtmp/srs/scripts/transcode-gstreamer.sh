@@ -62,10 +62,12 @@ fi
 LOG_FILE="${OUTPUT_DIR}/transcode.log"
 LOCK_FILE="${OUTPUT_DIR}/transcode.lock"
 
+# Uses a blocking wait so that a resume after pause waits for the previous instance to finish
+# (which exits after STREAM_END_DURATION_SECONDS) instead of failing immediately.
 exec 9>"${LOCK_FILE}"
-if ! flock -n 9; then
-    echo "[$(date)] Another GStreamer transcoder is already running for stream: ${STREAM_KEY}" >> "$LOG_FILE"
-    exit 0
+if ! flock -w 45 9; then
+    echo "[$(date)] Timed out waiting for lock - another GStreamer transcoder may be stuck for stream: ${STREAM_KEY}" >> "$LOG_FILE"
+    exit 1
 fi
 
 # Keep track of children so we can terminate all variant pipelines on exit/retry.

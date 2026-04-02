@@ -1,1 +1,1 @@
-verifique os logs da live de chave 81412d9818ff4c9a no rtmp e verifque o erro.
+seu pausar uma live e reiniciar aparece isto Another FFmpeg transcoder is already running for stream: d1dfe5903e31467b isso serve para todos os servidores e codificadores

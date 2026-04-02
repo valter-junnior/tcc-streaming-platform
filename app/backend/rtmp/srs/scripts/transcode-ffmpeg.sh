@@ -59,10 +59,12 @@ LOG_FILE="${OUTPUT_DIR}/transcode.log"
 LOCK_FILE="${OUTPUT_DIR}/transcode.lock"
 
 # Avoid concurrent ffmpeg instances for the same stream key (common on quick reconnects).
+# Uses a blocking wait so that a resume after pause waits for the previous instance to finish
+# (which exits after STREAM_END_DURATION_SECONDS) instead of failing immediately.
 exec 9>"${LOCK_FILE}"
-if ! flock -n 9; then
-    echo "[$(date)] Another FFmpeg transcoder is already running for stream: ${STREAM_KEY}" >> "$LOG_FILE"
-    exit 0
+if ! flock -w 45 9; then
+    echo "[$(date)] Timed out waiting for lock - another FFmpeg transcoder may be stuck for stream: ${STREAM_KEY}" >> "$LOG_FILE"
+    exit 1
 fi
 
 # Setup cleanup trap for orphaned FFmpeg processes
@@ -129,10 +131,10 @@ while [ $ATTEMPT -lt $MAX_RETRIES ]; do
          [v1]scale=w=1280:h=720[v1out]; \
          [v2]scale=w=854:h=480[v2out]; \
          [v3]scale=w=640:h=360[v3out]" \
-        -map "[v0out]" -c:v:0 libx264 -b:v:0 5000k -maxrate 5350k -bufsize 7500k -preset fast -map a:0? -c:a:0 aac -b:a:0 128k \
-        -map "[v1out]" -c:v:1 libx264 -b:v:1 2800k -maxrate 2996k -bufsize 4200k -preset fast -map a:0? -c:a:1 aac -b:a:1 128k \
-        -map "[v2out]" -c:v:2 libx264 -b:v:2 1400k -maxrate 1498k -bufsize 2100k -preset fast -map a:0? -c:a:2 aac -b:a:2 96k \
-        -map "[v3out]" -c:v:3 libx264 -b:v:3 800k  -maxrate 856k  -bufsize 1200k -preset fast -map a:0? -c:a:3 aac -b:a:3 96k \
+        -map "[v0out]" -c:v:0 libx264 -b:v:0 5000k -maxrate:v:0 5350k -bufsize:v:0 7500k -preset fast -map a:0? -c:a:0 aac -b:a:0 128k \
+        -map "[v1out]" -c:v:1 libx264 -b:v:1 2800k -maxrate:v:1 2996k -bufsize:v:1 4200k -preset fast -map a:0? -c:a:1 aac -b:a:1 128k \
+        -map "[v2out]" -c:v:2 libx264 -b:v:2 1400k -maxrate:v:2 1498k -bufsize:v:2 2100k -preset fast -map a:0? -c:a:2 aac -b:a:2 96k \
+        -map "[v3out]" -c:v:3 libx264 -b:v:3 800k  -maxrate:v:3 856k  -bufsize:v:3 1200k -preset fast -map a:0? -c:a:3 aac -b:a:3 96k \
         -g 48 -keyint_min 48 -sc_threshold 0 \
         -f hls \
         -hls_time ${SEGMENT_DURATION} \
