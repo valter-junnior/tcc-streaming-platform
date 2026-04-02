@@ -55,8 +55,10 @@ if ! mkdir -p "${OUTPUT_DIR}/v0" "${OUTPUT_DIR}/v1" "${OUTPUT_DIR}/v2" "${OUTPUT
     exit 1
 fi
 
-LOG_FILE="${OUTPUT_DIR}/transcode.log"
-LOCK_FILE="${OUTPUT_DIR}/transcode.lock"
+LOG_DIR="${TRANSCODE_LOG_PATH:-/var/log/transcode}/${STREAM_KEY}"
+mkdir -p "${LOG_DIR}"
+LOG_FILE="${LOG_DIR}/transcode.log"
+LOCK_FILE="${LOG_DIR}/transcode.lock"
 
 # Avoid concurrent ffmpeg instances for the same stream key (common on quick reconnects).
 # Uses a blocking wait so that a resume after pause waits for the previous instance to finish

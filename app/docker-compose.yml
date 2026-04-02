@@ -92,6 +92,7 @@ services:
       - streaming-network
     volumes:
       - hls-data:/tmp/hls
+      - ./backend/rtmp/logs:/var/log/transcode
     ports:
       - "${RTMP_PORT}:${RTMP_PORT}"    # RTMP
       - "${HLS_PORT}:${HLS_HTTP_PORT}"     # HLS HTTP Server
@@ -120,6 +121,7 @@ services:
       - streaming-network
     volumes:
       - hls-data:/tmp/hls
+      - ./backend/rtmp/logs:/var/log/transcode
     ports:
       - "${RTMP_PORT}:${RTMP_PORT}"    # RTMP
       - "${HLS_PORT}:${HLS_HTTP_PORT}" # HLS HTTP Server

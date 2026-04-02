@@ -39,8 +39,8 @@ RUN ./configure \
     && make -j"$(nproc)" \
     && make install
 
-RUN mkdir -p /tmp/hls /var/log/nginx && \
-    chmod 755 /tmp/hls
+RUN mkdir -p /tmp/hls /var/log/nginx /var/log/transcode && \
+    chmod 755 /tmp/hls /var/log/transcode
 
 RUN rm -rf /tmp/nginx-1.24.0* /tmp/nginx-rtmp-module
 

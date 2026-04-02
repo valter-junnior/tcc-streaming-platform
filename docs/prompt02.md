@@ -1,12 +1,8 @@
-Agora faça o seguinte :
+tem como fazer um mount do volume do rtmp (do docker) em app/backen/rtmp/logs apenas com os logs?
 
-Vamos fazer um review code:
-1. Gerar um .md para cada aplicação do review code
-2. Aponte apena os pontos de erro e falha, alem de melhorias de codificação para uma boa implementação.
+exemplo :
 
-Aplicações
-1. Faça um review code de todo app/backend/streaming-platform para sabermos se segue bons padrões se implementação e bom rastreamento de logs.Além de verificar codigos e arquivos que não estão mais em uso
-2. Faça um review code de todo app/backend/rtmp para sabermos se não tem codigo inutil nos arquivos, ou funcoes e arquivos que não estão sendo utilizado e etc.
-3. Faça um review code de todo app/frontend para vermos se estamos implementando corretamente e um clean frontend além de verificar se o tratamento de erro está ok, e os fluxo estão sem quebra como no sse e etc.
-
-Obs: cuidado nas alterações principalmente no rtmp para não quebrar o código e regras de negócio
++ {LiveId}/
+    - transcode.log
+    - trasncode.lock
+    (as outras pastas e arquivos não precisam aparecer)

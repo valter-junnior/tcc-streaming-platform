@@ -59,8 +59,10 @@ if ! mkdir -p "${OUTPUT_DIR}/v0" "${OUTPUT_DIR}/v2"; then
     exit 1
 fi
 
-LOG_FILE="${OUTPUT_DIR}/transcode.log"
-LOCK_FILE="${OUTPUT_DIR}/transcode.lock"
+LOG_DIR="${TRANSCODE_LOG_PATH:-/var/log/transcode}/${STREAM_KEY}"
+mkdir -p "${LOG_DIR}"
+LOG_FILE="${LOG_DIR}/transcode.log"
+LOCK_FILE="${LOG_DIR}/transcode.lock"
 
 # Uses a blocking wait so that a resume after pause waits for the previous instance to finish
 # (which exits after STREAM_END_DURATION_SECONDS) instead of failing immediately.

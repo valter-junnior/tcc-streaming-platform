@@ -14,7 +14,8 @@ if ! [[ "$STREAM_KEY" =~ ^[a-zA-Z0-9_-]+$ ]]; then
     exit 1
 fi
 
-OUTPUT_DIR="/tmp/hls/${STREAM_KEY}"
+HLS_BASE_PATH="${HLS_PATH:-/tmp/hls}"
+OUTPUT_DIR="${HLS_BASE_PATH}/${STREAM_KEY}"
 INPUT_URL="rtmp://127.0.0.1/live/${STREAM_KEY}"
 SEGMENT_DURATION="${HLS_SEGMENT_DURATION:-6}"
 PLAYLIST_LENGTH="${HLS_PLAYLIST_LENGTH:-10}"
@@ -54,8 +55,10 @@ if ! mkdir -p "${OUTPUT_DIR}/v0" "${OUTPUT_DIR}/v1" "${OUTPUT_DIR}/v2" "${OUTPUT
     exit 1
 fi
 
-LOG_FILE="${OUTPUT_DIR}/transcode.log"
-LOCK_FILE="${OUTPUT_DIR}/transcode.lock"
+LOG_DIR="${TRANSCODE_LOG_PATH:-/var/log/transcode}/${STREAM_KEY}"
+mkdir -p "${LOG_DIR}"
+LOG_FILE="${LOG_DIR}/transcode.log"
+LOCK_FILE="${LOG_DIR}/transcode.lock"
 
 # Avoid concurrent ffmpeg instances for the same stream key (common on quick reconnects).
 # Uses a blocking wait so that a resume after pause waits for the previous instance to finish

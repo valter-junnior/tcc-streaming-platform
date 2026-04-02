@@ -38,7 +38,7 @@ RUN echo "0 * * * * /usr/local/bin/cleanup-hls.sh >> /var/log/srs-hls-cleanup.lo
 	crontab /etc/cron.d/hls-cleanup && \
 	touch /var/log/srs-hls-cleanup.log
 
-RUN mkdir -p /tmp/hls
+RUN mkdir -p /tmp/hls /var/log/transcode
 
 EXPOSE 1935 8080 8081
 
