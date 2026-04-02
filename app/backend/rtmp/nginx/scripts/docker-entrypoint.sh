@@ -87,7 +87,7 @@ wait_for_backend() {
 wait_for_backend
 
 # Start cron service
-service cron start
+service cron start || echo "[WARN] cron service failed to start — HLS cleanup may not run"
 
 # Start nginx in foreground
 exec /usr/local/nginx/sbin/nginx -g "daemon off;"

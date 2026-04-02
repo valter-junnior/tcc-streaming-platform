@@ -83,7 +83,7 @@ wait_for_backend() {
 wait_for_backend
 
 # Start cron service
-service cron start
+service cron start || echo "[WARN] cron service failed to start — HLS cleanup may not run"
 
 # Start Python HTTP server with CORS headers to serve HLS files.
 # SRS built-in http_server crossdomain=on only serves crossdomain.xml (Flash policy),

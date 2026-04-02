@@ -1,5 +1,7 @@
 #!/bin/bash
 set -u
+# Nota: set -e não é usado intencionalmente — o loop de retry precisa tratar
+# exit codes não-zero do gstreamer sem encerrar o script.
 
 STREAM_KEY=$1
 
@@ -54,7 +56,7 @@ if ! [[ "$INPUT_PROBE_TIMEOUT_SECONDS" =~ ^[0-9]+$ ]] || [ "$INPUT_PROBE_TIMEOUT
 fi
 
 # Create output directory structure for stable GStreamer renditions.
-if ! mkdir -p "${OUTPUT_DIR}/v0" "${OUTPUT_DIR}/v2"; then
+if ! mkdir -p "${OUTPUT_DIR}/v0" "${OUTPUT_DIR}/v1" "${OUTPUT_DIR}/v2" "${OUTPUT_DIR}/v3"; then
     echo "[ERROR] Failed to create output directories for stream: ${STREAM_KEY}" >&2
     exit 1
 fi
@@ -160,8 +162,14 @@ cat > "${OUTPUT_DIR}/master.m3u8" << 'MASTER_EOF'
 #EXT-X-STREAM-INF:BANDWIDTH=5128000,RESOLUTION=1920x1080
 v0/playlist.m3u8
 
+#EXT-X-STREAM-INF:BANDWIDTH=2628000,RESOLUTION=1280x720
+v1/playlist.m3u8
+
 #EXT-X-STREAM-INF:BANDWIDTH=1496000,RESOLUTION=854x480
 v2/playlist.m3u8
+
+#EXT-X-STREAM-INF:BANDWIDTH=628000,RESOLUTION=640x360
+v3/playlist.m3u8
 MASTER_EOF
 
 echo "[$(date)] Master playlist generated at ${OUTPUT_DIR}/master.m3u8" >> "$LOG_FILE"
@@ -224,10 +232,12 @@ MAX_TOTAL_RUNTIME=$(((STARTUP_TIMEOUT * MAX_RETRIES) + (RETRY_WAIT * (MAX_RETRIE
 while [ $ATTEMPT -lt $MAX_RETRIES ]; do
     ATTEMPT=$((ATTEMPT + 1))
     ATTEMPT_STARTED_AT=$(date +%s)
-    echo "[$(date)] GStreamer attempt $ATTEMPT of $MAX_RETRIES - launching 2 variant pipelines..." >> "$LOG_FILE"
+    echo "[$(date)] GStreamer attempt $ATTEMPT of $MAX_RETRIES - launching 4 variant pipelines..." >> "$LOG_FILE"
 
     run_variant 0 1920 1080 5000 128000 & PIDS[0]=$!
-    run_variant 2 854  480  1400 96000  & PIDS[1]=$!
+    run_variant 1 1280 720  2500 128000 & PIDS[1]=$!
+    run_variant 2 854  480  1400 96000  & PIDS[2]=$!
+    run_variant 3 640  360   600 96000  & PIDS[3]=$!
 
     BOOTSTRAP_OK=false
     for _ in $(seq 1 "$STARTUP_TIMEOUT"); do
@@ -266,14 +276,15 @@ while [ $ATTEMPT -lt $MAX_RETRIES ]; do
     echo "[$(date)] Bootstrap succeeded, waiting pipelines to finish..." >> "$LOG_FILE"
 
     ALL_OK=true
-    for i in 0 1; do
+    for i in 0 1 2 3; do
         wait "${PIDS[$i]}"
         EXIT_CODES[$i]=$?
-        if [ "$i" -eq 0 ]; then
-            VARIANT_NAME="v0"
-        else
-            VARIANT_NAME="v2"
-        fi
+        case $i in
+            0) VARIANT_NAME="v0" ;;
+            1) VARIANT_NAME="v1" ;;
+            2) VARIANT_NAME="v2" ;;
+            3) VARIANT_NAME="v3" ;;
+        esac
         echo "[$(date)] Variant ${VARIANT_NAME} exited with code: ${EXIT_CODES[$i]}" >> "$LOG_FILE"
         if [ "${EXIT_CODES[$i]}" -ne 0 ] && [ "${EXIT_CODES[$i]}" -ne 143 ]; then
             ALL_OK=false

@@ -1,5 +1,7 @@
 #!/bin/bash
 set -u
+# Nota: set -e não é usado intencionalmente — o loop de retry precisa tratar
+# exit codes não-zero do ffmpeg sem encerrar o script.
 
 STREAM_KEY=$1
 
