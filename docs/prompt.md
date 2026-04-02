@@ -1,1 +1,1 @@
-Estou rodando uma live com a chave 2c4fb4aba3bb4b61 com as config nginx e ffmpeg e nada da live iniciar ainda ja faz 1minuto
+Estou rodando uma live com a chave b7fceb9d9ae64128 com as config srs e ffmpeg e nada da live iniciar ainda ja faz 1minuto
