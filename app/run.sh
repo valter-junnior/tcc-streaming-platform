@@ -6,7 +6,7 @@ COMPOSE_FILE="docker-compose.yml"
 VALID_PROFILES=("nginx" "srs")
 
 usage() {
-  echo "Uso: ./stream.sh [comando] [perfil]"
+  echo "Uso: ./run.sh [comando] [perfil]"
   echo ""
   echo "Comandos:"
   echo "  up   <perfil>   Sobe o ambiente com o servidor RTMP especificado"
@@ -18,9 +18,9 @@ usage() {
   echo "Perfis disponíveis: nginx, srs"
   echo ""
   echo "Exemplos:"
-  echo "  ./stream.sh up nginx"
-  echo "  ./stream.sh swap srs"
-  echo "  ./stream.sh down nginx"
+  echo "  ./run.sh up nginx"
+  echo "  ./run.sh swap srs"
+  echo "  ./run.sh down nginx"
 }
 
 is_valid_profile() {
