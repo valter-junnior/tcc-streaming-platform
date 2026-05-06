@@ -1,1 +1,11 @@
-Apartir dos arquivos dentro de docs/tcc vamos iniciar a fase de testes da aplicação
+Apartir dos arquivos dentro de docs/tcc vamos iniciar a fase de testes da aplicação caso necessite leita também os arquivos dentro da docs/v1 e todo.md para entender melhor como criar os testes e instalar as ferramentas necessarias, O objetivo aqui é medir o desempenho dos servidores rtmp  desprezando completamente a aplicação frontend(em react) e aplicação backend(em java), avaliando para os caso do 'docs/tcc/Matriz e Plano de Testes.md' para gerarmos os testes, inicialmente instale e configure os testes para que funcione tanto com o nginx quanto o srs testando um por vez e apenas um caso(o caso mais simples) para todas as situações(nginx+ffmpeg, nginx+gstreamer, srs+ffmpeg e srs+gstreamerl), logo após os testes funcionarem corretamente siga para a implementação do teste completo onde com apenas um script eu consiga testar todos os casos de uma vez, quero que no final dos testes seja gerado um cvs que contenha uma matriz com todos os dados relevantes do processo.
+
+O caso a ser testado da aplicação é principalmente as metricas quando tem uma live rodando no projeto e x quantidades de usuarios vendo elas, por x minutos(coloque um tempo coerente para fazermos os testes), toda etapa de criação não precisa ser medida apenas é medido desde o inicio da live até o final. 
+
+No final da implemetação e dos testes gere um unico .md simples direto e tecnico para explicar o que foi feito e como prosseguir além de explicar como funciona os testes e como executar.
+
+APENAS finalize a task quando acreditar que está tudo ok e que todas os testes e scripts foram corretamente implementadas
+
+Não altere explicitamente arquivos do projeto para que não haja bug, o que eu quero dizer com isso é que atualmente eu testei e projeto está totalmente funcional(teste com um usuario e uma live rodando apartir do OBS), e que garanto que está funcional, então caso acredite que haja um bug ou erro/falha verifique a funcionaldiade corretamente ou espere um tempo, analise logs, para saber se o container está ok.
+
+Todo e qualquer comando deve ser executado apenas em docker. 
