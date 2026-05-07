@@ -1,0 +1,48 @@
+Critérios de aceitação,,,,,Legenda,,,,,,,,,,
+Métrica,Critério,,,,Símbolo,Significado,,,,,,,,,
+Latência P95,Deve ser inferior a 300 ms,,,,✓,Passou em todos os critérios,,,,,,,,,
+Latência P99,Deve ser inferior a 500 ms,,,,⚠,Passou com avisos (CPU ou taxa de erro),,,,,,,,,
+Taxa de erro,Deve ser inferior a 0.1%,,,,✗,Falhou em critérios críticos (P95/P99),,,,,,,,,
+CPU médio,Deve ser menor que 70%,,,,,,,,,,,,,,
+Memória,Utilização deve ser menor que 80% da RAM alocada,,,,,,,,,,,,,,
+,,,,,,,,,,,,,,,
+Resultados,,,,,,,,,,,,,,,
+Execução,Servidor Web,N° de usuários,Memória,CPU,Conteúdo,Throughput,Latência média,Latência P95,Latência P99,Taxa de erros,CPU (médio),CPU (máx.),RAM (média),Status,Observações
+1,Apache,50,512 MB,1 core,Simples,4493.08 req/s,10 ms,82 ms,85 ms,0.02%,95.03%,104.97%,19 MB ,⚠,CPU>70%
+2,Apache,50,512 MB,1 core,Com imagens,4123.98 req/s,11 ms,82 ms,86 ms,0.02%,95.38%,105.84%,15 MB,⚠,CPU>70%
+3,Apache,50,512 MB,4 cores,Simples,11824.37 req/s,4 ms,10 ms,18 ms,0.01%,407.38%,467.45%,16 MB,⚠,CPU>70%
+4,Apache,50,512 MB,4 cores,Com imagens,9549.68 req/s,5 ms,12 ms,20 ms,0.02%,407.70%,478.94%,16 MB,⚠,CPU>70%
+5,Apache,50,2 GB,1 core,Simples,3850.22 req/s,12 ms,82 ms,86 ms,0.01%,95.22%,105.61%,14 MB,⚠,CPU>70%
+6,Apache,50,2 GB,1 core,Com imagens,3503.37 req/s,13 ms,83 ms,87 ms,0.01%,95.40%,108.78%,15 MB,⚠,CPU>70%
+7,Apache,50,2 GB,4 cores,Simples,9584.38 req/s,5 ms,12 ms,19 ms,0.02%,402.43%,473.72%,15 MB,⚠,CPU>70%
+8,Apache,50,2 GB,4 cores,Com imagens,9916.13 req/s,5 ms,12 ms,20 ms,0.01%,407.12%,482.21%,17 MB,⚠,CPU>70%
+9,Apache,200,512 MB,1 core,Simples,3495.83 req/s,52 ms,104 ms,191 ms,0.12%,97.27%,109.60%,32 MB,⚠,"Erros>0.1%
+CPU>70%"
+10,Apache,200,512 MB,1 core,Com imagens,3428.18 req/s,53 ms,110 ms,201 ms,0.10%,95.47%,107.36%,33 MB,⚠,CPU>70%
+11,Apache,200,512 MB,4 cores,Simples,10312.13 req/s,17 ms,48 ms,66 ms,0.12%,412.26%,485.06%,34 MB,⚠,"Erros>0.1%
+CPU>70%"
+12,Apache,200,512 MB,4 cores,Com imagens,11704.35 req/s,15 ms,45 ms,60 ms,0.13%,399.67%,496.82%,34 MB,⚠,"Erros>0.1%
+CPU>70%"
+13,Apache,200,2 GB,1 core,Simples,3795.02 req/s,48 ms,103 ms,193 ms,0.12%,93.83%,105.26%,32 MB,⚠,"Erros>0.1%
+CPU>70%"
+14,Apache,200,2 GB,1 core,Com imagens,3233.13 req/s,56 ms,109 ms,195 ms,0.10%,96.36%,111.56%,32 MB,⚠,CPU>70%
+15,Apache,200,2 GB,4 cores,Simples,11381.93 req/s,16 ms,45 ms,59 ms,0.13%,404.05%,472.63%,33 MB,⚠,"Erros>0.1%
+CPU>70%"
+16,Apache,200,2 GB,4 cores,Com imagens,12516.97 req/s,14 ms,44 ms,56 ms,0.11%,402.60%,465.92%,36 MB,⚠,"Erros>0.1%
+CPU>70%"
+17,Nginx,50,512 MB,1 core,Simples,9414.83 req/s,5 ms,8 ms,66 ms,0.00%,96.35%,107.07%,13 MB,⚠,CPU>70%
+18,Nginx,50,512 MB,1 core,Com imagens,8203.30 req/s,6 ms,65 ms,70 ms,0.00%,95.77%,106.77%,12 MB,⚠,CPU>70%
+19,Nginx,50,512 MB,4 cores,Simples,18235.47 req/s,2 ms,5 ms,7 ms,0.00%,274.54%,317.47%,12 MB,⚠,CPU>70%
+20,Nginx,50,512 MB,4 cores,Com imagens,16708.53 req/s,3 ms,5 ms,7 ms,0.00%,310.69%,367.22%,12 MB,⚠,CPU>70%
+21,Nginx,50,2 GB,1 core,Simples,8756.27 req/s,5 ms,60 ms,66 ms,0.00%,96.33%,108.99%,11 MB,⚠,CPU>70%
+22,Nginx,50,2 GB,1 core,Com imagens,7781.38 req/s,6 ms,66 ms,70 ms,0.00%,96.38%,110.37%,12 MB,⚠,CPU>70%
+23,Nginx,50,2 GB,4 cores,Simples,18728.83 req/s,2 ms,4 ms,7 ms,0.00%,278.52%,336.21%,12 MB,⚠,CPU>70%
+24,Nginx,50,2 GB,4 cores,Com imagens,16996.83 req/s,3 ms,5 ms,7 ms,0.00%,304.13%,345.74%,12 MB,⚠,CPU>70%
+25,Nginx,200,512 MB,1 core,Simples,9540.28 req/s,19 ms,72 ms,75 ms,0.00%,97.67%,110.00%,12 MB,⚠,CPU>70%
+26,Nginx,200,512 MB,1 core,Com imagens,7850.70 req/s,23 ms,77 ms,81 ms,0.00%,95.96%,108.42%,13 MB,⚠,CPU>70%
+27,Nginx,200,512 MB,4 cores,Simples,16838.52 req/s,11 ms,17 ms,25 ms,0.00%,279.68%,317.47%,12 MB,⚠,CPU>70%
+28,Nginx,200,512 MB,4 cores,Com imagens,18526.57 req/s,10 ms,16 ms,23 ms,0.00%,299.67%,342.38%,13 MB,⚠,CPU>70%
+29,Nginx,200,2 GB,1 core,Simples,11895.92 req/s,15 ms,70 ms,73 ms,0.00%,96.17%,107.72%,12 MB,⚠,CPU>70%
+30,Nginx,200,2 GB,1 core,Com imagens,10229.40 req/s,18 ms,74 ms,76 ms,0.00%,95.37%,106.71%,13 MB,⚠,CPU>70%
+31,Nginx,200,2 GB,4 cores,Simples,29859.25 req/s,6 ms,9 ms,12 ms,0.00%,276.64%,328.74%,13 MB,⚠,CPU>70%
+32,Nginx,200,2 GB,4 cores,Com imagens,24618.48 req/s,7 ms,12 ms,15 ms,0.00%,299.74%,343.72%,13 MB,⚠,CPU>70%
