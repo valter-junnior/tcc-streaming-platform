@@ -15,9 +15,18 @@ Script unico de execucao:
 
 Saidas geradas:
 - app/benchmark/results/<run_id>/results.csv
+- app/benchmark/results/<run_id>/results-tcc.csv
 - app/benchmark/results/<run_id>/summary.txt
 - app/benchmark/results/<run_id>/runner-manifest.md
+- app/benchmark/results/<run_id>/report-technical.md
+- app/benchmark/results/<run_id>/report-tcc.md
 - app/benchmark/results/<run_id>/*/logs/*.log
+
+Copias atualizadas em docs a cada execucao:
+- docs/3. Resultados Benchmark RTMP - Resultados Completos.csv
+- docs/3. Resultados Benchmark RTMP - Resultados TCC.csv
+- docs/3. Resultados Benchmark RTMP - Relatorio Tecnico.md
+- docs/3. Resultados Benchmark RTMP - Relatorio TCC.md
 
 ## Politica Docker-only
 Toda interacao operacional do benchmark e feita via Docker:
@@ -78,12 +87,27 @@ Schema de colunas do arquivo results.csv:
 - compose_network, rtmp_container, master_playlist_url
 - scenario_log_file, metrics_samples_file, viewer_results_dir
 
+Schema reduzido do arquivo results-tcc.csv:
+- test_id, run_id, mode
+- server, transcoder, viewers, repeat_index, status
+- startup_hls_seconds
+- latencia_ponta_a_ponta_seg, tempo_primeiro_segmento_seg
+- cpu_avg_percent, cpu_max_percent
+- mem_avg_mb, mem_max_mb
+- bitrate_kbps
+- segment_error_count, error_rate_percent
+- restarts_session
+- measurement_window_seconds
+- observacoes
+
 ## Interpretacao rapida
 - status=PASS: cenario finalizou com playlist disponivel e publisher sem erro critico.
 - startup_hls_seconds: tempo ate master playlist responder 200.
 - error_rate_percent: taxa de falhas HTTP dos viewers sinteticos.
 - cpu/mem/net: resumo do container RTMP durante a janela ativa.
 - restarts_before/after: evidencia de estabilidade (reinicios involuntarios).
+- results.csv: diagnostico completo, paths de evidencias e metadados operacionais.
+- results-tcc.csv: versao curta focada nas metricas da matriz do TCC.
 
 ## Troubleshooting
 1. Se backend nao ficar pronto:
