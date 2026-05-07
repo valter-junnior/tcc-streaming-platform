@@ -1,0 +1,13 @@
+Execucao,Servidor,Transcodificador,Espectadores,Duracao_s,Repeticao,Startup_HLS_s,Tempo_Primeiro_Segmento_s,CPU_medio_percent,CPU_max_percent,RAM_media_MB,RAM_max_MB,Bitrate_efetivo_kbps,Erros_segmento,Taxa_erros_percent,Reinicios_sessao,Latencia_ponta_a_ponta_s,Status,Observacoes
+T01,nginx,ffmpeg,1,30,1,14,14,172.3661,660.7000,1284.5316,1646.5920,3330.0283,0,0.0000,0,manual,PASS,cpu_medio>80%
+T02,nginx,ffmpeg,10,30,1,15,15,162.8779,716.1800,1424.5521,1753.0880,3333.1617,0,0.0000,0,manual,PASS,cpu_medio>80%
+T03,nginx,ffmpeg,50,30,1,15,15,150.3584,650.9500,1366.7099,1724.4160,3341.7000,0,0.0000,0,manual,PASS,cpu_medio>80%
+T04,nginx,gstreamer,1,30,1,14,14,178.9350,472.0000,636.3156,760.7000,5129.8933,0,0.0000,0,manual,PASS,cpu_medio>80%
+T05,nginx,gstreamer,10,30,1,16,16,164.0450,480.9700,536.5464,640.9000,5134.2382,0,0.0000,0,manual,PASS,startup_hls>15s; cpu_medio>80%
+T06,nginx,gstreamer,50,30,1,16,16,152.0419,465.7800,556.3611,675.9000,5132.4836,0,0.0000,0,manual,PASS,startup_hls>15s; cpu_medio>80%
+T07,srs,ffmpeg,1,30,1,6,6,247.4746,749.5500,1073.8065,1256.4480,3111.5253,0,0.0000,0,manual,PASS,cpu_medio>80%
+T08,srs,ffmpeg,10,30,1,5,5,216.7400,655.2500,1175.9801,1334.2720,3105.0707,0,0.0000,0,manual,PASS,cpu_medio>80%
+T09,srs,ffmpeg,50,30,1,6,6,266.2413,732.3400,1224.0911,1448.9600,3112.3400,0,0.0000,0,manual,PASS,cpu_medio>80%
+T10,srs,gstreamer,1,30,1,1,1,274.3590,660.6500,601.0270,744.5000,5191.3067,11,13.9241,0,manual,PASS,erro_segmento>1%; cpu_medio>80%
+T11,srs,gstreamer,10,30,1,1,1,286.0490,517.5200,514.6230,643.6000,5185.4787,115,15.7967,0,manual,PASS,erro_segmento>1%; cpu_medio>80%
+T12,srs,gstreamer,50,30,1,1,1,190.9233,473.8500,528.9883,648.0000,5039.2773,1061,42.3384,0,manual,PASS,erro_segmento>1%; cpu_medio>80%
