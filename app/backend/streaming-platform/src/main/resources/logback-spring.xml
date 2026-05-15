@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <configuration>
     <!-- Property para o caminho base dos logs -->
-    <property name="LOG_PATH" value="${LOG_PATH:-storage/logs}"/>
+    <property name="LOG_PATH" value="${LOG_PATH:-/app/storage/logs}"/>
     <property name="LOG_FILE" value="${LOG_FILE:-application}"/>
     
     <!-- Padrão de log para console -->
