@@ -31,7 +31,6 @@ SCENARIOS=(
 VIEWER_PIDS=()
 
 CSV_HEADER="run_id,mode,scenario,server,transcoder,repeat_index,viewers,duration_seconds,status,error_message,start_ts,end_ts,measurement_start_ts,measurement_end_ts,measurement_window_seconds,startup_hls_seconds,request_total,request_errors,error_rate_percent,cpu_avg_percent,cpu_max_percent,mem_avg_mb,mem_max_mb,net_in_mb,net_out_mb,bitrate_kbps,restarts_before,restarts_after,retry_index,compose_network,rtmp_container,master_playlist_url,scenario_log_file,metrics_samples_file,viewer_results_dir"
-TCC_CSV_HEADER="Execucao,Servidor,Transcodificador,Espectadores,Duracao_s,Repeticao,Startup_HLS_s,Tempo_Primeiro_Segmento_s,CPU_medio_percent,CPU_max_percent,RAM_media_MB,RAM_max_MB,Bitrate_efetivo_kbps,Erros_segmento,Taxa_erros_percent,Reinicios_sessao,Latencia_ponta_a_ponta_s,Status,Observacoes"
 
 usage() {
   cat <<EOF
@@ -181,16 +180,9 @@ prepare_run_dirs() {
   RUN_DIR="${RESULTS_ROOT}/${RUN_ID}"
   LOG_DIR="${RUN_DIR}/logs"
   CSV_FILE="${RUN_DIR}/results.csv"
-  TCC_CSV_FILE="${RUN_DIR}/results-tcc.csv"
-  TECHNICAL_REPORT_FILE="${RUN_DIR}/report-technical.md"
-  TCC_REPORT_FILE="${RUN_DIR}/report-tcc.md"
   FINAL_RAW_CSV="${SCRIPT_DIR}/resultado_bruto.csv"
-  FINAL_TCC_CSV="${SCRIPT_DIR}/resultado_tcc.csv"
-  FINAL_TECHNICAL_MD="${DOCS_BENCHMARK_DIR}/resultado_tecnico.md"
-  FINAL_TCC_MD="${DOCS_BENCHMARK_DIR}/resultado_tcc.md"
   mkdir -p "$RUN_DIR" "$LOG_DIR"
   echo "$CSV_HEADER" > "$CSV_FILE"
-  echo "$TCC_CSV_HEADER" > "$TCC_CSV_FILE"
   ln -sfn "$RUN_DIR" "${RESULTS_ROOT}/latest"
 }
 
@@ -238,94 +230,8 @@ build_observation() {
   fi
 }
 
-append_tcc_csv_row() {
-  local scenario="$1"
-  local viewers="$2"
-  local repeat_idx="$3"
-  local status="$4"
-  local startup_hls_seconds="$5"
-  local cpu_avg="$6"
-  local cpu_max="$7"
-  local mem_avg="$8"
-  local mem_max="$9"
-  local bitrate_kbps="${10}"
-  local request_errors="${11}"
-  local error_rate_percent="${12}"
-  local restarts_before="${13}"
-  local restarts_after="${14}"
-  local measurement_window="${15}"
-  local test_id
-  test_id="$(test_id_for_row "$scenario" "$viewers")"
-  local restarts_session=$((restarts_after - restarts_before))
-  local observations
-  observations="$(build_observation "$status" "$startup_hls_seconds" "$error_rate_percent" "$cpu_avg" "$restarts_before" "$restarts_after")"
-
-  echo "${test_id},${scenario%%+*},${scenario##*+},${viewers},${DURATION_SECONDS},${repeat_idx},${startup_hls_seconds},${startup_hls_seconds},${cpu_avg},${cpu_max},${mem_avg},${mem_max},${bitrate_kbps},${request_errors},${error_rate_percent},${restarts_session},manual,${status},${observations}" >> "$TCC_CSV_FILE"
-}
-
 generate_reports() {
-  local summary_file="${RUN_DIR}/summary.txt"
-  local total passed failed
-  total="$(sed -n 's/^total=//p' "$summary_file")"
-  passed="$(sed -n 's/^passed=//p' "$summary_file")"
-  failed="$(sed -n 's/^failed=//p' "$summary_file")"
-
-  cat > "$TECHNICAL_REPORT_FILE" <<EOF
-# Relatorio Tecnico do Benchmark RTMP
-
-## Execucao
-- Run ID: ${RUN_ID}
-- Modo: ${MODE}
-- Duracao configurada por cenario: ${DURATION_SECONDS}s
-- Repeticoes configuradas: ${REPEATS}
-- Viewers configurados: ${VIEWERS_LIST}
-- Total de execucoes: ${total}
-- PASS: ${passed}
-- FAIL: ${failed}
-
-## Artefatos principais
-- CSV robusto: ${CSV_FILE}
-- CSV resumido TCC: ${TCC_CSV_FILE}
-- Summary: ${summary_file}
-
-## Observacoes
-- O CSV robusto preserva metadados operacionais, paths de logs e evidencias por cenario.
-- O CSV resumido foca nas metricas centrais da matriz de testes do TCC.
-- A latencia ponta-a-ponta permanece como medicao manual e por isso aparece como manual no CSV resumido.
-
-## Tabela resumida
-| Teste | Servidor | Transcodificador | Viewers | Repeticao | Status | Startup HLS (s) | CPU medio (%) | Mem media (MB) | Bitrate (kbps) | Erros segmento | Reinicios |
-|---|---|---|---:|---:|---|---:|---:|---:|---:|---:|---:|
-EOF
-
-  awk -F',' 'NR>1 {printf "| %s | %s | %s | %s | %s | %s | %s | %s | %s | %s | %s | %s |\n", $1, $2, $3, $4, $6, $18, $7, $9, $11, $13, $14, $16}' "$TCC_CSV_FILE" >> "$TECHNICAL_REPORT_FILE"
-
-  cat > "$TCC_REPORT_FILE" <<EOF
-# Resultados Preliminares do Benchmark RTMP
-
-## Contexto
-Foram executados os cenarios comparativos entre Nginx e SRS com FFmpeg e GStreamer, incluindo as cargas sinteticas definidas para esta execucao (${VIEWERS_LIST}) via Docker.
-
-## Metricas destacadas
-- Startup HLS
-- CPU media e maxima do container RTMP
-- Memoria media e maxima do container RTMP
-- Bitrate efetivo de saida
-- Contagem e taxa de erros de segmento
-- Reinicios involuntarios por sessao
-
-## Resultados
-| Teste | Servidor | Transcodificador | Espectadores | Repeticao | Status | Startup HLS (s) | CPU medio (%) | Mem media (MB) | Bitrate (kbps) | Erros de segmento | Observacoes |
-|---|---|---|---:|---:|---|---:|---:|---:|---:|---:|---|
-EOF
-
-  awk -F',' 'NR>1 {printf "| %s | %s | %s | %s | %s | %s | %s | %s | %s | %s | %s | %s |\n", $1, $2, $3, $4, $6, $18, $7, $9, $11, $13, $14, $19}' "$TCC_CSV_FILE" >> "$TCC_REPORT_FILE"
-
   cp "$CSV_FILE" "$FINAL_RAW_CSV"
-  cp "$TCC_CSV_FILE" "$FINAL_TCC_CSV"
-  mkdir -p "$DOCS_BENCHMARK_DIR"
-  cp "$TECHNICAL_REPORT_FILE" "$FINAL_TECHNICAL_MD"
-  cp "$TCC_REPORT_FILE" "$FINAL_TCC_MD"
 }
 
 scenario_selected() {
@@ -957,7 +863,6 @@ execute_plan() {
     local row
     row="${RUN_ID},${MODE},${scenario},${scenario%%+*},${scenario##*+},${repeat_idx},${viewers},${DURATION_SECONDS},${status},${error_message},${start_ts},${end_ts},${measurement_start_ts},${measurement_end_ts},${measurement_window},${startup_hls_seconds},${request_total},${request_errors},${error_rate_percent},${cpu_avg},${cpu_max},${mem_avg},${mem_max},${net_in_mb},${net_out_mb},${bitrate_kbps},${restarts_before},${restarts_after},${attempt},${compose_network},${rtmp_container},${master_url},${scenario_log_file},${samples_file},${viewers_dir}"
     append_csv_row "$row"
-    append_tcc_csv_row "$scenario" "$viewers" "$repeat_idx" "$status" "$startup_hls_seconds" "$cpu_avg" "$cpu_max" "$mem_avg" "$mem_max" "$bitrate_kbps" "$request_errors" "$error_rate_percent" "$restarts_before" "$restarts_after" "$measurement_window"
 
     log "Resultado: ${status} (${scenario}, viewers=${viewers}, repeat=${repeat_idx})"
   done
@@ -976,7 +881,6 @@ execute_plan() {
     echo "passed=${passed}"
     echo "failed=${failed}"
     echo "csv=${CSV_FILE}"
-    echo "csv_tcc=${TCC_CSV_FILE}"
   } > "$summary_file"
 
   generate_reports
@@ -1009,16 +913,10 @@ main() {
 
   if [[ "$AGGREGATE" -eq 1 && "$MODE" == "full" ]]; then
     local aggregate_script="${SCRIPT_DIR}/aggregate-results.py"
-    local report_script="${SCRIPT_DIR}/generate-tcc-report.py"
     if command -v python3 >/dev/null 2>&1 && [[ -f "$aggregate_script" ]]; then
       log "Agregando resultados com aggregate-results.py ..."
       python3 "$aggregate_script" "$CSV_FILE" "$RUN_DIR"
-      local agg_csv="${RUN_DIR}/results-aggregated.csv"
-      if [[ -f "$agg_csv" && -f "$report_script" ]]; then
-        log "Gerando report-tcc-final.md com generate-tcc-report.py ..."
-        python3 "$report_script" "$agg_csv" "$DOCS_BENCHMARK_DIR"
-        log "Relatorio TCC final: ${DOCS_BENCHMARK_DIR}/report-tcc-final.md"
-      fi
+      log "CSV agregado: ${RUN_DIR}/results-aggregated.csv"
     else
       log "AVISO: python3 ou aggregate-results.py nao encontrado, pulando agregacao."
     fi
