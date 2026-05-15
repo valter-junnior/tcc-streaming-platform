@@ -18,6 +18,8 @@ BACKEND_PORT=8080
 RTMP_PORT=1935
 HLS_HTTP_PORT=8081
 KEEP_UP=0
+AGGREGATE=0
+DOCS_BENCHMARK_DIR="$(cd "${APP_DIR}/.." && pwd)/docs/benchmark"
 
 SCENARIOS=(
   "nginx+ffmpeg"
@@ -47,11 +49,13 @@ Opcoes:
   --rtmp-port <port>           Porta RTMP interna dos servicos (default: 1935)
   --hls-port <port>            Porta HLS interna dos servicos (default: 8081)
   --keep-up                    Nao derruba stack no final
+  --aggregate                  Apos execucao full, agrega resultados e gera report-tcc-final.md em docs/benchmark/
   --help                       Exibe ajuda
 
 Exemplos:
   ./benchmark/run-rtmp-benchmark.sh --mode sanity --duration 90
   ./benchmark/run-rtmp-benchmark.sh --mode full --duration 300 --repeats 3
+  ./benchmark/run-rtmp-benchmark.sh --mode full --duration 300 --repeats 3 --aggregate
 EOF
 }
 
@@ -119,6 +123,10 @@ parse_args() {
         KEEP_UP=1
         shift
         ;;
+      --aggregate)
+        AGGREGATE=1
+        shift
+        ;;
       --help|-h)
         usage
         exit 0
@@ -178,8 +186,8 @@ prepare_run_dirs() {
   TCC_REPORT_FILE="${RUN_DIR}/report-tcc.md"
   FINAL_RAW_CSV="${SCRIPT_DIR}/resultado_bruto.csv"
   FINAL_TCC_CSV="${SCRIPT_DIR}/resultado_tcc.csv"
-  FINAL_TECHNICAL_MD="${SCRIPT_DIR}/resultado_tecnico.md"
-  FINAL_TCC_MD="${SCRIPT_DIR}/resultado_tcc.md"
+  FINAL_TECHNICAL_MD="${DOCS_BENCHMARK_DIR}/resultado_tecnico.md"
+  FINAL_TCC_MD="${DOCS_BENCHMARK_DIR}/resultado_tcc.md"
   mkdir -p "$RUN_DIR" "$LOG_DIR"
   echo "$CSV_HEADER" > "$CSV_FILE"
   echo "$TCC_CSV_HEADER" > "$TCC_CSV_FILE"
@@ -315,6 +323,7 @@ EOF
 
   cp "$CSV_FILE" "$FINAL_RAW_CSV"
   cp "$TCC_CSV_FILE" "$FINAL_TCC_CSV"
+  mkdir -p "$DOCS_BENCHMARK_DIR"
   cp "$TECHNICAL_REPORT_FILE" "$FINAL_TECHNICAL_MD"
   cp "$TCC_REPORT_FILE" "$FINAL_TCC_MD"
 }
@@ -996,6 +1005,23 @@ main() {
   else
     log "Benchmark concluido com falhas parciais"
     exit 1
+  fi
+
+  if [[ "$AGGREGATE" -eq 1 && "$MODE" == "full" ]]; then
+    local aggregate_script="${SCRIPT_DIR}/aggregate-results.py"
+    local report_script="${SCRIPT_DIR}/generate-tcc-report.py"
+    if command -v python3 >/dev/null 2>&1 && [[ -f "$aggregate_script" ]]; then
+      log "Agregando resultados com aggregate-results.py ..."
+      python3 "$aggregate_script" "$CSV_FILE" "$RUN_DIR"
+      local agg_csv="${RUN_DIR}/results-aggregated.csv"
+      if [[ -f "$agg_csv" && -f "$report_script" ]]; then
+        log "Gerando report-tcc-final.md com generate-tcc-report.py ..."
+        python3 "$report_script" "$agg_csv" "$DOCS_BENCHMARK_DIR"
+        log "Relatorio TCC final: ${DOCS_BENCHMARK_DIR}/report-tcc-final.md"
+      fi
+    else
+      log "AVISO: python3 ou aggregate-results.py nao encontrado, pulando agregacao."
+    fi
   fi
 }
 

@@ -43,13 +43,45 @@ Matriz completa (1, 10, 50 viewers):
 ./benchmark/run-rtmp-benchmark.sh --mode full --duration 300 --viewers-list 1,10,50 --repeats 1 --retries 0
 ```
 
+Matriz completa com agregacao estatistica e relatorio TCC automaticos:
+
+```bash
+./benchmark/run-rtmp-benchmark.sh --mode full --duration 300 --repeats 3 --aggregate
+```
+
+Ou em dois passos separados:
+
+```bash
+# 1. Executar benchmark
+./benchmark/run-rtmp-benchmark.sh --mode full --duration 300 --repeats 3
+
+# 2. Agregar resultados (gera results-aggregated.csv)
+python3 benchmark/aggregate-results.py benchmark/results/latest/results.csv benchmark/results/latest/
+
+# 3. Gerar relatorio TCC final (gera docs/benchmark/report-tcc-final.md)
+python3 benchmark/generate-tcc-report.py benchmark/results/latest/results-aggregated.csv
+```
+
 ## Estrutura de saida
-Todos os resultados ficam em app/benchmark:
-- app/benchmark/results/<run_id>/
-- app/benchmark/resultado_bruto.csv
-- app/benchmark/resultado_tcc.csv
-- app/benchmark/resultado_tecnico.md
-- app/benchmark/resultado_tcc.md
+Todos os resultados ficam em:
+
+- `app/benchmark/results/<run_id>/`   — resultados da execucao especifica
+- `app/benchmark/resultado_bruto.csv` — ultimo resultado bruto completo (copia)
+- `app/benchmark/resultado_tcc.csv`   — ultimo resultado TCC (copia)
+- `docs/benchmark/resultado_tecnico.md` — ultimo relatorio tecnico
+- `docs/benchmark/resultado_tcc.md`     — ultimo relatorio TCC resumido
+- `docs/benchmark/report-tcc-final.md`  — relatorio final com analise estatistica (gerado com --aggregate)
+
+Dentro de cada `<run_id>/`:
+- `results.csv`               — dados brutos de todas as execucoes
+- `results-tcc.csv`           — dados resumidos para o TCC
+- `results-aggregated.csv`    — media e desvio padrao por combinacao (gerado por aggregate-results.py)
+- `report-technical.md`       — relatorio tecnico da execucao
+- `report-tcc.md`             — relatorio TCC da execucao
+- `report-tcc-final.md`       — relatorio final com tabelas e avaliacao de criterios (gerado por generate-tcc-report.py)
+- `runner-manifest.md`        — manifesto dos cenarios planejados
+- `summary.txt`               — resumo rapido (pass/fail/totais)
+- `logs/`                     — logs por cenario
 
 ## Resultados esperados
 - PASS para os cenarios que conseguem publicar a live, servir playlists HLS e finalizar sem erro critico.
@@ -117,3 +149,26 @@ Formato resumido para analise no TCC.
 - Latencia_ponta_a_ponta_s: latencia OBS->player (manual nesta versao).
 - Status: PASS ou FAIL.
 - Observacoes: alertas relevantes para leitura rapida.
+
+## Scripts auxiliares
+
+### aggregate-results.py
+Agrega N repeticoes por combinacao (server × transcoder × viewers) calculando media e desvio padrao para cada metrica.
+
+```
+python3 aggregate-results.py <results.csv> [output_dir]
+```
+
+Saida: `results-aggregated.csv` com colunas `<metrica>_mean` e `<metrica>_stddev`.
+
+### generate-tcc-report.py
+Gera `report-tcc-final.md` a partir do `results-aggregated.csv` com:
+- Tabelas comparativas (mean ± stddev) por metrica
+- Avaliacao PASS/FAIL dos criterios de aceitacao do Plano de Testes
+- Notas metodologicas (CPU elevado em ambiente compartilhado, latencia manual)
+
+```
+python3 generate-tcc-report.py <results-aggregated.csv> [output_dir]
+```
+
+Saida padrao: `docs/benchmark/report-tcc-final.md`.

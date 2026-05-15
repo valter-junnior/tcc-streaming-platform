@@ -22,12 +22,12 @@ Medir e comparar, nas quatro combinações (Nginx/SRS × FFmpeg/GStreamer), as m
 
 | Item | Especificação |
 |---|---|
-| Sistema Operacional | Ubuntu 22.04 LTS (x86\_64) |
+| Sistema Operacional | Ubuntu 24.04.3 LTS (x86\_64), kernel 6.17.0-23-generic |
 | Arquitetura | x86\_64 |
-| CPU | A definir (ex: Intel Core i7 ou equivalente) |
-| RAM | A definir (recomendado ≥ 16 GB) |
-| Armazenamento | SSD; `/tmp` em tmpfs (ou disco) |
-| Rede | Loopback (testes locais) / LAN (testes com carga) |
+| CPU | Intel Core i5-13420H (13ª geração, 12 threads, 2 threads/núcleo) |
+| RAM | 24 GB |
+| Armazenamento | NVMe SSD (231 GB) |
+| Rede | Loopback / bridge Docker (testes locais) |
 | Virtualização | Docker Engine (sem VM adicional) |
 
 ### Fatores e Níveis
