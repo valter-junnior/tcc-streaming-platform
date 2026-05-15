@@ -19,7 +19,7 @@ RTMP_PORT=1935
 HLS_HTTP_PORT=8081
 KEEP_UP=0
 AGGREGATE=0
-DOCS_BENCHMARK_DIR="$(cd "${APP_DIR}/.." && pwd)/docs/benchmark"
+STATS_PID=0
 
 SCENARIOS=(
   "nginx+ffmpeg"
@@ -30,7 +30,7 @@ SCENARIOS=(
 
 VIEWER_PIDS=()
 
-CSV_HEADER="run_id,mode,scenario,server,transcoder,repeat_index,viewers,duration_seconds,status,error_message,start_ts,end_ts,measurement_start_ts,measurement_end_ts,measurement_window_seconds,startup_hls_seconds,request_total,request_errors,error_rate_percent,cpu_avg_percent,cpu_max_percent,mem_avg_mb,mem_max_mb,net_in_mb,net_out_mb,bitrate_kbps,restarts_before,restarts_after,retry_index,compose_network,rtmp_container,master_playlist_url,scenario_log_file,metrics_samples_file,viewer_results_dir"
+CSV_HEADER="run_id,mode,scenario,server,transcoder,repeat_index,viewers,duration_seconds,status,error_message,measurement_start_ts,measurement_end_ts,measurement_window_seconds,startup_hls_seconds,request_total,request_errors,error_rate_percent,cpu_avg_percent,cpu_max_percent,mem_avg_mb,mem_max_mb,net_in_mb,net_out_mb,bitrate_kbps,restarts_before,restarts_after,retry_index,compose_network,rtmp_container,master_playlist_url,scenario_log_file,metrics_samples_file,viewer_results_dir"
 
 usage() {
   cat <<EOF
@@ -186,50 +186,6 @@ prepare_run_dirs() {
   ln -sfn "$RUN_DIR" "${RESULTS_ROOT}/latest"
 }
 
-test_id_for_row() {
-  local scenario="$1"
-  local viewers="$2"
-
-  if [[ "$scenario" == "nginx+ffmpeg" && "$viewers" == "1" ]]; then echo "T01"; return; fi
-  if [[ "$scenario" == "nginx+ffmpeg" && "$viewers" == "10" ]]; then echo "T02"; return; fi
-  if [[ "$scenario" == "nginx+ffmpeg" && "$viewers" == "50" ]]; then echo "T03"; return; fi
-  if [[ "$scenario" == "nginx+gstreamer" && "$viewers" == "1" ]]; then echo "T04"; return; fi
-  if [[ "$scenario" == "nginx+gstreamer" && "$viewers" == "10" ]]; then echo "T05"; return; fi
-  if [[ "$scenario" == "nginx+gstreamer" && "$viewers" == "50" ]]; then echo "T06"; return; fi
-  if [[ "$scenario" == "srs+ffmpeg" && "$viewers" == "1" ]]; then echo "T07"; return; fi
-  if [[ "$scenario" == "srs+ffmpeg" && "$viewers" == "10" ]]; then echo "T08"; return; fi
-  if [[ "$scenario" == "srs+ffmpeg" && "$viewers" == "50" ]]; then echo "T09"; return; fi
-  if [[ "$scenario" == "srs+gstreamer" && "$viewers" == "1" ]]; then echo "T10"; return; fi
-  if [[ "$scenario" == "srs+gstreamer" && "$viewers" == "10" ]]; then echo "T11"; return; fi
-  if [[ "$scenario" == "srs+gstreamer" && "$viewers" == "50" ]]; then echo "T12"; return; fi
-  echo "NA"
-}
-
-build_observation() {
-  local status="$1"
-  local startup="$2"
-  local error_rate="$3"
-  local cpu_avg="$4"
-  local restarts_before="$5"
-  local restarts_after="$6"
-
-  local notes=()
-  local restarts_session=$((restarts_after - restarts_before))
-
-  [[ "$status" == "PASS" ]] || notes+=("status=${status}")
-  awk -v value="$startup" 'BEGIN{exit !(value > 15)}' && notes+=("startup_hls>15s") || true
-  awk -v value="$error_rate" 'BEGIN{exit !(value > 1)}' && notes+=("erro_segmento>1%") || true
-  awk -v value="$cpu_avg" 'BEGIN{exit !(value > 80)}' && notes+=("cpu_medio>80%") || true
-  (( restarts_session > 0 )) && notes+=("reinicios=${restarts_session}")
-
-  if [[ ${#notes[@]} -eq 0 ]]; then
-    echo "ok"
-  else
-    local joined="${notes[*]}"
-    echo "${joined// /; }"
-  fi
-}
-
 generate_reports() {
   cp "$CSV_FILE" "$FINAL_RAW_CSV"
 }
@@ -304,6 +260,15 @@ EOF
 
 compose_down_quiet() {
   compose down --remove-orphans >/dev/null 2>&1 || true
+}
+
+cleanup() {
+  if [[ "${KEEP_UP:-0}" -eq 0 ]]; then
+    compose_down_quiet
+  fi
+  if [[ "${STATS_PID:-0}" -gt 0 ]]; then
+    kill "$STATS_PID" 2>/dev/null || true
+  fi
 }
 
 setup_environment_for_scenario() {
@@ -568,8 +533,6 @@ measure_startup_latency() {
   local master_url="$2"
   local timeout="$3"
 
-  local started
-  started="$(date +%s)"
   local elapsed=0
   while (( elapsed < timeout )); do
     local code
@@ -590,7 +553,7 @@ probe_bitrate_kbps() {
   local network="$1"
   local master_url="$2"
 
-  docker run --rm --network "$network" -i curlimages/curl:8.7.1 sh -s "$master_url" <<'EOF'
+  docker run --rm --network "$network" -i curlimages/curl:8.7.1 sh -s -- "$master_url" <<'EOF'
 set -eu
 
 MASTER_URL="$1"
@@ -701,11 +664,12 @@ run_one_attempt() {
   restarts_before="$(extract_restart_count "$rtmp_container")"
 
   collect_stats_loop "$rtmp_container" "$samples_file" &
-  local stats_pid=$!
+  STATS_PID=$!
 
   local publisher_name
   publisher_name="bench-pub-${scenario_slug}"
   publisher_name="${publisher_name:0:55}"
+  publisher_name="${publisher_name%-}"
 
   local stream_url
   stream_url="rtmp://${rtmp_service}:${RTMP_PORT}/live/${stream_key}"
@@ -750,7 +714,7 @@ run_one_attempt() {
 
   sleep 2
   touch "${samples_file}.stop"
-  wait "$stats_pid" || true
+  wait "$STATS_PID" || true
 
   compose logs --no-color "$rtmp_service" >> "${scenario_logs}/rtmp.log" 2>&1 || true
   compose logs --no-color streaming-platform >> "${scenario_logs}/backend.log" 2>&1 || true
@@ -819,14 +783,12 @@ execute_plan() {
     log "[$idx/$total] Executando $scenario viewers=$viewers repeat=$repeat_idx"
 
     local attempt=0
-    local done=0
     local final_result=""
 
     while (( attempt <= RETRIES )); do
       local result_line
       if result_line="$(run_one_attempt "$scenario" "$viewers" "$repeat_idx" "$attempt")"; then
         final_result="$result_line"
-        done=1
         break
       else
         final_result="$result_line"
@@ -847,10 +809,6 @@ execute_plan() {
       error_rate_percent cpu_avg cpu_max mem_avg mem_max net_in_mb net_out_mb bitrate_kbps \
       restarts_before restarts_after compose_network master_url <<< "$final_result"
 
-    local start_ts end_ts
-    start_ts="$measurement_start_ts"
-    end_ts="$measurement_end_ts"
-
     if [[ "$status" == "PASS" ]]; then
       passed=$((passed + 1))
     else
@@ -861,7 +819,7 @@ execute_plan() {
     fi
 
     local row
-    row="${RUN_ID},${MODE},${scenario},${scenario%%+*},${scenario##*+},${repeat_idx},${viewers},${DURATION_SECONDS},${status},${error_message},${start_ts},${end_ts},${measurement_start_ts},${measurement_end_ts},${measurement_window},${startup_hls_seconds},${request_total},${request_errors},${error_rate_percent},${cpu_avg},${cpu_max},${mem_avg},${mem_max},${net_in_mb},${net_out_mb},${bitrate_kbps},${restarts_before},${restarts_after},${attempt},${compose_network},${rtmp_container},${master_url},${scenario_log_file},${samples_file},${viewers_dir}"
+    row="${RUN_ID},${MODE},${scenario},${scenario%%+*},${scenario##*+},${repeat_idx},${viewers},${DURATION_SECONDS},${status},${error_message},${measurement_start_ts},${measurement_end_ts},${measurement_window},${startup_hls_seconds},${request_total},${request_errors},${error_rate_percent},${cpu_avg},${cpu_max},${mem_avg},${mem_max},${net_in_mb},${net_out_mb},${bitrate_kbps},${restarts_before},${restarts_after},${attempt},${compose_network},${rtmp_container},${master_url},${scenario_log_file},${samples_file},${viewers_dir}"
     append_csv_row "$row"
 
     log "Resultado: ${status} (${scenario}, viewers=${viewers}, repeat=${repeat_idx})"
@@ -893,6 +851,7 @@ execute_plan() {
 
 main() {
   parse_args "$@"
+  trap cleanup EXIT INT TERM
   validate_preflight
   ensure_results
   prepare_run_dirs
