@@ -33,7 +33,7 @@ METRICS = [
     "measurement_window_seconds",
 ]
 
-KEY_COLS = ("server", "transcoder", "viewers")
+KEY_COLS = ("mode", "server", "transcoder", "viewers")
 
 # Critérios de aceitação (Plano de Testes)
 # (coluna_mean, modo, threshold)
@@ -41,7 +41,7 @@ CRITERIA = [
     ("startup_hls_seconds_mean", "le", 15.0),
     ("cpu_avg_percent_mean",     "le", 80.0),
     ("error_rate_percent_mean",  "le",  1.0),
-    ("restarts_after_mean",      "eq",  0.0),
+    ("restarts_after_mean",      "le",  0.0),
 ]
 
 
@@ -121,6 +121,8 @@ def evaluate_criteria(result):
         result[key] = "PASS" if ok else "FAIL"
         if not ok:
             all_pass = False
+    if result.get("status") == "FAIL":
+        all_pass = False
     result["overall_pass_fail"] = "PASS" if all_pass else "FAIL"
     return result
 
@@ -160,7 +162,7 @@ def main():
     fieldnames = build_output_fieldnames()
     write_aggregated(output_path, aggregated, fieldnames)
 
-    print(f"\nResumo:")
+    print("\nResumo:")
     print(f"  Linhas de entrada : {len(rows)}")
     print(f"  Combinações únicas: {len(aggregated)}")
     for row in aggregated:
