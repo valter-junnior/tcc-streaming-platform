@@ -14,7 +14,7 @@ Thumbs.db
 !.env.example
 
 # Logs
-*.log
+app/backend/rtmp/logs/*
 
 # HLS Files (Transport Stream video segments, NOT TypeScript)
 **/hls/**/*.ts
@@ -28,5 +28,8 @@ node_modules/
 dist/
 build/
 
+
 # Docker
 docker-compose.override.yml
+
+app/benchmark/results/bench-*
