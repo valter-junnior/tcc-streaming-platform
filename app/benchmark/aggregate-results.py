@@ -7,8 +7,8 @@ Uso:
 
 Saída:
     results-aggregated.csv  — uma linha por (server, transcoder, viewers) com
-                              <metrica>_mean e <metrica>_stddev para cada
-                              métrica numérica.
+                              <metrica>_mean, <metrica>_stddev e avaliação
+                              pass/fail dos critérios de aceitação do TCC.
 
 Requer apenas Python standard library (csv, statistics, sys, os, pathlib).
 """
@@ -34,6 +34,15 @@ METRICS = [
 ]
 
 KEY_COLS = ("server", "transcoder", "viewers")
+
+# Critérios de aceitação (Plano de Testes)
+# (coluna_mean, modo, threshold)
+CRITERIA = [
+    ("startup_hls_seconds_mean", "le", 15.0),
+    ("cpu_avg_percent_mean",     "le", 80.0),
+    ("error_rate_percent_mean",  "le",  1.0),
+    ("restarts_after_mean",      "eq",  0.0),
+]
 
 
 def parse_args():
@@ -93,11 +102,37 @@ def aggregate_group(key, group_rows):
     return result
 
 
+def evaluate_criteria(result):
+    """Adiciona colunas pass_* e overall_pass_fail ao dicionário result."""
+    all_pass = True
+    for col, mode, threshold in CRITERIA:
+        val_str = result.get(col, "")
+        try:
+            val = float(val_str)
+            if mode == "le":
+                ok = val <= threshold
+            elif mode == "eq":
+                ok = val == threshold
+            else:
+                ok = True
+        except ValueError:
+            ok = False
+        key = f"pass_{col.replace('_mean', '')}"
+        result[key] = "PASS" if ok else "FAIL"
+        if not ok:
+            all_pass = False
+    result["overall_pass_fail"] = "PASS" if all_pass else "FAIL"
+    return result
+
+
 def build_output_fieldnames():
     base = list(KEY_COLS) + ["repeat_count", "status", "run_id"]
     for metric in METRICS:
         base.append(f"{metric}_mean")
         base.append(f"{metric}_stddev")
+    for col, _, _ in CRITERIA:
+        base.append(f"pass_{col.replace('_mean', '')}")
+    base.append("overall_pass_fail")
     return base
 
 
@@ -118,7 +153,7 @@ def main():
         sys.exit(1)
 
     groups = group_by_key(rows)
-    aggregated = [aggregate_group(key, grp) for key, grp in sorted(groups.items())]
+    aggregated = [evaluate_criteria(aggregate_group(key, grp)) for key, grp in sorted(groups.items())]
 
     output_dir.mkdir(parents=True, exist_ok=True)
     output_path = output_dir / "results-aggregated.csv"
