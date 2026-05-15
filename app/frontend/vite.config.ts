@@ -31,7 +31,6 @@ export default defineConfig(({ mode }) => {
           manualChunks: {
             "react-vendor": ["react", "react-dom", "react-router-dom"],
             "video-vendor": ["video.js", "@videojs/http-streaming"],
-            "stomp-vendor": ["@stomp/stompjs", "sockjs-client"],
           },
         },
       },
@@ -44,11 +43,6 @@ export default defineConfig(({ mode }) => {
         "/api": {
           target: backendUrl,
           changeOrigin: true,
-        },
-        "/ws": {
-          target: backendUrl,
-          changeOrigin: true,
-          ws: true,
         },
       },
     },

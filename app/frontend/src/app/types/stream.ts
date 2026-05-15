@@ -40,24 +40,6 @@ export interface StreamStatusResponse {
   viewersPeak: number;
 }
 
-export interface WebSocketMessage {
-  type: "STATUS_UPDATE" | "VIEWERS_UPDATE" | "STREAM_STARTED" | "STREAM_ENDED";
-  streamId?: string;
-  data?: any;
-  currentViewers?: number;
-  viewersPeak?: number;
-}
-
-export interface ViewerJoinedMessage {
-  viewerId: string;
-  totalViewers: number;
-}
-
-export interface ViewerLeftMessage {
-  viewerId: string;
-  totalViewers: number;
-}
-
 export interface UpdateStreamRequest {
   title: string;
   description: string;

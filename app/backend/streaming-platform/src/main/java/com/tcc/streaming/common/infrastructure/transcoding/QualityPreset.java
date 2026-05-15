@@ -1,80 +1,63 @@
 package com.tcc.streaming.common.infrastructure.transcoding;
 
 /**
- * Quality preset for video transcoding.
- * Defines resolution, bitrate, and encoder settings for each quality level.
+ * Presets de qualidade de vídeo para transcodificação HLS multi-bitrate.
+ * Mantém os mesmos valores para FFmpeg e GStreamer, garantindo comparação justa.
  */
-public class QualityPreset {
-    
-    private final String name;
+public enum QualityPreset {
+
+    V0("1080p", 1920, 1080, 5000, 128, "v0"),
+    V1("720p",  1280,  720, 2800, 128, "v1"),
+    V2("480p",   854,  480, 1400,  96, "v2"),
+    V3("360p",   640,  360,  800,  96, "v3");
+
+    private final String label;
     private final int width;
     private final int height;
-    private final int videoBitrate;  // kbps
-    private final int audioBitrate;  // kbps
-    private final String encoderPreset;
-    
-    public QualityPreset(
-            String name,
-            int width,
-            int height,
-            int videoBitrate,
-            int audioBitrate,
-            String encoderPreset) {
-        this.name = name;
+    private final int videoBitrateKbps;
+    private final int audioBitrateKbps;
+    private final String outputDir;
+
+    QualityPreset(String label, int width, int height,
+                  int videoBitrateKbps, int audioBitrateKbps, String outputDir) {
+        this.label = label;
         this.width = width;
         this.height = height;
-        this.videoBitrate = videoBitrate;
-        this.audioBitrate = audioBitrate;
-        this.encoderPreset = encoderPreset;
+        this.videoBitrateKbps = videoBitrateKbps;
+        this.audioBitrateKbps = audioBitrateKbps;
+        this.outputDir = outputDir;
     }
-    
-    public String getName() {
-        return name;
+
+    public String getLabel() {
+        return label;
     }
-    
+
     public int getWidth() {
         return width;
     }
-    
+
     public int getHeight() {
         return height;
     }
-    
-    public int getVideoBitrate() {
-        return videoBitrate;
+
+    public int getVideoBitrateKbps() {
+        return videoBitrateKbps;
     }
-    
-    public int getAudioBitrate() {
-        return audioBitrate;
+
+    public int getAudioBitrateKbps() {
+        return audioBitrateKbps;
     }
-    
-    public String getEncoderPreset() {
-        return encoderPreset;
+
+    public String getOutputDir() {
+        return outputDir;
     }
-    
+
     public String getResolution() {
         return width + "x" + height;
     }
-    
+
     @Override
     public String toString() {
-        return String.format("%s (%dx%d @ %dkbps)", name, width, height, videoBitrate);
+        return label + " (" + getResolution() + " @ " + videoBitrateKbps + "kbps)";
     }
-    
-    // Standard presets
-    public static QualityPreset PRESET_1080P = new QualityPreset(
-        "1080p", 1920, 1080, 5000, 128, "medium"
-    );
-    
-    public static QualityPreset PRESET_720P = new QualityPreset(
-        "720p", 1280, 720, 2800, 128, "medium"
-    );
-    
-    public static QualityPreset PRESET_480P = new QualityPreset(
-        "480p", 854, 480, 1400, 128, "fast"
-    );
-    
-    public static QualityPreset PRESET_360P = new QualityPreset(
-        "360p", 640, 360, 800, 96, "faster"
-    );
 }

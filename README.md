@@ -1,106 +1,137 @@
-# Plataforma de Streaming com Análise Comparativa
+# Plataforma de Streaming — TCC
 
-**TCC** - Trabalho de Conclusão de Curso  
-**Período**: Janeiro 2026 - Junho 2026
+Plataforma de streaming ao vivo desenvolvida para comparação de tecnologias de ingestão RTMP e transcodificação.
 
-## 📋 Sobre o Projeto
+No estado atual do código, o ambiente principal em `app/docker-compose.yml` sobe:
+- PostgreSQL
+- RabbitMQ
+- Backend Spring Boot (`streaming-platform`)
+- RTMP Server selecionável por profile (`Nginx` ou `SRS`)
+- Frontend React
 
-Plataforma de streaming de vídeo ao vivo que permite avaliar e comparar o desempenho de diferentes tecnologias para as mesmas funcionalidades.
+O streamer transmite via OBS, o backend valida a stream key por callback HTTP, o transcodificador ativo gera HLS, e o espectador assiste no navegador com HLS.js + Plyr.
 
-## 🏗️ Estrutura do Projeto
+## Matriz comparativa (objetivo do TCC)
 
-```
-tcc/
-├── app/
-│   ├── backend/
-│   │   ├── streaming-platform/    # Backend Spring Boot
-│   │   └── nginx-rtmp/            # Servidor RTMP/HLS
-│   ├── frontend/                  # Frontend React
-│   ├── config/                    # Configurações (Nginx, Prometheus, Grafana)
-│   ├── docker-compose.yml         # Orquestração de containers
-│   ├── .env                       # Variáveis de ambiente
-│   └── .env.example               # Template de variáveis
-├── docker/                        # Dockerfiles customizados
-├── docs/                          # Documentação
-└── scripts/                       # Scripts utilitários
-```
+| | FFmpeg | GStreamer |
+|---|---|---|
+| **Nginx-RTMP** | Ativo no compose atual | Ativo no compose atual |
+| **SRS** | Ativo no compose atual | Ativo no compose atual |
 
-## 🚀 Quick Start
+## Tecnologias
+
+| Camada | Tecnologia |
+|---|---|
+| Backend | Java 21, Spring Boot 3.2, Spring Data JPA, Spring AMQP |
+| Banco de dados | PostgreSQL 16 |
+| Mensageria | RabbitMQ 3 (management) |
+| Ingestão RTMP | Nginx compilado com `nginx-rtmp-module` |
+| Transcodificação | FFmpeg ou GStreamer (seleção via `TRANSCODER`) |
+| Entrega | HLS via HTTP no container RTMP |
+| Frontend | React 19, TypeScript, Vite, React Router 7, TanStack Query 5 |
+| Player | HLS.js + Plyr |
+| Tempo real | Server-Sent Events (SSE) |
+
+## Subida do ambiente
 
 ### Pré-requisitos
 
 - Docker e Docker Compose
-- Java 21 (para desenvolvimento local)
-- Node.js 20+ (para desenvolvimento local)
+- Portas livres: `1935`, `8080`, `8081`, `3001`, `5672`, `15672`
 
-### Setup Inicial
+### 1. Configurar ambiente
 
 ```bash
-# 1. Navegar para a pasta app
-cd app/
-
-# 2. Copiar variáveis de ambiente
+cd app
 cp .env.example .env
-
-# 3. (Opcional) Editar .env com suas configurações
-nano .env
 ```
 
-### Iniciar Infraestrutura
+### 2. Subir serviços
 
 ```bash
-# Subir todos os serviços (PostgreSQL, Redis, RabbitMQ, Backend, Frontend)
-cd app/
-docker compose up -d
-
-# Ver logs
-docker compose logs -f
-
-# Ver logs apenas do frontend
-docker compose logs -f frontend
-```
-
-### Verificar Status
-
-```bash
-cd app/
+docker compose --profile "${COMPOSE_PROFILES:-nginx}" up -d --build
 docker compose ps
 ```
 
-## 🔗 Acessos
+`COMPOSE_PROFILES` define qual servidor RTMP será iniciado:
+- `nginx`: sobe `rtmp-server-nginx`
+- `srs`: sobe `rtmp-server-srs`
 
-- **Frontend**: http://localhost:3001
-- **Backend API**: http://localhost:8080
-- **Backend Health**: http://localhost:8080/actuator/health
-- **HLS Stream**: http://localhost:8081/hls/{stream-key}.m3u8
-- **RabbitMQ Management**: http://localhost:15672 (user/pass configurados no .env)
-- **PostgreSQL**: localhost:5432 (credenciais no .env)
-- **Redis**: localhost:6379
+### 3. Validar backend
 
-## 📚 Documentação
+```bash
+curl http://localhost:8080/actuator/health
+```
 
-- [Documentação Completa](docs/documentacao_v2.md)
-- [TODO - Roadmap](docs/todo.md)
-- [Utils - Orientações Especiais](docs/utils.md)
-- [Configuração de Variáveis (.env)](ENV_SETUP.md)
-- [Hot Reload no Docker](app/backend/streaming-platform/HOT_RELOAD.md)
-- [Testes de API (.http)](scripts/api-tests/README.md)
+### 4. Abrir frontend
 
-## 🛠️ Stack Tecnológico
+`http://localhost:3001`
 
-- **Backend**: Java 21 + Spring Boot 3.2.2
-- **Frontend**: React 18 + TypeScript
-- **Streaming**: Nginx-RTMP + FFmpeg
-- **Database**: PostgreSQL
-- **Cache**: Redis
-- **Message Broker**: RabbitMQ
-- **Monitoring**: Prometheus + Grafana
+## Trocar transcodificador
 
-## 📊 Progresso
+No `.env`:
 
-Veja [docs/todo.md](docs/todo.md) para acompanhar o progresso do desenvolvimento.
+```env
+TRANSCODER=ffmpeg
+# ou
+TRANSCODER=gstreamer
+```
 
----
+Recriar o serviço RTMP:
 
-**Status**: 🚀 Em Desenvolvimento  
-**Última Atualização**: 02/02/2026
+```bash
+docker compose --profile "${COMPOSE_PROFILES:-nginx}" up -d --build --force-recreate
+```
+
+Observação importante:
+- `ffmpeg` gera 4 variantes (`1080p`, `720p`, `480p`, `360p`).
+- `gstreamer` está estabilizado com 2 variantes (`1080p`, `480p`) no `master.m3u8` atual.
+
+## Cenários mínimos (RTMP + Transcoder)
+
+Todos os cenários usam o mesmo comando base:
+
+```bash
+COMPOSE_PROFILES=<nginx|srs> TRANSCODER=<ffmpeg|gstreamer> \
+docker compose --profile "$COMPOSE_PROFILES" up -d --build --force-recreate
+```
+
+Exemplos:
+
+```bash
+# 1) nginx + ffmpeg
+COMPOSE_PROFILES=nginx TRANSCODER=ffmpeg docker compose --profile nginx up -d --build --force-recreate
+
+# 2) nginx + gstreamer
+COMPOSE_PROFILES=nginx TRANSCODER=gstreamer docker compose --profile nginx up -d --build --force-recreate
+
+# 3) srs + ffmpeg
+COMPOSE_PROFILES=srs TRANSCODER=ffmpeg docker compose --profile srs up -d --build --force-recreate
+
+# 4) srs + gstreamer
+COMPOSE_PROFILES=srs TRANSCODER=gstreamer docker compose --profile srs up -d --build --force-recreate
+```
+
+## Configuração do OBS
+
+1. Serviço: `Personalizado`
+2. Servidor: `rtmp://localhost:1935/live`
+3. Stream key: gerada ao criar a stream no frontend
+
+Parâmetros recomendados:
+- Encoder: `x264`
+- Bitrate: `4000-6000 kbps`
+- Keyframe interval: `2s`
+
+## Endpoints úteis
+
+- Root API: `GET /`
+- Swagger: `http://localhost:8080/swagger-ui.html`
+- Actuator health: `GET /actuator/health`
+- Streams: `POST /api/streams`, `GET /api/streams/live`, `GET /api/streams/{id}`
+- SSE: `GET /api/sse/stream/{streamId}/subscribe`
+
+## Limitações conhecidas
+
+- O compose principal não possui serviço SRS ativo.
+- Monitoramento com Prometheus/Grafana não está orquestrado no compose atual.

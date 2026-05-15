@@ -15,6 +15,8 @@ import com.tcc.streaming.stream.core.usecases.GetStreamStatusUseCase;
 import com.tcc.streaming.stream.core.usecases.GetStreamUseCase;
 import com.tcc.streaming.stream.core.usecases.ListLiveStreamsUseCase;
 import com.tcc.streaming.stream.core.usecases.ListUserStreamsUseCase;
+import com.tcc.streaming.stream.core.usecases.ForceEndAllLiveStreamsUseCase;
+import com.tcc.streaming.stream.core.usecases.RestartStreamUseCase;
 import com.tcc.streaming.stream.core.usecases.UpdateStreamUseCase;
 import com.tcc.streaming.stream.core.usecases.ValidateStreamKeyUseCase;
 import com.tcc.streaming.stream.core.events.StreamCreatedEvent;
@@ -22,6 +24,7 @@ import com.tcc.streaming.stream.core.events.StreamEndedEvent;
 import com.tcc.streaming.stream.core.events.StreamStartedEvent;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -31,32 +34,31 @@ import java.util.UUID;
 import java.util.stream.Collectors;
 
 @Service
-public class StreamService implements CreateStreamUseCase, GetStreamUseCase, GetStreamStatusUseCase, DeleteStreamUseCase, ValidateStreamKeyUseCase, ListLiveStreamsUseCase, ListUserStreamsUseCase, UpdateStreamUseCase {
+public class StreamService implements CreateStreamUseCase, GetStreamUseCase, GetStreamStatusUseCase, DeleteStreamUseCase, ValidateStreamKeyUseCase, ListLiveStreamsUseCase, ListUserStreamsUseCase, UpdateStreamUseCase, RestartStreamUseCase, ForceEndAllLiveStreamsUseCase {
 
     private static final Logger log = LoggerFactory.getLogger(StreamService.class);
     private final StreamRepository streamRepository;
     private final ApplicationEventPublisher applicationEventPublisher;
+    private final String rtmpUrl;
+    private final String watchBaseUrl;
 
     public StreamService(
             StreamRepository streamRepository,
-            ApplicationEventPublisher applicationEventPublisher) {
+            ApplicationEventPublisher applicationEventPublisher,
+            @Value("${stream.rtmp-url}") String rtmpUrl,
+            @Value("${stream.watch-base-url}") String watchBaseUrl) {
         this.streamRepository = streamRepository;
         this.applicationEventPublisher = applicationEventPublisher;
+        this.rtmpUrl = rtmpUrl;
+        this.watchBaseUrl = watchBaseUrl;
     }
 
     @Override
     @Transactional
     public StreamDto execute(CreateStreamDto dto) {
-        log.debug("[StreamService] Creating stream entity - Title: {}, OwnerId: {}", dto.title(), dto.ownerId());
-        
-        // Criar entidade de domínio
         Stream stream = Stream.create(dto.title(), dto.description(), dto.ownerId());
-        
-        // Persistir
         Stream saved = streamRepository.save(stream);
-        log.debug("[StreamService] Stream persisted - ID: {}", saved.getId());
         
-        // Publicar evento de domínio (será processado após commit)
         applicationEventPublisher.publishEvent(
             new StreamCreatedEvent(saved.getId(), saved.getStreamKey(), saved.getTitle())
         );
@@ -67,7 +69,6 @@ public class StreamService implements CreateStreamUseCase, GetStreamUseCase, Get
     @Override
     @Transactional(readOnly = true)
     public StreamDto execute(UUID id) {
-        log.debug("[StreamService] Fetching stream - ID: {}", id);
         Stream stream = streamRepository.findById(id)
             .orElseThrow(() -> new StreamNotFoundException(id));
         
@@ -85,7 +86,7 @@ public class StreamService implements CreateStreamUseCase, GetStreamUseCase, Get
             stream.getStatus(),
             stream.getCurrentViewers(),
             stream.getViewersPeak(),
-            stream.getWatchUrl()
+            watchBaseUrl + "/" + stream.getId()
         );
     }
 
@@ -97,14 +98,12 @@ public class StreamService implements CreateStreamUseCase, GetStreamUseCase, Get
         
         log.info("[StreamService] Deleting stream - ID: {}, Owner: {}, Current Status: {}", id, ownerId, stream.getStatus());
         
-        // Validar ownership
         if (!stream.getOwnerId().equals(ownerId)) {
             log.warn("[StreamService] Unauthorized delete attempt - Stream: {}, Owner: {}, Requester: {}", 
                 id, stream.getOwnerId(), ownerId);
             throw new UnauthorizedException("Você não tem permissão para deletar esta stream");
         }
         
-        // Validar que stream não está LIVE
         if (stream.getStatus() == StreamStatus.LIVE) {
             throw new IllegalStateException("Não é possível deletar uma stream ao vivo. Finalize a transmissão primeiro.");
         }
@@ -120,50 +119,7 @@ public class StreamService implements CreateStreamUseCase, GetStreamUseCase, Get
         return streamRepository.findByStreamKey(streamKey).isPresent();
     }
 
-    @Transactional
-    public UUID startStream(String streamKey) {
-        Stream stream = streamRepository.findByStreamKey(streamKey)
-            .orElseThrow(() -> new StreamNotFoundException(streamKey));
-        
-        log.info("[StreamService] Starting stream - ID: {}, Key: {}, Status: {}", 
-                 stream.getId(), streamKey, stream.getStatus());
-        
-        stream.start();
-        streamRepository.save(stream);
-        
-        log.info("[StreamService] Stream started - ID: {}, New Status: {}", 
-                 stream.getId(), stream.getStatus());
-        
-        // Publicar evento de domínio (será processado após commit)
-        applicationEventPublisher.publishEvent(
-            new StreamStartedEvent(stream.getId(), stream.getStreamKey())
-        );
-        
-        return stream.getId();
-    }
-
-    @Transactional
-    public UUID endStream(String streamKey) {
-        Stream stream = streamRepository.findByStreamKey(streamKey)
-            .orElseThrow(() -> new StreamNotFoundException(streamKey));
-        
-        log.info("[StreamService] Ending stream - ID: {}, Key: {}, Status: {}", 
-                 stream.getId(), streamKey, stream.getStatus());
-        
-        stream.end();
-        streamRepository.save(stream);
-        
-        log.info("[StreamService] Stream ended - ID: {}, Peak viewers: {}", 
-                 stream.getId(), stream.getViewersPeak());
-        
-        // Publicar evento de domínio (será processado após commit)
-        applicationEventPublisher.publishEvent(
-            new StreamEndedEvent(stream.getId(), stream.getStreamKey(), stream.getViewersPeak())
-        );
-        
-        return stream.getId();
-    }
-
+    @Override
     @Transactional
     public void restartStream(UUID id) {
         Stream stream = streamRepository.findById(id)
@@ -172,7 +128,6 @@ public class StreamService implements CreateStreamUseCase, GetStreamUseCase, Get
         log.info("[StreamService] Restarting stream - ID: {}, Current Status: {}", 
                  stream.getId(), stream.getStatus());
         
-        // Permitir reiniciar apenas streams ENDED
         if (stream.getStatus() != StreamStatus.ENDED) {
             log.warn("[StreamService] Cannot restart stream - ID: {}, Status: {}", id, stream.getStatus());
             throw new IllegalStateException("Only ENDED streams can be restarted");
@@ -203,8 +158,8 @@ public class StreamService implements CreateStreamUseCase, GetStreamUseCase, Get
             stream.getEndedAt(),
             stream.getCurrentViewers(),
             stream.getViewersPeak(),
-            stream.getRtmpUrl(),
-            stream.getWatchUrl()
+            rtmpUrl,
+            watchBaseUrl + "/" + stream.getId()
         );
     }
 
@@ -240,14 +195,12 @@ public class StreamService implements CreateStreamUseCase, GetStreamUseCase, Get
         Stream stream = streamRepository.findById(dto.streamId())
             .orElseThrow(() -> new StreamNotFoundException(dto.streamId()));
         
-        // Validar ownership
         if (!stream.getOwnerId().equals(dto.ownerId())) {
             log.warn("[StreamService] Unauthorized update attempt - Stream: {}, Owner: {}, Requester: {}", 
                 dto.streamId(), stream.getOwnerId(), dto.ownerId());
             throw new UnauthorizedException("Você não tem permissão para editar esta stream");
         }
         
-        // Atualizar campos
         stream.setTitle(dto.title());
         stream.setDescription(dto.description());
         stream.setUpdatedAt(java.time.LocalDateTime.now());
@@ -258,11 +211,6 @@ public class StreamService implements CreateStreamUseCase, GetStreamUseCase, Get
         return toDto(updated);
     }
     
-    /**
-     * Cleanup inactive streams that haven't been updated for more than the specified threshold
-     * @param thresholdDays Number of days of inactivity before cleanup
-     * @return Number of streams cleaned up
-     */
     @Transactional
     public int cleanupInactiveStreams(int thresholdDays) {
         java.time.LocalDateTime thresholdDate = java.time.LocalDateTime.now().minusDays(thresholdDays);
@@ -278,11 +226,9 @@ public class StreamService implements CreateStreamUseCase, GetStreamUseCase, Get
                 log.info("[StreamService] Cleaning up inactive stream - ID: {}, Title: {}, Status: {}, LastUpdate: {}", 
                          stream.getId(), stream.getTitle(), stream.getStatus(), stream.getUpdatedAt());
                 
-                // Force end the stream
                 stream.forceEnd();
                 streamRepository.save(stream);
                 
-                // Publicar evento de domínio (será processado após commit)
                 applicationEventPublisher.publishEvent(
                     new StreamEndedEvent(stream.getId(), stream.getStreamKey(), stream.getViewersPeak())
                 );
@@ -297,11 +243,6 @@ public class StreamService implements CreateStreamUseCase, GetStreamUseCase, Get
         return cleanedCount;
     }
 
-    /**
-     * Increment viewer count for a stream (atomic operation)
-     * @param streamId Stream ID
-     * @return Updated stream with new viewer count
-     */
     @Transactional
     public StreamDto incrementViewers(UUID streamId) {
         int updated = streamRepository.incrementViewersAtomic(streamId);
@@ -310,21 +251,12 @@ public class StreamService implements CreateStreamUseCase, GetStreamUseCase, Get
             throw new StreamNotFoundException(streamId);
         }
         
-        // Buscar stream atualizada para retornar
         Stream stream = streamRepository.findById(streamId)
             .orElseThrow(() -> new StreamNotFoundException(streamId));
-        
-        log.debug("[StreamService] Viewers incremented atomically - Stream: {}, Current: {}, Peak: {}", 
-                 streamId, stream.getCurrentViewers(), stream.getViewersPeak());
         
         return toDto(stream);
     }
 
-    /**
-     * Decrement viewer count for a stream (atomic operation)
-     * @param streamId Stream ID
-     * @return Updated stream with new viewer count
-     */
     @Transactional
     public StreamDto decrementViewers(UUID streamId) {
         int updated = streamRepository.decrementViewersAtomic(streamId);
@@ -333,14 +265,108 @@ public class StreamService implements CreateStreamUseCase, GetStreamUseCase, Get
             throw new StreamNotFoundException(streamId);
         }
         
-        // Buscar stream atualizada para retornar
         Stream stream = streamRepository.findById(streamId)
             .orElseThrow(() -> new StreamNotFoundException(streamId));
         
-        log.debug("[StreamService] Viewers decremented atomically - Stream: {}, Current: {}", 
-                 streamId, stream.getCurrentViewers());
-        
         return toDto(stream);
+    }
+
+    /**
+     * Atomic operation to validate stream key and start stream if valid
+     * Prevents race condition between validation and start operations
+     * @param streamKey Stream key to validate and start
+     * @return Stream ID if validation and start successful, null if validation failed
+     */
+    @Transactional
+    public UUID validateAndStartStream(String streamKey) {
+        log.info("[StreamService] Atomic validate and start stream - Key: {}", streamKey);
+        
+        Stream stream = streamRepository.findByStreamKey(streamKey).orElse(null);
+        
+        if (stream == null) {
+            log.warn("[StreamService] Stream key validation failed - Key: {}", streamKey);
+            return null;
+        }
+        
+        log.info("[StreamService] Starting stream - ID: {}, Key: {}, Status: {}", 
+                 stream.getId(), streamKey, stream.getStatus());
+
+        if (stream.getStatus() == StreamStatus.ENDED) {
+            stream.restart();
+        }
+        stream.start();
+        streamRepository.save(stream);
+        
+        log.info("[StreamService] Stream started - ID: {}, New Status: {}", 
+                 stream.getId(), stream.getStatus());
+        
+        // Publicar evento de domínio (será processado após commit)
+        applicationEventPublisher.publishEvent(
+            new StreamStartedEvent(stream.getId(), stream.getStreamKey())
+        );
+        
+        return stream.getId();
+    }
+
+    /**
+     * Atomic operation to validate stream key and end stream if found
+     * @param streamKey Stream key to find and end
+     * @return Stream ID if found, null otherwise
+     */
+    @Transactional
+    public UUID validateAndEndStream(String streamKey) {
+        log.info("[StreamService] Atomic validate and end stream - Key: {}", streamKey);
+
+        Stream stream = streamRepository.findByStreamKey(streamKey).orElse(null);
+
+        if (stream == null) {
+            log.warn("[StreamService] Stream key not found for end - Key: {}", streamKey);
+            return null;
+        }
+
+        log.info("[StreamService] Ending stream - ID: {}, Key: {}, Status: {}",
+                 stream.getId(), streamKey, stream.getStatus());
+
+        stream.end();
+        streamRepository.save(stream);
+
+        log.info("[StreamService] Stream ended - ID: {}, Peak viewers: {}",
+                 stream.getId(), stream.getViewersPeak());
+
+        applicationEventPublisher.publishEvent(
+            new StreamEndedEvent(stream.getId(), stream.getStreamKey(), stream.getViewersPeak())
+        );
+
+        return stream.getId();
+    }
+
+    /**
+     * Force-end all streams currently LIVE (para uso em shutdown/swap de servidor).
+     * @return Quantidade de streams encerradas forçosamente
+     */
+    @Override
+    @Transactional
+    public int forceEndAllLiveStreams() {
+        List<Stream> liveStreams = streamRepository.findByStatus(StreamStatus.LIVE);
+        log.info("[StreamService] Force-ending {} LIVE stream(s)", liveStreams.size());
+
+        int count = 0;
+        for (Stream stream : liveStreams) {
+            try {
+                stream.forceEnd();
+                streamRepository.save(stream);
+                applicationEventPublisher.publishEvent(
+                    new StreamEndedEvent(stream.getId(), stream.getStreamKey(), stream.getViewersPeak())
+                );
+                log.info("[StreamService] Force-ended stream - ID: {}, Key: {}", stream.getId(), stream.getStreamKey());
+                count++;
+            } catch (Exception e) {
+                log.error("[StreamService] Error force-ending stream {}: {}", stream.getId(), e.getMessage(), e);
+            }
+        }
+
+        log.info("[StreamService] Force-end completed - {} stream(s) ended", count);
+        return count;
     }
 }
 

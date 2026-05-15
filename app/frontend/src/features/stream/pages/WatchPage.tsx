@@ -8,8 +8,9 @@ import {
   Video as VideoIcon,
 } from "lucide-react";
 import { apiService } from "../../../app/services/apiService";
-import { websocketService } from "../../../app/services/websocketService";
+import { sseService } from "../../../app/services/sseService";
 import { useViewerId } from "../../../app/hooks/useViewerId";
+import { useViewerJoinLeave } from "../../../app/hooks/useViewerJoinLeave";
 import { HLS_URL } from "../../../app/config/env";
 import { routes } from "../../../app/routes";
 import { VideoPlayerPlyr as VideoPlayer } from "../components/VideoPlayerPlyr";
@@ -17,6 +18,7 @@ import { StreamingTime } from "../components/StreamingTime";
 import type { Stream, StreamStatus } from "../../../app/types/stream";
 import { logger } from "../../../shared/lib/logger";
 import { getErrorMessage } from "../../../shared/utils/errorHandler";
+import axios from "axios";
 
 export function WatchPage() {
   const { streamId } = useParams<{ streamId: string }>();
@@ -28,8 +30,22 @@ export function WatchPage() {
   const [isRetrying, setIsRetrying] = useState(false);
   const [hlsAvailable, setHlsAvailable] = useState(false);
   const viewerId = useViewerId(); // Persistente no localStorage
-  const hasJoinedRef = useRef(false);
   const hlsCheckIntervalRef = useRef<number | null>(null);
+  const unsubscribeRef = useRef<(() => void) | null>(null);
+  const hasConnectedRef = useRef(false);
+
+  useViewerJoinLeave(streamId, viewerId, true, (response) => {
+    logger.info("[WatchPage] Updating viewers from join response", response);
+    setStream((prev) =>
+      prev
+        ? {
+            ...prev,
+            currentViewers: response.currentViewers,
+            viewersPeak: response.viewersPeak,
+          }
+        : null,
+    );
+  });
 
   useEffect(() => {
     if (!streamId) {
@@ -37,28 +53,22 @@ export function WatchPage() {
       return;
     }
 
+    // Proteção contra double-call do React Strict Mode
+    if (hasConnectedRef.current) {
+      return;
+    }
+
+    hasConnectedRef.current = true;
     loadStream();
-    connectWebSocket();
-
-    // Garantir que viewer_left seja enviado ao fechar aba/navegador
-    const handleBeforeUnload = () => {
-      console.log(`[WatchPage] beforeunload - Sending viewer_left`);
-      if (websocketService.isConnected()) {
-        websocketService.sendViewerLeft(streamId, viewerId);
-      }
-    };
-
-    window.addEventListener("beforeunload", handleBeforeUnload);
+    connectSse();
 
     return () => {
-      window.removeEventListener("beforeunload", handleBeforeUnload);
-
-      console.log(`[WatchPage] Component unmount - Sending viewer_left`);
-      if (websocketService.isConnected()) {
-        websocketService.sendViewerLeft(streamId, viewerId);
+      logger.info("[WatchPage] Component unmount - Unsubscribing from SSE");
+      hasConnectedRef.current = false; // ✅ Resetar para permitir reconexão no remount
+      if (unsubscribeRef.current) {
+        unsubscribeRef.current();
+        unsubscribeRef.current = null;
       }
-      websocketService.disconnect();
-      hasJoinedRef.current = false;
     };
   }, [streamId, viewerId]);
 
@@ -69,7 +79,11 @@ export function WatchPage() {
       setStream(data);
     } catch (error) {
       logger.error("Error loading stream", error);
-      setError(getErrorMessage(error));
+      if (axios.isAxiosError(error) && error.response?.status === 400) {
+        setError("ID de stream inválido.");
+      } else {
+        setError(getErrorMessage(error));
+      }
     } finally {
       setIsLoading(false);
     }
@@ -106,10 +120,8 @@ export function WatchPage() {
       }
     };
 
-    // Check immediately
     poll();
 
-    // Then check every 5 seconds
     hlsCheckIntervalRef.current = window.setInterval(poll, 5000);
   };
 
@@ -121,22 +133,27 @@ export function WatchPage() {
     setIsRetrying(false);
   };
 
-  const connectWebSocket = async () => {
-    try {
-      console.log(
-        `[WatchPage] Connecting WebSocket - StreamID: ${streamId}, ViewerID: ${viewerId}`,
-      );
-      await websocketService.connect();
+  const connectSse = () => {
+    logger.info("[WatchPage] Connecting SSE", { streamId, viewerId });
 
-      websocketService.subscribeToStreamStatus(streamId!, (message) => {
-        if (
-          message.type === "STATUS_UPDATE" ||
-          message.type === "STREAM_STARTED"
-        ) {
+    unsubscribeRef.current = sseService.subscribe(
+      streamId!,
+      viewerId,
+      (statusMessage) => {
+        logger.info(
+          "[WatchPage] ✅ SSE Callback: Received status update",
+          statusMessage,
+        );
+
+        if (statusMessage.type === "STREAM_STARTED") {
+          logger.info("[WatchPage] 🎥 Stream started! Updating status to LIVE");
           setStream((prev) =>
-            prev ? { ...prev, status: message.data.status } : null,
+            prev
+              ? { ...prev, status: statusMessage.status as StreamStatus }
+              : null,
           );
-        } else if (message.type === "STREAM_ENDED") {
+        } else if (statusMessage.type === "STREAM_ENDED") {
+          logger.info("[WatchPage] ⏹️  Stream ended! Updating status to ENDED");
           setStream((prev) =>
             prev
               ? {
@@ -147,40 +164,31 @@ export function WatchPage() {
               : null,
           );
         }
-      });
-
-      websocketService.subscribeToStreamViewers(streamId!, (message) => {
-        if (message.type === "VIEWERS_UPDATE") {
-          setStream((prev) =>
-            prev
-              ? {
-                  ...prev,
-                  currentViewers: message.currentViewers ?? prev.currentViewers,
-                  viewersPeak: message.viewersPeak ?? prev.viewersPeak,
-                }
-              : null,
-          );
-        }
-      });
-
-      // Enviar viewer_joined logo após conectar e subscrever
-      if (!hasJoinedRef.current) {
-        console.log(
-          `[WatchPage] Sending viewer_joined - StreamID: ${streamId}, ViewerID: ${viewerId}`,
+      },
+      (viewersMessage) => {
+        logger.info(
+          "[WatchPage] ✅ SSE Callback: Received viewers update",
+          viewersMessage,
         );
-        websocketService.sendViewerJoined(streamId!, viewerId);
-        hasJoinedRef.current = true;
-      }
-    } catch (err) {
-      logger.error("WebSocket connection failed", err);
-    }
+
+        setStream((prev) =>
+          prev
+            ? {
+                ...prev,
+                currentViewers: viewersMessage.currentViewers,
+                viewersPeak: viewersMessage.viewersPeak,
+              }
+            : null,
+        );
+      },
+    );
   };
 
   // Monitor stream status and start HLS polling when LIVE
   useEffect(() => {
     if (!stream) return;
 
-    const hlsUrl = `${HLS_URL}/${stream.streamKey}/index.m3u8`;
+    const hlsUrl = `${HLS_URL}/${stream.streamKey}/master.m3u8`;
 
     if (stream.status === "LIVE") {
       startHlsPolling(hlsUrl);
@@ -222,8 +230,8 @@ export function WatchPage() {
     );
   }
 
-  // Nginx-RTMP nativo gera index.m3u8 (não master.m3u8)
-  const hlsUrl = `${HLS_URL}/${stream.streamKey}/index.m3u8`;
+  // FFmpeg gera master.m3u8 com múltiplas qualidades (1080p, 720p, 480p, 360p)
+  const hlsUrl = `${HLS_URL}/${stream.streamKey}/master.m3u8`;
 
   return (
     <div className="min-h-screen bg-slate-900">
@@ -312,6 +320,7 @@ export function WatchPage() {
                     <span className="text-white font-semibold">AO VIVO</span>
                     <StreamingTime
                       startedAt={stream.startedAt}
+                      endedAt={stream.endedAt}
                       status={stream.status}
                       size="small"
                       showIcon={false}
@@ -355,16 +364,19 @@ export function WatchPage() {
                   </div>
                 </div>
 
-                {stream.status === "LIVE" && (
+                {(stream.status === "LIVE" || stream.status === "ENDED") && (
                   <div className="flex items-center gap-3">
                     <Clock className="w-5 h-5 text-purple-400" />
                     <div>
                       <p className="text-sm text-slate-400">
-                        Tempo de Transmissão
+                        {stream.status === "LIVE"
+                          ? "Tempo de Transmissão"
+                          : "Duração Total"}
                       </p>
                       <div className="text-xl font-bold text-white">
                         <StreamingTime
                           startedAt={stream.startedAt}
+                          endedAt={stream.endedAt}
                           status={stream.status}
                           size="medium"
                           showIcon={false}

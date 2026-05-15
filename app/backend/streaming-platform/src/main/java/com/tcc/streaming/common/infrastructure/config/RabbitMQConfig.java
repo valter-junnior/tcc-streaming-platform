@@ -10,7 +10,7 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 @Configuration
-@ConditionalOnProperty(name = "rabbitmq.enabled", havingValue = "true", matchIfMissing = true)
+@ConditionalOnProperty(name = "spring.rabbitmq.host", matchIfMissing = false)
 public class RabbitMQConfig {
 
     // Exchange

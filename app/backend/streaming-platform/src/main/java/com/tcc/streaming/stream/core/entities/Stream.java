@@ -57,21 +57,32 @@ public class Stream {
 
     // Regras de negócio
     public void start() {
+        if (this.status == StreamStatus.LIVE) {
+            return; // idempotente: reconexão do broadcaster
+        }
+        // A validação de status está intencionalmente relaxada:
+        // validateAndStartStream() em StreamService garante restart() antes de start()
+        // para streams ENDED, tornando esta guarda desnecessária aqui.
         this.status = StreamStatus.LIVE;
         this.startedAt = LocalDateTime.now();
         this.updatedAt = LocalDateTime.now();
     }
 
     public void end() {
-        this.status = StreamStatus.ENDED;
-        this.endedAt = LocalDateTime.now();
-        this.updatedAt = LocalDateTime.now();
+        endStream(false);
     }
 
     public void forceEnd() {
         // Force end without status check - used for cleanup/delete
+        endStream(true);
+    }
+
+    private void endStream(boolean force) {
+        if (!force && this.status == StreamStatus.ENDED) {
+            return; // idempotente: evita encerrar stream já finalizada
+        }
         this.status = StreamStatus.ENDED;
-        if (this.endedAt == null) {
+        if (force || this.endedAt == null) {
             this.endedAt = LocalDateTime.now();
         }
         this.updatedAt = LocalDateTime.now();
@@ -102,26 +113,14 @@ public class Stream {
         }
     }
 
-    public String getRtmpUrl() {
-        return "rtmp://localhost:1935/live";
-    }
-
-    public String getWatchUrl() {
-        return "http://localhost:3001/watch/" + this.id;
-    }
-
     // Geração de stream key única
     private static String generateStreamKey() {
         return UUID.randomUUID().toString().replace("-", "").substring(0, 16);
     }
 
-    // Getters e Setters
+    // Getters
     public UUID getId() {
         return id;
-    }
-
-    public void setId(UUID id) {
-        this.id = id;
     }
 
     public String getTitle() {
@@ -144,32 +143,16 @@ public class Stream {
         return streamKey;
     }
 
-    public void setStreamKey(String streamKey) {
-        this.streamKey = streamKey;
-    }
-
     public String getOwnerId() {
         return ownerId;
-    }
-
-    public void setOwnerId(String ownerId) {
-        this.ownerId = ownerId;
     }
 
     public StreamStatus getStatus() {
         return status;
     }
 
-    public void setStatus(StreamStatus status) {
-        this.status = status;
-    }
-
     public LocalDateTime getCreatedAt() {
         return createdAt;
-    }
-
-    public void setCreatedAt(LocalDateTime createdAt) {
-        this.createdAt = createdAt;
     }
 
     public LocalDateTime getUpdatedAt() {
@@ -184,31 +167,15 @@ public class Stream {
         return startedAt;
     }
 
-    public void setStartedAt(LocalDateTime startedAt) {
-        this.startedAt = startedAt;
-    }
-
     public LocalDateTime getEndedAt() {
         return endedAt;
-    }
-
-    public void setEndedAt(LocalDateTime endedAt) {
-        this.endedAt = endedAt;
     }
 
     public Integer getCurrentViewers() {
         return currentViewers;
     }
 
-    public void setCurrentViewers(Integer currentViewers) {
-        this.currentViewers = currentViewers;
-    }
-
     public Integer getViewersPeak() {
         return viewersPeak;
-    }
-
-    public void setViewersPeak(Integer viewersPeak) {
-        this.viewersPeak = viewersPeak;
     }
 }

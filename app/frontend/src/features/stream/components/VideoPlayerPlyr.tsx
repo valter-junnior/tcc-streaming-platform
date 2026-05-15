@@ -1,5 +1,4 @@
 import { useEffect, useRef } from "react";
-// @ts-ignore - Plyr doesn't have proper TypeScript exports
 import Plyr from "plyr";
 import Hls from "hls.js";
 import "plyr/dist/plyr.css";
@@ -8,17 +7,18 @@ import { logger } from "../../../shared/lib/logger";
 interface VideoPlayerProps {
   hlsUrl: string;
   autoPlay?: boolean;
+  onError?: () => void;
 }
 
 export function VideoPlayerPlyr({
   hlsUrl,
   autoPlay = false,
+  onError,
 }: VideoPlayerProps) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const playerRef = useRef<Plyr | null>(null);
   const hlsRef = useRef<Hls | null>(null);
 
-  // Função para adicionar botão LIVE customizado
   const addLiveButton = (player: Plyr) => {
     const controlsContainer =
       player.elements?.container?.querySelector(".plyr__controls");
@@ -32,20 +32,16 @@ export function VideoPlayerPlyr({
         e.stopPropagation();
 
         if (hlsRef.current && player.media) {
-          // Método mais sutil - apenas ajusta para a posição mais atual
           const seekableLength = player.media.seekable.length;
           if (seekableLength > 0) {
-            // Vai para o final do buffer disponível (posição mais próxima do vivo)
             const livePosition = player.media.seekable.end(seekableLength - 1);
             player.media.currentTime = livePosition;
           } else {
-            // Fallback: vai para a duração atual
             if (player.duration && player.duration > 0) {
               player.media.currentTime = player.duration;
             }
           }
         } else if (player.media) {
-          // Para Safari nativo - método mais direto
           const seekableLength = player.media.seekable.length;
           if (seekableLength > 0) {
             const livePosition = player.media.seekable.end(seekableLength - 1);
@@ -56,7 +52,6 @@ export function VideoPlayerPlyr({
         }
       };
 
-      // Inserir antes do botão de fullscreen
       const fullscreenBtn = controlsContainer.querySelector(
         '[data-plyr="fullscreen"]',
       );
@@ -73,7 +68,6 @@ export function VideoPlayerPlyr({
 
     const video = videoRef.current;
 
-    // Then initialize HLS.js BEFORE Plyr
     if (Hls.isSupported()) {
       const hls = new Hls({
         enableWorker: false,
@@ -104,6 +98,7 @@ export function VideoPlayerPlyr({
             default:
               logger.error("Cannot recover from error, destroying HLS");
               hls.destroy();
+              onError?.();
               break;
           }
         }
@@ -112,10 +107,15 @@ export function VideoPlayerPlyr({
       hls.loadSource(hlsUrl);
       hls.attachMedia(video);
 
-      hls.on(Hls.Events.MANIFEST_PARSED, () => {
-        logger.info("HLS manifest parsed successfully");
+      hls.on(Hls.Events.MANIFEST_PARSED, (_event, data) => {
+        logger.info("HLS manifest parsed successfully", data.levels);
 
-        // Initialize Plyr AFTER HLS is ready
+        // Extract available quality heights; 0 = Auto (ABR)
+        const availableQualities = data.levels.map(
+          (l: { height: number }) => l.height,
+        );
+        const qualityOptions = [0, ...availableQualities];
+
         if (!playerRef.current) {
           const player = new Plyr(video, {
             controls: [
@@ -135,19 +135,53 @@ export function VideoPlayerPlyr({
             seekTime: 0,
             displayDuration: false,
             invertTime: false,
+            quality: {
+              default: 0,
+              options: qualityOptions,
+              forced: true,
+              onChange: (quality: number) => {
+                if (!hlsRef.current) return;
+                if (quality === 0) {
+                  // Auto: let HLS.js decide
+                  hlsRef.current.currentLevel = -1;
+                  logger.info("Quality: Auto (ABR)");
+                } else {
+                  const levelIndex = hlsRef.current.levels.findIndex(
+                    (l: { height: number }) => l.height === quality,
+                  );
+                  hlsRef.current.currentLevel = levelIndex;
+                  logger.info(
+                    `Quality changed to ${quality}p (level ${levelIndex})`,
+                  );
+                }
+              },
+            },
+            i18n: {
+              qualityLabel: {
+                0: "Auto",
+              },
+            },
           });
 
           playerRef.current = player;
 
-          // Adicionar botão LIVE após inicializar o player
+          // Sync Plyr quality display when HLS auto-selects a level
+          hls.on(Hls.Events.LEVEL_SWITCHED, (_ev, { level }) => {
+            const currentHeight = hls.levels[level]?.height;
+            logger.debug(`HLS switched to level ${level} (${currentHeight}p)`);
+            // If in auto mode, update Plyr's displayed quality to current level
+            if (hls.autoLevelEnabled && player?.quality === 0) {
+              // keep "Auto" selected — display is correct
+            }
+          });
+
           setTimeout(() => addLiveButton(player), 100);
         }
       });
     } else if (video.canPlayType("application/vnd.apple.mpegurl")) {
-      // Native HLS support (Safari)
+      // Native HLS support (Safari) — quality selection handled by browser
       video.src = hlsUrl;
 
-      // Initialize Plyr for Safari
       const player = new Plyr(video, {
         controls: [
           "play-large",
@@ -169,8 +203,6 @@ export function VideoPlayerPlyr({
       });
 
       playerRef.current = player;
-
-      // Adicionar botão LIVE após inicializar o player
       setTimeout(() => addLiveButton(player), 100);
     } else {
       logger.error("HLS not supported in this browser");
@@ -284,6 +316,11 @@ export function VideoPlayerPlyr({
 
         .plyr__menu__container [role="menuitemradio"][aria-checked="true"]::before {
           background: var(--plyr-color-main);
+        }
+
+        /* Quality label suffix "p" for resolution options */
+        .plyr__menu__container [role="menuitemradio"]:not([value="0"])::after {
+          content: "p";
         }
 
         /* Botão LIVE customizado */

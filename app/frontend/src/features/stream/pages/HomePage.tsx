@@ -53,55 +53,53 @@ export function HomePage() {
         </div>
 
         {/* Live Streams Section */}
-        {liveStreams && liveStreams.length > 0 && (
+        {isLoading ? (
+          <div className="flex items-center justify-center py-12">
+            <Loader2 className="w-8 h-8 text-purple-500 animate-spin" />
+          </div>
+        ) : liveStreams && liveStreams.length > 0 ? (
           <div className="max-w-6xl mx-auto mb-16">
             <h3 className="text-3xl font-bold text-white mb-6 flex items-center gap-2">
               <Play className="w-8 h-8 text-red-500 animate-pulse" />
               Ao Vivo Agora
             </h3>
 
-            {isLoading ? (
-              <div className="flex items-center justify-center py-12">
-                <Loader2 className="w-8 h-8 text-purple-500 animate-spin" />
-              </div>
-            ) : (
-              <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {liveStreams?.map((stream) => (
-                  <div
-                    key={stream.id}
-                    onClick={() => navigate(routes.watch(stream.id))}
-                    className="bg-slate-800/70 backdrop-blur rounded-lg border border-slate-700 overflow-hidden cursor-pointer hover:border-purple-500 transition-all hover:scale-105"
-                  >
-                    {/* Thumbnail Placeholder */}
-                    <div className="aspect-video bg-gradient-to-br from-purple-900/50 to-slate-900 flex items-center justify-center relative">
-                      <Play className="w-16 h-16 text-white/80" />
-                      <div className="absolute top-2 left-2 bg-red-600 text-white text-xs font-bold px-2 py-1 rounded flex items-center gap-1">
-                        <span className="w-2 h-2 bg-white rounded-full animate-pulse"></span>
-                        AO VIVO
-                      </div>
-                    </div>
-
-                    {/* Stream Info */}
-                    <div className="p-4">
-                      <h4 className="text-lg font-semibold text-white mb-2 truncate">
-                        {stream.title}
-                      </h4>
-                      {stream.description && (
-                        <p className="text-sm text-slate-400 mb-3 line-clamp-2">
-                          {stream.description}
-                        </p>
-                      )}
-                      <div className="flex items-center gap-2 text-sm text-slate-300">
-                        <Eye className="w-4 h-4" />
-                        <span>{stream.currentViewers} assistindo</span>
-                      </div>
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {liveStreams?.map((stream) => (
+                <div
+                  key={stream.id}
+                  onClick={() => navigate(routes.watch(stream.id))}
+                  className="bg-slate-800/70 backdrop-blur rounded-lg border border-slate-700 overflow-hidden cursor-pointer hover:border-purple-500 transition-all hover:scale-105"
+                >
+                  {/* Thumbnail Placeholder */}
+                  <div className="aspect-video bg-gradient-to-br from-purple-900/50 to-slate-900 flex items-center justify-center relative">
+                    <Play className="w-16 h-16 text-white/80" />
+                    <div className="absolute top-2 left-2 bg-red-600 text-white text-xs font-bold px-2 py-1 rounded flex items-center gap-1">
+                      <span className="w-2 h-2 bg-white rounded-full animate-pulse"></span>
+                      AO VIVO
                     </div>
                   </div>
-                ))}
-              </div>
-            )}
+
+                  {/* Stream Info */}
+                  <div className="p-4">
+                    <h4 className="text-lg font-semibold text-white mb-2 truncate">
+                      {stream.title}
+                    </h4>
+                    {stream.description && (
+                      <p className="text-sm text-slate-400 mb-3 line-clamp-2">
+                        {stream.description}
+                      </p>
+                    )}
+                    <div className="flex items-center gap-2 text-sm text-slate-300">
+                      <Eye className="w-4 h-4" />
+                      <span>{stream.currentViewers} assistindo</span>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
           </div>
-        )}
+        ) : null}
 
         {/* Features */}
         <div className="max-w-5xl mx-auto grid md:grid-cols-3 gap-8 mt-20">
@@ -125,7 +123,7 @@ export function HomePage() {
               Tempo Real
             </h3>
             <p className="text-slate-400">
-              Veja o número de espectadores atualizando ao vivo via WebSocket.
+              Veja o número de espectadores atualizando ao vivo via SSE.
             </p>
           </div>
 
@@ -148,14 +146,30 @@ export function HomePage() {
             Sobre o Projeto
           </h3>
           <p className="text-slate-300 leading-relaxed mb-4">
-            Este é um <strong>Trabalho de Conclusão de Curso (TCC)</strong> que
-            desenvolve uma plataforma de streaming de vídeo ao vivo com foco em{" "}
-            <strong>análise comparativa de tecnologias</strong>.
+            O <strong>StreamLab</strong> é um{" "}
+            <strong>Trabalho de Conclusão de Curso (TCC)</strong> que implementa
+            uma plataforma completa de streaming de vídeo ao vivo para avaliar
+            comparativamente diferentes combinações de tecnologias de ingestão e
+            transcodificação.
+          </p>
+          <p className="text-slate-300 leading-relaxed mb-4">
+            O fluxo principal é: o streamer transmite via{" "}
+            <strong>OBS Studio</strong> usando o protocolo <strong>RTMP</strong>
+            , o servidor de ingestão (<strong>Nginx-RTMP</strong> ou{" "}
+            <strong>SRS</strong>) aciona o transcodificador (
+            <strong>FFmpeg</strong> ou <strong>GStreamer</strong>), que gera
+            segmentos <strong>HLS</strong> em quatro qualidades (1080p, 720p,
+            480p, 360p), e o espectador assiste no navegador via{" "}
+            <strong>HLS.js + Plyr</strong>.
           </p>
           <p className="text-slate-300 leading-relaxed">
-            O objetivo é comparar o desempenho de diferentes stacks tecnológicos
-            (RabbitMQ vs Redis Streams vs NATS, FFmpeg vs GStreamer, Nginx-RTMP
-            vs SRS) através de métricas quantitativas e qualitativas.
+            O backend em <strong>Java 21 / Spring Boot</strong> gerencia os
+            estados da stream, o contador de viewers em tempo real via{" "}
+            <strong>SSE</strong>, e os eventos de métricas através do{" "}
+            <strong>RabbitMQ</strong>. O objetivo do TCC é comparar as quatro
+            combinações (Nginx × SRS) × (FFmpeg × GStreamer) por meio de
+            métricas quantitativas de latência, uso de recursos e
+            confiabilidade.
           </p>
         </div>
       </div>

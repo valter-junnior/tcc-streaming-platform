@@ -12,9 +12,6 @@ import java.time.LocalDateTime;
 import java.util.Map;
 import java.util.UUID;
 
-/**
- * Consumer de eventos de viewers (métricas) do RabbitMQ
- */
 @Component
 @ConditionalOnProperty(name = "spring.rabbitmq.host", matchIfMissing = false)
 public class ViewerEventConsumer {
@@ -26,9 +23,6 @@ public class ViewerEventConsumer {
         this.processStreamEventUseCase = processStreamEventUseCase;
     }
 
-    /**
-     * Consome eventos viewer_joined e viewer_left
-     */
     @RabbitListener(queues = "metrics.events", containerFactory = "rabbitListenerContainerFactory")
     public void handleViewerEvent(Map<String, Object> message) {
         try {
@@ -36,10 +30,6 @@ public class ViewerEventConsumer {
             UUID streamId = UUID.fromString((String) message.get("streamId"));
             String viewerId = (String) message.get("viewerId");
             
-            log.debug("[ViewerEventConsumer] Received event: {} - StreamId: {}, ViewerId: {}", 
-                      eventType, streamId, viewerId);
-            
-            // Criar DTO
             StreamEventDto eventDto = new StreamEventDto(
                 streamId,
                 eventType,
@@ -50,10 +40,8 @@ public class ViewerEventConsumer {
                 LocalDateTime.now()
             );
             
-            // Processar evento
             processStreamEventUseCase.execute(eventDto);
             
-            // Lógica específica por tipo de evento
             if ("viewer_joined".equals(eventType)) {
                 handleViewerJoined(streamId, viewerId);
             } else if ("viewer_left".equals(eventType)) {
@@ -68,13 +56,9 @@ public class ViewerEventConsumer {
     
     private void handleViewerJoined(UUID streamId, String viewerId) {
         log.info("[ViewerEventConsumer] Viewer joined - StreamId: {}, ViewerId: {}", streamId, viewerId);
-        // Incrementar contador de viewers
-        // Atualizar métricas de pico se necessário
     }
     
     private void handleViewerLeft(UUID streamId, String viewerId) {
         log.info("[ViewerEventConsumer] Viewer left - StreamId: {}, ViewerId: {}", streamId, viewerId);
-        // Decrementar contador de viewers
-        // Registrar duração da sessão
     }
 }

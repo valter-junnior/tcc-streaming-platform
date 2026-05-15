@@ -9,6 +9,7 @@ import org.springframework.stereotype.Component;
 
 /**
  * Scheduled task para agregar métricas diárias
+ * TODO: Implementação pendente — este scheduler está registrado mas os métodos são no-ops.
  */
 @Component
 public class MetricsAggregationScheduler {
@@ -24,18 +25,11 @@ public class MetricsAggregationScheduler {
         this.streamEventRepository = streamEventRepository;
     }
 
-    /**
-     * Agrega métricas diariamente às 4h da manhã
-     * Cron: 0 0 4 * * * (segundo 0, minuto 0, hora 4, todos os dias)
-     */
     @Scheduled(cron = "${streaming.cleanup.metrics-aggregation-cron:0 0 4 * * *}")
     public void aggregateDailyMetrics() {
         log.info("[MetricsAggregationScheduler] Starting daily metrics aggregation");
         
         try {
-            // Calcular estatísticas do dia anterior
-            // Por exemplo: total de streams, média de viewers, duração média, etc.
-            
             // TODO: Implementar agregação de métricas
             // 1. Buscar todas as streams encerradas nas últimas 24h
             // 2. Calcular médias (viewers, duração, etc)
@@ -52,7 +46,6 @@ public class MetricsAggregationScheduler {
     /**
      * Limpa eventos muito antigos (> 30 dias) para economizar espaço
      * Executa semanalmente aos domingos às 5h
-     * Cron: 0 0 5 * * SUN
      */
     @Scheduled(cron = "${streaming.cleanup.old-events-cron:0 0 5 * * SUN}")
     public void cleanupOldEvents() {
