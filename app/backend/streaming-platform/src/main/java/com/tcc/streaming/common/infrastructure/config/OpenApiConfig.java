@@ -19,7 +19,7 @@ public class OpenApiConfig {
             .info(new Info()
                 .title("Streaming Platform API")
                 .description("API REST para plataforma de streaming de vídeo ao vivo com análise comparativa de desempenho. " +
-                            "Desenvolvido com Clean Architecture usando Spring Boot 3.2, PostgreSQL, Redis, RabbitMQ e WebSocket.")
+                            "Desenvolvido com Clean Architecture usando Spring Boot 3.2, PostgreSQL, Redis, RabbitMQ e SSE.")
                 .version("1.0.0-SNAPSHOT")
                 .contact(new Contact()
                     .name("TCC - Streaming Platform")

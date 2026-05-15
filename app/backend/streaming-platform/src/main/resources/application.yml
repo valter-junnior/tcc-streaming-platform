@@ -18,8 +18,17 @@ spring:
     username: ${DB_USER:streaming_user}
     password: ${DB_PASSWORD:streaming_pass}
     driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: 20
+      minimum-idle: 5
+      connection-timeout: 30000
+      idle-timeout: 600000
+      max-lifetime: 1800000
+      leak-detection-threshold: 60000
+      pool-name: StreamingHikariPool
   
   jpa:
+    open-in-view: false
     hibernate:
       ddl-auto: update
     properties:
@@ -47,9 +56,33 @@ management:
       export:
         enabled: true
 
+rtmp:
+  server: ${COMPOSE_PROFILES:nginx}
+
+transcoder:
+  type: ${TRANSCODER:ffmpeg}
+
 stream:
   cleanup:
     threshold-days: 1
+  rtmp-url: ${RTMP_URL:rtmp://localhost:1935/live}
+  watch-base-url: ${WATCH_BASE_URL:http://localhost:3001/watch}
+
+sse:
+  # SSE connection timeout in milliseconds (30 minutes)
+  timeout: 1800000
+  # Keepalive interval in milliseconds (30 seconds)
+  keepalive-interval: 30000
+  # TTL cleanup interval in milliseconds (5 minutes)  
+  ttl-cleanup-interval: 300000
+  # Emitter TTL in hours (2 hours)
+  emitter-ttl-hours: 2
+
+logging:
+  level:
+    # AsyncRequestTimeoutException em SSE é comportamento normal — o handler em GlobalExceptionHandler
+    # já trata silenciosamente. Suprimir o WARN do ExceptionHandlerExceptionResolver.
+    org.springframework.web.servlet.mvc.method.annotation.ExceptionHandlerExceptionResolver: ERROR
 
 springdoc:
   api-docs:

@@ -3,6 +3,7 @@ package com.tcc.streaming.common.infrastructure.http.handlers;
 import com.tcc.streaming.common.core.exceptions.BusinessException;
 import com.tcc.streaming.common.core.exceptions.NotFoundException;
 import com.tcc.streaming.stream.core.exceptions.UnauthorizedException;
+import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.orm.ObjectOptimisticLockingFailureException;
@@ -10,7 +11,9 @@ import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import org.springframework.web.context.request.async.AsyncRequestTimeoutException;
 
+import java.io.IOException;
 import java.time.Instant;
 import java.util.HashMap;
 import java.util.Map;
@@ -89,6 +92,15 @@ public class GlobalExceptionHandler {
             Instant.now()
         );
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(response);
+    }
+
+    @ExceptionHandler(AsyncRequestTimeoutException.class)
+    public void handleAsyncTimeout(AsyncRequestTimeoutException ex, HttpServletResponse response) throws IOException {
+        if (!response.isCommitted()) {
+            response.sendError(HttpServletResponse.SC_SERVICE_UNAVAILABLE, "Request timed out");
+        }
+        // Se a resposta já foi commitada (ex: SSE em andamento), ignorar silenciosamente.
+        // O SseEmitterManager já faz a limpeza via callback onTimeout.
     }
 
     @ExceptionHandler(Exception.class)

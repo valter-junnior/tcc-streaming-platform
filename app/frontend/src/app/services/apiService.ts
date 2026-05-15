@@ -24,55 +24,24 @@ class ApiService {
   }
 
   private setupInterceptors(): void {
-    // Request interceptor
     this.api.interceptors.request.use(
       (config) => {
-        // Adicionar auth token se existir
         const token = localStorage.getItem("token");
         if (token) {
           config.headers.Authorization = `Bearer ${token}`;
         }
-
-        // Log requests em desenvolvimento
-        if (import.meta.env.DEV) {
-          console.log(`[API] ${config.method?.toUpperCase()} ${config.url}`);
-        }
-
         return config;
       },
-      (error) => {
-        console.error("[API] Request error:", error);
-        return Promise.reject(error);
-      },
+      (error) => Promise.reject(error),
     );
 
-    // Response interceptor
     this.api.interceptors.response.use(
-      (response) => {
-        // Log successful responses em desenvolvimento
-        if (import.meta.env.DEV) {
-          console.log(
-            `[API] ${response.config.method?.toUpperCase()} ${response.config.url} - ${response.status}`,
-          );
-        }
-        return response;
-      },
+      (response) => response,
       (error) => {
-        // Tratamento global de erros
-
-        // 401 Unauthorized - Redirecionar para login (quando implementado)
         if (error.response?.status === 401) {
-          console.warn("[API] Unauthorized - clearing token");
           localStorage.removeItem("token");
-          // window.location.href = '/login'; // Descomentar quando login for implementado
         }
 
-        // 403 Forbidden - Log e rejeitar
-        if (error.response?.status === 403) {
-          console.error("[API] Forbidden - insufficient permissions");
-        }
-
-        // 500+ Server errors - Log detalhado
         if (error.response?.status >= 500) {
           console.error(
             "[API] Server error:",
@@ -81,7 +50,6 @@ class ApiService {
           );
         }
 
-        // Network errors
         if (!error.response && error.message === "Network Error") {
           console.error("[API] Network error - check connection");
         }
@@ -111,10 +79,6 @@ class ApiService {
     return response.data;
   }
 
-  async endStream(id: string, ownerId: string): Promise<void> {
-    await this.api.delete(`/streams/${id}?ownerId=${ownerId}`);
-  }
-
   async restartStream(id: string): Promise<Stream> {
     const response = await this.api.post<Stream>(`/streams/${id}/restart`);
     return response.data;
@@ -140,6 +104,11 @@ class ApiService {
   async deleteStream(id: string, ownerId: string): Promise<void> {
     await this.api.delete(`/streams/${id}?ownerId=${ownerId}`);
   }
+
+  getAxiosInstance() {
+    return this.api;
+  }
 }
 
 export const apiService = new ApiService();
+export type { ApiService };

@@ -33,7 +33,7 @@ public class RootController {
             "streams", "/api/streams",
             "health", "/actuator/health",
             "metrics", "/actuator/metrics",
-            "websocket", "/ws"
+            "sse", "/api/sse"
         ));
         
         return ResponseEntity.ok(response);

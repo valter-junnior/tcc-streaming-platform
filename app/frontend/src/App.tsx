@@ -3,19 +3,17 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Loader2 } from "lucide-react";
 
-// Create query client
 const queryClient = new QueryClient({
   defaultOptions: {
     queries: {
-      staleTime: 1000 * 30, // 30 seconds
-      refetchInterval: 1000 * 30, // Auto-refetch every 30 seconds
+      staleTime: 1000 * 30,
+      refetchInterval: 1000 * 30,
       refetchOnWindowFocus: true,
       retry: 1,
     },
   },
 });
 
-// Lazy load pages for code splitting
 const HomePage = lazy(() =>
   import("./features/stream/pages/HomePage").then((m) => ({
     default: m.HomePage,
