@@ -17,6 +17,7 @@ REPEATS=3
 RETRIES=1
 BACKEND_PORT=8080
 RTMP_PORT=1935
+HLS_PORT=8081
 HLS_HTTP_PORT=8081
 KEEP_UP=0
 AGGREGATE=0
@@ -47,7 +48,7 @@ Opcoes:
   --retries <n>                Retries curtos por cenario em caso de falha
   --backend-port <port>        Porta do backend exposta no host (default: 8080)
   --rtmp-port <port>           Porta RTMP interna dos servicos (default: 1935)
-  --hls-port <port>            Porta HLS interna dos servicos (default: 8081)
+  --hls-port <port>            Porta HLS exposta no host (default: 8081)
   --keep-up                    Nao derruba stack no final
   --aggregate                  Apos execucao full, agrega resultados e salva artefatos em docs/benchmark/
   --help                       Exibe ajuda
@@ -116,7 +117,7 @@ parse_args() {
         shift 2
         ;;
       --hls-port)
-        HLS_HTTP_PORT="$2"
+        HLS_PORT="$2"
         shift 2
         ;;
       --keep-up)
@@ -144,7 +145,32 @@ parse_args() {
   [[ "$RETRIES" =~ ^[0-9]+$ ]] || die "--retries deve ser inteiro"
   [[ "$BACKEND_PORT" =~ ^[0-9]+$ ]] || die "--backend-port deve ser inteiro"
   [[ "$RTMP_PORT" =~ ^[0-9]+$ ]] || die "--rtmp-port deve ser inteiro"
-  [[ "$HLS_HTTP_PORT" =~ ^[0-9]+$ ]] || die "--hls-port deve ser inteiro"
+  [[ "$HLS_PORT" =~ ^[0-9]+$ ]] || die "--hls-port deve ser inteiro"
+}
+
+is_port_in_use() {
+  local port="$1"
+  if command -v ss >/dev/null 2>&1; then
+    ss -ltn | awk '{print $4}' | grep -Eq "(^|:)${port}$"
+  elif command -v netstat >/dev/null 2>&1; then
+    netstat -ltn 2>/dev/null | awk '{print $4}' | grep -Eq "(^|:)${port}$"
+  else
+    return 1
+  fi
+}
+
+validate_host_ports() {
+  local ports=()
+  ports+=("$BACKEND_PORT")
+  ports+=("$RTMP_PORT")
+  ports+=("$HLS_PORT")
+
+  local p
+  for p in "${ports[@]}"; do
+    if is_port_in_use "$p"; then
+      die "Porta ${p} ja esta em uso no host. Libere a porta ou rode com outra porta (ex.: --hls-port 18081)."
+    fi
+  done
 }
 
 compose() {
@@ -173,6 +199,8 @@ validate_preflight() {
   if ! docker info >/dev/null 2>&1; then
     die "Docker nao esta disponivel"
   fi
+
+  validate_host_ports
 }
 
 prepare_run_dirs() {
@@ -253,6 +281,10 @@ setup_environment_for_scenario() {
 
   export COMPOSE_PROFILES="$server"
   export TRANSCODER="$transcoder"
+  export BACKEND_PORT
+  export RTMP_PORT
+  export HLS_PORT
+  export HLS_HTTP_PORT
 }
 
 wait_backend_ready() {
