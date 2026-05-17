@@ -33,3 +33,4 @@ build/
 docker-compose.override.yml
 
 app/benchmark/results/bench-*
+app/docker/*
