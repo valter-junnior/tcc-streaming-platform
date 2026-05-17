@@ -212,7 +212,7 @@ prepare_run_dirs() {
   RUN_DIR="${RESULTS_ROOT}/${RUN_ID}"
   LOG_DIR="${RUN_DIR}/logs"
   CSV_FILE="${RUN_DIR}/results.csv"
-  CONSOLE_LOG_FILE="${RUN_DIR}/run-console.log"
+  CONSOLE_LOG_FILE="${LOG_DIR}/run-console.log"
   mkdir -p "$RUN_DIR" "$LOG_DIR"
   echo "$CSV_HEADER" > "$CSV_FILE"
   ln -sfn "$RUN_DIR" "${RESULTS_ROOT}/latest"
@@ -228,6 +228,9 @@ enable_console_log_mirror() {
 
 generate_reports() {
   cp "$CSV_FILE" "${DOCS_BENCHMARK_DIR}/results.csv"
+  if [[ -f "$CONSOLE_LOG_FILE" ]]; then
+    cp "$CONSOLE_LOG_FILE" "${DOCS_BENCHMARK_DIR}/run-console.log"
+  fi
 }
 
 scenario_selected() {
@@ -957,6 +960,8 @@ main() {
         cp "${RUN_DIR}/resultado.csv" "${DOCS_BENCHMARK_DIR}/resultado.csv"
         log "CSV final (matriz): ${RUN_DIR}/resultado.csv"
       fi
+      cp "${CSV_FILE}" "${DOCS_BENCHMARK_DIR}/results-raw.csv"
+      cp "${LOG_DIR}/run-console.log" "${DOCS_BENCHMARK_DIR}/run-console-latest.log" 2>/dev/null || true
     else
       log "AVISO: python3 ou aggregate-results.py nao encontrado, pulando agregacao."
     fi
