@@ -32,7 +32,7 @@ SCENARIOS=(
 
 VIEWER_PIDS=()
 
-CSV_HEADER="run_id,mode,scenario,server,transcoder,repeat_index,viewers,duration_seconds,status,error_message,measurement_start_ts,measurement_end_ts,measurement_window_seconds,startup_hls_seconds,request_total,request_errors,error_rate_percent,cpu_avg_percent,cpu_max_percent,mem_avg_mb,mem_max_mb,net_in_mb,net_out_mb,bitrate_kbps,restarts_before,restarts_after,retry_index,compose_network,rtmp_container,master_playlist_url,scenario_log_file,metrics_samples_file,viewer_results_dir"
+CSV_HEADER="run_id,mode,scenario,server,transcoder,repeat_index,viewers,duration_seconds,status,error_message,measurement_start_ts,measurement_end_ts,measurement_window_seconds,startup_hls_seconds,latencia_ponta_a_ponta_s,tempo_primeiro_segmento_s,request_total,request_errors,error_rate_percent,cpu_avg_percent,cpu_max_percent,mem_avg_mb,mem_max_mb,net_in_mb,net_out_mb,bitrate_kbps,restarts_before,restarts_after,retry_index,compose_network,rtmp_container,master_playlist_url,scenario_log_file,metrics_samples_file,viewer_results_dir"
 
 usage() {
   cat <<EOF
@@ -210,15 +210,13 @@ prepare_run_dirs() {
   RUN_DIR="${RESULTS_ROOT}/${RUN_ID}"
   LOG_DIR="${RUN_DIR}/logs"
   CSV_FILE="${RUN_DIR}/results.csv"
-  FINAL_RAW_CSV="${SCRIPT_DIR}/resultado_bruto.csv"
   mkdir -p "$RUN_DIR" "$LOG_DIR"
   echo "$CSV_HEADER" > "$CSV_FILE"
   ln -sfn "$RUN_DIR" "${RESULTS_ROOT}/latest"
 }
 
 generate_reports() {
-  cp "$CSV_FILE" "$FINAL_RAW_CSV"
-  cp "$CSV_FILE" "${DOCS_BENCHMARK_DIR}/resultado_bruto.csv"
+  cp "$CSV_FILE" "${DOCS_BENCHMARK_DIR}/results.csv"
 }
 
 scenario_selected() {
@@ -557,6 +555,53 @@ measure_startup_latency() {
   return 1
 }
 
+measure_first_segment_latency() {
+  local network="$1"
+  local master_url="$2"
+  local timeout="$3"
+
+  local elapsed=0
+  while (( elapsed < timeout )); do
+    if docker run --rm --network "$network" -i curlimages/curl:8.7.1 sh -s -- "$master_url" >/dev/null 2>&1 <<'EOF'
+set -eu
+
+MASTER_URL="$1"
+MASTER=$(curl -s "$MASTER_URL" || true)
+PLAYLIST=$(printf "%s\n" "$MASTER" | grep -E "^[^#]" | head -n1 || true)
+[ -n "$PLAYLIST" ] || exit 1
+
+BASE="${MASTER_URL%/master.m3u8}"
+VARIANT_URL="${BASE}/${PLAYLIST}"
+VARIANT=$(curl -s "$VARIANT_URL" || true)
+SEGMENT=$(printf "%s\n" "$VARIANT" | grep -E "^[^#]" | tail -n1 || true)
+[ -n "$SEGMENT" ] || exit 1
+
+SEGMENT_URL="${BASE}/$(dirname "$PLAYLIST")/${SEGMENT}"
+CODE=$(curl -s -o /dev/null -w '%{http_code}' "$SEGMENT_URL" || true)
+[ "$CODE" = "200" ]
+EOF
+    then
+      echo "$elapsed"
+      return 0
+    fi
+    sleep 1
+    elapsed=$((elapsed + 1))
+  done
+
+  echo "-1"
+  return 1
+}
+
+build_failed_attempt_result() {
+  local error_message="$1"
+  local rtmp_container="$2"
+  local scenario_log_file="$3"
+  local samples_file="$4"
+  local viewers_dir="$5"
+
+  echo "FAIL,${error_message},${rtmp_container},${scenario_log_file},${samples_file},${viewers_dir},0,0,0,-1,-1,-1,0,0,0,0,0,0,0,0,0,0,0,0,,"
+}
+
 probe_bitrate_kbps() {
   local network="$1"
   local master_url="$2"
@@ -632,19 +677,19 @@ run_one_attempt() {
   local rtmp_container="streaming-rtmp-server-${server}"
 
   if ! compose up -d --build postgres rabbitmq streaming-platform "$rtmp_service" >> "$scenario_log_file" 2>&1; then
-    echo "FAIL,compose_up_failed,$rtmp_container,$scenario_log_file,$samples_file,$scenario_viewers,0,0,0,0,0,0,0,0,0,0,0,0,0"
+    build_failed_attempt_result "compose_up_failed" "$rtmp_container" "$scenario_log_file" "$samples_file" "$scenario_viewers"
     return 1
   fi
 
   if ! wait_backend_ready; then
     compose logs --no-color streaming-platform >> "$scenario_log_file" 2>&1 || true
-    echo "FAIL,backend_not_ready,$rtmp_container,$scenario_log_file,$samples_file,$scenario_viewers,0,0,0,0,0,0,0,0,0,0,0,0,0"
+    build_failed_attempt_result "backend_not_ready" "$rtmp_container" "$scenario_log_file" "$samples_file" "$scenario_viewers"
     return 1
   fi
 
   if ! wait_container_running "$rtmp_container"; then
     compose logs --no-color "$rtmp_service" >> "$scenario_log_file" 2>&1 || true
-    echo "FAIL,rtmp_container_not_running,$rtmp_container,$scenario_log_file,$samples_file,$scenario_viewers,0,0,0,0,0,0,0,0,0,0,0,0,0"
+    build_failed_attempt_result "rtmp_container_not_running" "$rtmp_container" "$scenario_log_file" "$samples_file" "$scenario_viewers"
     return 1
   fi
 
@@ -710,6 +755,15 @@ run_one_attempt() {
     startup_hls_seconds="-1"
   fi
 
+  local tempo_primeiro_segmento_s
+  tempo_primeiro_segmento_s="$(measure_first_segment_latency "$compose_network" "$master_url" 120 || true)"
+  if [[ -z "$tempo_primeiro_segmento_s" ]]; then
+    tempo_primeiro_segmento_s="-1"
+  fi
+
+  local latencia_ponta_a_ponta_s
+  latencia_ponta_a_ponta_s="$tempo_primeiro_segmento_s"
+
   start_viewers "$compose_network" "$base_hls_url" "$stream_key" "$viewers" "$DURATION_SECONDS" "$scenario_viewers"
 
   wait "$publisher_pid" || true
@@ -765,7 +819,7 @@ run_one_attempt() {
     error_message="publisher_exit_${publisher_exit}"
   fi
 
-  echo "$status,$error_message,$rtmp_container,$scenario_log_file,$samples_file,$scenario_viewers,$measurement_start_ts,$measurement_end_ts,$measurement_window,$startup_hls_seconds,$request_total,$request_errors,$error_rate_percent,$cpu_avg,$cpu_max,$mem_avg,$mem_max,$net_in_mb,$net_out_mb,$bitrate_kbps,$restarts_before,$restarts_after,$compose_network,$master_url"
+  echo "$status,$error_message,$rtmp_container,$scenario_log_file,$samples_file,$scenario_viewers,$measurement_start_ts,$measurement_end_ts,$measurement_window,$startup_hls_seconds,$latencia_ponta_a_ponta_s,$tempo_primeiro_segmento_s,$request_total,$request_errors,$error_rate_percent,$cpu_avg,$cpu_max,$mem_avg,$mem_max,$net_in_mb,$net_out_mb,$bitrate_kbps,$restarts_before,$restarts_after,$compose_network,$master_url"
 
   if [[ "$KEEP_UP" -eq 0 ]]; then
     compose_down_quiet
@@ -808,12 +862,12 @@ execute_plan() {
     done
 
     local status error_message rtmp_container scenario_log_file samples_file viewers_dir
-    local measurement_start_ts measurement_end_ts measurement_window startup_hls_seconds
+    local measurement_start_ts measurement_end_ts measurement_window startup_hls_seconds latencia_ponta_a_ponta_s tempo_primeiro_segmento_s
     local request_total request_errors error_rate_percent cpu_avg cpu_max mem_avg mem_max net_in_mb net_out_mb
     local bitrate_kbps restarts_before restarts_after compose_network master_url
 
     IFS=',' read -r status error_message rtmp_container scenario_log_file samples_file viewers_dir \
-      measurement_start_ts measurement_end_ts measurement_window startup_hls_seconds request_total request_errors \
+      measurement_start_ts measurement_end_ts measurement_window startup_hls_seconds latencia_ponta_a_ponta_s tempo_primeiro_segmento_s request_total request_errors \
       error_rate_percent cpu_avg cpu_max mem_avg mem_max net_in_mb net_out_mb bitrate_kbps \
       restarts_before restarts_after compose_network master_url <<< "$final_result"
 
@@ -827,7 +881,7 @@ execute_plan() {
     fi
 
     local row
-    row="${RUN_ID},${MODE},${scenario},${scenario%%+*},${scenario##*+},${repeat_idx},${viewers},${DURATION_SECONDS},${status},${error_message},${measurement_start_ts},${measurement_end_ts},${measurement_window},${startup_hls_seconds},${request_total},${request_errors},${error_rate_percent},${cpu_avg},${cpu_max},${mem_avg},${mem_max},${net_in_mb},${net_out_mb},${bitrate_kbps},${restarts_before},${restarts_after},${attempt},${compose_network},${rtmp_container},${master_url},${scenario_log_file},${samples_file},${viewers_dir}"
+    row="${RUN_ID},${MODE},${scenario},${scenario%%+*},${scenario##*+},${repeat_idx},${viewers},${DURATION_SECONDS},${status},${error_message},${measurement_start_ts},${measurement_end_ts},${measurement_window},${startup_hls_seconds},${latencia_ponta_a_ponta_s},${tempo_primeiro_segmento_s},${request_total},${request_errors},${error_rate_percent},${cpu_avg},${cpu_max},${mem_avg},${mem_max},${net_in_mb},${net_out_mb},${bitrate_kbps},${restarts_before},${restarts_after},${attempt},${compose_network},${rtmp_container},${master_url},${scenario_log_file},${samples_file},${viewers_dir}"
     append_csv_row "$row"
 
     log "Resultado: ${status} (${scenario}, viewers=${viewers}, repeat=${repeat_idx})"
@@ -885,6 +939,10 @@ main() {
       log "CSV agregado: ${RUN_DIR}/results-aggregated.csv"
       if [[ -f "${RUN_DIR}/results-aggregated.csv" ]]; then
         cp "${RUN_DIR}/results-aggregated.csv" "${DOCS_BENCHMARK_DIR}/results-aggregated.csv"
+      fi
+      if [[ -f "${RUN_DIR}/resultado.csv" ]]; then
+        cp "${RUN_DIR}/resultado.csv" "${DOCS_BENCHMARK_DIR}/resultado.csv"
+        log "CSV final (matriz): ${RUN_DIR}/resultado.csv"
       fi
     else
       log "AVISO: python3 ou aggregate-results.py nao encontrado, pulando agregacao."

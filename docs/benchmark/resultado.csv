@@ -1,0 +1,24 @@
+Legenda Status,Descrição
+✓,Passou em critérios críticos e de alerta
+⚠,"Passou em critérios críticos, com alerta (CPU ou taxa de erros)"
+✗,Falhou em critério crítico ou falha de execução
+
+Critérios de Aceitação,Regra
+Startup HLS Média (s),<= 15
+CPU Média (%),<= 80
+Taxa de Erros (%),<= 1
+Reinícios Sessão,<= 0
+
+ID Teste,Servidor RTMP,Transcodificador,Viewers,Repeticoes,Duracao Janela (s),Latência Ponta a Ponta (s),Startup HLS Média (s),Startup HLS DP (s),Tempo até Primeiro Segmento (s),CPU Média (%),CPU Máxima (%),RAM Média (MB),RAM Máxima (MB),Bitrate Efetivo (kbps),Taxa de Erros (%),Reinícios Sessão,Status,Observações
+T01,NGINX,FFMPEG,1,3,331.0000,N/A,20.6667,1.5275,N/A,177.3112,378.7433,1445.2170,1505.9627,3523.5350,0.0000,0.0000,✗,startup_hls>15s; cpu_medio>80%
+T02,NGINX,FFMPEG,10,3,332.6667,N/A,22.0000,0.0000,N/A,162.5835,286.8133,1675.9706,1739.7760,3523.7806,0.0000,0.0000,✗,startup_hls>15s; cpu_medio>80%
+T03,NGINX,FFMPEG,50,3,342.0000,N/A,21.0000,1.7321,N/A,238.4404,557.7467,1612.7307,1752.0640,3523.4926,0.0000,0.0000,✗,startup_hls>15s; cpu_medio>80%
+T04,NGINX,GSTREAMER,1,3,331.6667,N/A,20.6667,1.5275,N/A,284.5824,506.3333,653.7886,676.8000,5343.9376,0.0000,0.0000,✗,startup_hls>15s; cpu_medio>80%
+T05,NGINX,GSTREAMER,10,3,335.0000,N/A,19.6667,0.5774,N/A,353.0683,507.3400,621.8302,644.4333,5343.8708,0.0000,0.0000,✗,startup_hls>15s; cpu_medio>80%
+T06,NGINX,GSTREAMER,50,3,344.3333,N/A,19.6667,0.5774,N/A,351.0171,519.3633,623.7268,647.5667,4628.9131,0.0000,0.0000,✗,startup_hls>15s; cpu_medio>80%
+T07,SRS,FFMPEG,1,3,312.0000,N/A,7.6667,0.5774,N/A,213.2340,438.7067,1583.9939,1609.0453,3152.3789,0.0000,0.0000,⚠,cpu_medio>80%
+T08,SRS,FFMPEG,10,3,313.6667,N/A,7.6667,0.5774,N/A,216.2358,416.4167,1632.9197,1656.4907,3152.9632,0.0000,0.0000,⚠,cpu_medio>80%
+T09,SRS,FFMPEG,50,3,320.6667,N/A,7.6667,0.5774,N/A,268.3185,534.4900,1675.8472,1717.5893,3155.1566,0.0000,0.0000,⚠,cpu_medio>80%
+T10,SRS,GSTREAMER,1,3,302.0000,N/A,1.0000,0.0000,N/A,216.9219,461.8533,647.8585,664.4000,5340.2946,1.0345,0.0000,⚠,taxa_erros>1%; cpu_medio>80%
+T11,SRS,GSTREAMER,10,3,304.0000,N/A,1.0000,0.0000,N/A,271.5566,488.2667,624.8557,641.6333,5337.6125,0.9815,0.0000,⚠,cpu_medio>80%
+T12,SRS,GSTREAMER,50,3,313.3333,N/A,1.0000,0.0000,N/A,349.3738,489.4900,610.5898,628.8333,5338.8908,1.7445,0.0000,⚠,taxa_erros>1%; cpu_medio>80%

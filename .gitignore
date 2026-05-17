@@ -34,3 +34,5 @@ docker-compose.override.yml
 
 app/benchmark/results/bench-*
 app/docker/*
+docs/benchmark/results.csv
+app/benchmark/__pycache__/

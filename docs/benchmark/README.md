@@ -21,6 +21,7 @@ Com cargas:
 6. Consolida os resultados em CSV bruto e, opcionalmente, CSV agregado:
 - resultado_bruto.csv (detalhado)
 - results-aggregated.csv (agregado estatistico, quando `--aggregate` e usado)
+- resultado.csv (planilha final da matriz T01..T12 para analise do TCC)
 
 Toda execucao e feita somente com Docker.
 
@@ -64,13 +65,26 @@ python3 benchmark/aggregate-results.py benchmark/results/latest/results.csv benc
 - `app/benchmark/results/<run_id>/`   — resultados da execucao especifica
 - `app/benchmark/resultado_bruto.csv` — ultimo CSV bruto completo (copia)
 - `docs/benchmark/resultado_bruto.csv` — ultimo CSV bruto completo (copia para documentacao)
-- `docs/benchmark/results-aggregated.csv` — ultimo CSV agregado (quando gerado com `--aggregate`)
+- `docs/benchmark/results-aggregated.csv` — ultimo CSV agregado para analise comparativa e conclusoes (gerado com `--aggregate`)
+- `docs/benchmark/resultado.csv` — planilha final consolidada da matriz (gerada com `--aggregate`)
 
 Dentro de cada `<run_id>/`:
 - `results.csv`               — dados brutos de todas as execucoes (fonte de verdade)
-- `results-aggregated.csv`    — media, desvio padrao e avaliacao PASS/FAIL por combinacao (gerado por aggregate-results.py)
+- `results-aggregated.csv`    — consolidacao estatistica por combinacao (media, desvio padrao e avaliacao PASS/FAIL) para comparar cenarios com menor ruido entre repeticoes
+- `resultado.csv`             — formato final para apresentacao (T01..T12 + metricas essenciais do plano de testes)
 - `summary.txt`               — resumo rapido (pass/fail/totais)
 - `logs/`                     — logs por cenario
+
+## Para que serve o results-aggregated.csv
+- Reduz variacao entre execucoes repetidas ao consolidar os dados por combinacao (`server` x `transcoder` x `viewers`).
+- Facilita comparacoes justas entre cenarios sem depender de uma unica execucao isolada.
+- Apoia a analise do TCC com indicadores prontos (`*_mean`, `*_stddev`, `pass_*`, `overall_pass_fail`).
+- Deve ser usado como base para conclusoes e tabelas comparativas; o `results.csv` continua sendo a fonte de verdade para auditoria detalhada.
+
+## Para que serve o resultado.csv
+- Entrega a planilha final no formato da matriz experimental (T01..T12), pronta para uso no TCC.
+- Mantem apenas o necessario do plano de testes: startup HLS, CPU, memoria, bitrate, taxa de erros, reinicios e status.
+- Inclui colunas de apoio para metricas manuais fora do escopo automatizado atual (`Latencia_ponta_a_ponta_s` e `Tempo_primeiro_segmento_s`).
 
 ## Resultados esperados
 - PASS para os cenarios que conseguem publicar a live, servir playlists HLS e finalizar sem erro critico.
@@ -128,3 +142,13 @@ Saida: `results-aggregated.csv` — um CSV unico com tudo necessario para a anal
 - `<metrica>_mean` e `<metrica>_stddev` para cada metrica
 - `pass_startup_hls_seconds`, `pass_cpu_avg_percent`, `pass_error_rate_percent`, `pass_restarts_after`
 - `overall_pass_fail`
+
+Saida adicional: `resultado.csv` — visao final para comparacao da matriz:
+- `Execucao` (T01..T12), `Servidor`, `Transcodificador`, `Espectadores`, `Repeticoes`
+- metricas consolidadas essenciais do plano de testes
+- `Status` com legenda (`✓`, `⚠`, `✗`) e `Observacoes`
+
+Interpretacao recomendada:
+- Use `*_mean` para comparar desempenho medio entre cenarios.
+- Use `*_stddev` para avaliar estabilidade (quanto menor, mais consistente).
+- Use `overall_pass_fail` para triagem rapida de conformidade com os criterios.
