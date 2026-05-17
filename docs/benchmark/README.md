@@ -1,7 +1,7 @@
 # Benchmark RTMP (Docker-only)
 
 ## Objetivo
-Executar testes comparativos RTMP conforme a matriz em docs/tcc/Matriz e Plano de Testes.md para as combinacoes:
+Executar testes comparativos RTMP conforme a matriz em docs/tcc/report/Matriz e Plano de Testes.md para as combinacoes:
 - nginx + ffmpeg
 - nginx + gstreamer
 - srs + ffmpeg
@@ -18,9 +18,9 @@ Com cargas:
 3. Publica uma live sintetica (ffmpeg em container) pelo tempo configurado.
 4. Inicia viewers sinteticos (containers curl) para simular audiencia.
 5. Coleta metricas do container RTMP com docker stats.
-6. Consolida os resultados em dois CSVs:
+6. Consolida os resultados em CSV bruto e, opcionalmente, CSV agregado:
 - resultado_bruto.csv (detalhado)
-- resultado_tcc.csv (resumido para uso no TCC)
+- results-aggregated.csv (agregado estatistico, quando `--aggregate` e usado)
 
 Toda execucao e feita somente com Docker.
 
@@ -58,18 +58,17 @@ Ou em dois passos separados:
 # 2. Agregar resultados (gera results-aggregated.csv)
 python3 benchmark/aggregate-results.py benchmark/results/latest/results.csv benchmark/results/latest/
 
-# 3. Gerar relatorio TCC final (gera docs/benchmark/report-tcc-final.md)
-python3 benchmark/generate-tcc-report.py benchmark/results/latest/results-aggregated.csv
 ```
 
 ## Estrutura de saida
 - `app/benchmark/results/<run_id>/`   — resultados da execucao especifica
 - `app/benchmark/resultado_bruto.csv` — ultimo CSV bruto completo (copia)
+- `docs/benchmark/resultado_bruto.csv` — ultimo CSV bruto completo (copia para documentacao)
+- `docs/benchmark/results-aggregated.csv` — ultimo CSV agregado (quando gerado com `--aggregate`)
 
 Dentro de cada `<run_id>/`:
 - `results.csv`               — dados brutos de todas as execucoes (fonte de verdade)
 - `results-aggregated.csv`    — media, desvio padrao e avaliacao PASS/FAIL por combinacao (gerado por aggregate-results.py)
-- `runner-manifest.md`        — manifesto dos cenarios planejados
 - `summary.txt`               — resumo rapido (pass/fail/totais)
 - `logs/`                     — logs por cenario
 
@@ -92,8 +91,6 @@ Dentro de cada `<run_id>/`:
 - duration_seconds: duracao da live ativa em segundos.
 - status: PASS ou FAIL.
 - error_message: motivo da falha quando houver.
-- start_ts: unix timestamp (s) de inicio da medicao.
-- end_ts: unix timestamp (s) de fim da medicao.
 - measurement_start_ts: timestamp do marcador de inicio da janela ativa.
 - measurement_end_ts: timestamp do marcador de fim da janela ativa.
 - measurement_window_seconds: duracao real medida da janela ativa (s).
@@ -117,28 +114,6 @@ Dentro de cada `<run_id>/`:
 - scenario_log_file: caminho do log principal do cenario.
 - metrics_samples_file: caminho da serie temporal de metricas.
 - viewer_results_dir: pasta com arquivos de resultado dos viewers.
-
-### CSV 2: resultado_tcc.csv
-Formato resumido para analise no TCC.
-- Execucao: ID de teste T01..T12 conforme matriz experimental.
-- Servidor: nginx ou srs.
-- Transcodificador: ffmpeg ou gstreamer.
-- Espectadores: 1, 10 ou 50.
-- Duracao_s: duracao da live ativa (s).
-- Repeticao: indice da repeticao (inteiro).
-- Startup_HLS_s: tempo ate disponibilidade da master playlist (s).
-- Tempo_Primeiro_Segmento_s: tempo ate primeiro segmento (s).
-- CPU_medio_percent: CPU media do container RTMP (%).
-- CPU_max_percent: CPU maxima do container RTMP (%).
-- RAM_media_MB: memoria media (MB).
-- RAM_max_MB: memoria maxima (MB).
-- Bitrate_efetivo_kbps: bitrate efetivo (kbps).
-- Erros_segmento: contagem total de erros de segmento.
-- Taxa_erros_percent: taxa de erro de segmento (%).
-- Reinicios_sessao: quantidade de reinicios involuntarios na sessao.
-- Latencia_ponta_a_ponta_s: latencia OBS->player (manual nesta versao).
-- Status: PASS ou FAIL.
-- Observacoes: alertas relevantes para leitura rapida.
 
 ## Scripts auxiliares
 
