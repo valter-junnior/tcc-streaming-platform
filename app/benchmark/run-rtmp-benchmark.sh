@@ -6,6 +6,7 @@ APP_DIR="$(cd "${SCRIPT_DIR}/.." && pwd)"
 COMPOSE_FILE="${APP_DIR}/docker-compose.yml"
 ENV_FILE="${APP_DIR}/.env"
 RESULTS_ROOT="${SCRIPT_DIR}/results"
+DOCS_BENCHMARK_DIR="$(cd "${APP_DIR}/.." && pwd)/docs/benchmark"
 
 MODE="sanity"
 SCENARIO_FILTER="all"
@@ -48,7 +49,7 @@ Opcoes:
   --rtmp-port <port>           Porta RTMP interna dos servicos (default: 1935)
   --hls-port <port>            Porta HLS interna dos servicos (default: 8081)
   --keep-up                    Nao derruba stack no final
-  --aggregate                  Apos execucao full, agrega resultados e gera report-tcc-final.md em docs/benchmark/
+  --aggregate                  Apos execucao full, agrega resultados e salva artefatos em docs/benchmark/
   --help                       Exibe ajuda
 
 Exemplos:
@@ -155,6 +156,7 @@ compose() {
 
 ensure_results() {
   mkdir -p "$RESULTS_ROOT"
+  mkdir -p "$DOCS_BENCHMARK_DIR"
 }
 
 validate_preflight() {
@@ -188,6 +190,7 @@ prepare_run_dirs() {
 
 generate_reports() {
   cp "$CSV_FILE" "$FINAL_RAW_CSV"
+  cp "$CSV_FILE" "${DOCS_BENCHMARK_DIR}/resultado_bruto.csv"
 }
 
 scenario_selected() {
@@ -229,33 +232,6 @@ build_execution_plan() {
   done
 
   [[ ${#PLAN_ITEMS[@]} -gt 0 ]] || die "Nenhum cenario selecionado"
-}
-
-write_runner_manifest() {
-  local manifest_file="${RUN_DIR}/runner-manifest.md"
-  cat > "$manifest_file" <<EOF
-# Runner Manifest - ${RUN_ID}
-
-## Objetivo
-Executar benchmark RTMP em Docker para os cenarios:
-- nginx+ffmpeg
-- nginx+gstreamer
-- srs+ffmpeg
-- srs+gstreamer
-
-## Containers essenciais por cenario
-- postgres (database)
-- rabbitmq (broker)
-- streaming-platform (callbacks de validacao de stream)
-- rtmp-server-nginx ou rtmp-server-srs (servidor RTMP alvo)
-- publisher container (ffmpeg via docker run)
-- viewer containers (curl via docker run)
-
-## Politica de medicao
-- Medir apenas janela de live ativa (start -> end)
-- Excluir setup/teardown da stack
-- Persistir CSV incremental por cenario para tolerancia a falhas
-EOF
 }
 
 compose_down_quiet() {
@@ -856,7 +832,6 @@ main() {
   ensure_results
   prepare_run_dirs
   build_execution_plan
-  write_runner_manifest
 
   log "RUN_ID: ${RUN_ID}"
   log "Modo: ${MODE}"
@@ -876,6 +851,9 @@ main() {
       log "Agregando resultados com aggregate-results.py ..."
       python3 "$aggregate_script" "$CSV_FILE" "$RUN_DIR"
       log "CSV agregado: ${RUN_DIR}/results-aggregated.csv"
+      if [[ -f "${RUN_DIR}/results-aggregated.csv" ]]; then
+        cp "${RUN_DIR}/results-aggregated.csv" "${DOCS_BENCHMARK_DIR}/results-aggregated.csv"
+      fi
     else
       log "AVISO: python3 ou aggregate-results.py nao encontrado, pulando agregacao."
     fi
