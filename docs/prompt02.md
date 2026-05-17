@@ -1,1 +1,0 @@
-No projeto eu quero fazer a parte de testes no caso o benchmark, já densenolvi um teste e agora eu quero tratar melhor os resultados ou seja eu quero que voce analise se os resultados gerados no csv servem para eu utilizar no tcc?
