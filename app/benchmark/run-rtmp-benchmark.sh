@@ -22,6 +22,8 @@ HLS_HTTP_PORT=8081
 KEEP_UP=0
 AGGREGATE=0
 STATS_PID=0
+CONSOLE_LOG_FILE=""
+LOG_MIRROR_ENABLED=0
 
 SCENARIOS=(
   "nginx+ffmpeg"
@@ -210,9 +212,18 @@ prepare_run_dirs() {
   RUN_DIR="${RESULTS_ROOT}/${RUN_ID}"
   LOG_DIR="${RUN_DIR}/logs"
   CSV_FILE="${RUN_DIR}/results.csv"
+  CONSOLE_LOG_FILE="${RUN_DIR}/run-console.log"
   mkdir -p "$RUN_DIR" "$LOG_DIR"
   echo "$CSV_HEADER" > "$CSV_FILE"
   ln -sfn "$RUN_DIR" "${RESULTS_ROOT}/latest"
+}
+
+enable_console_log_mirror() {
+  if [[ "$LOG_MIRROR_ENABLED" -eq 1 ]]; then
+    return
+  fi
+  LOG_MIRROR_ENABLED=1
+  exec > >(tee -a "$CONSOLE_LOG_FILE") 2>&1
 }
 
 generate_reports() {
@@ -917,9 +928,11 @@ main() {
   validate_preflight
   ensure_results
   prepare_run_dirs
+  enable_console_log_mirror
   build_execution_plan
 
   log "RUN_ID: ${RUN_ID}"
+  log "Log da execucao: ${CONSOLE_LOG_FILE}"
   log "Modo: ${MODE}"
   log "Duracao live ativa: ${DURATION_SECONDS}s"
   log "Cenarios planejados: ${#PLAN_ITEMS[@]}"
