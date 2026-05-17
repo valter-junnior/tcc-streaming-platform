@@ -22,6 +22,8 @@ from statistics import mean, stdev
 
 METRICS = [
     "startup_hls_seconds",
+    "latencia_ponta_a_ponta_s",
+    "tempo_primeiro_segmento_s",
     "cpu_avg_percent",
     "cpu_max_percent",
     "mem_avg_mb",
@@ -43,6 +45,21 @@ CRITERIA = [
     ("error_rate_percent_mean",  "le",  1.0),
     ("restarts_after_mean",      "le",  0.0),
 ]
+
+TEST_MATRIX = {
+    ("nginx", "ffmpeg", "1"): "T01",
+    ("nginx", "ffmpeg", "10"): "T02",
+    ("nginx", "ffmpeg", "50"): "T03",
+    ("nginx", "gstreamer", "1"): "T04",
+    ("nginx", "gstreamer", "10"): "T05",
+    ("nginx", "gstreamer", "50"): "T06",
+    ("srs", "ffmpeg", "1"): "T07",
+    ("srs", "ffmpeg", "10"): "T08",
+    ("srs", "ffmpeg", "50"): "T09",
+    ("srs", "gstreamer", "1"): "T10",
+    ("srs", "gstreamer", "10"): "T11",
+    ("srs", "gstreamer", "50"): "T12",
+}
 
 
 def parse_args():
@@ -146,6 +163,152 @@ def write_aggregated(output_path, aggregated_rows, fieldnames):
     print(f"Escrito: {output_path}")
 
 
+def float_or_none(value):
+    try:
+        return float(value)
+    except (TypeError, ValueError):
+        return None
+
+
+def format_metric(value):
+    v = float_or_none(value)
+    if v is None:
+        return ""
+    return f"{v:.4f}"
+
+
+def format_metric_or_na(value):
+    v = float_or_none(value)
+    if v is None:
+        return "N/A"
+    return f"{v:.4f}"
+
+
+def build_status_and_notes(row):
+    notes = []
+    crit_startup = row.get("pass_startup_hls_seconds", "")
+    crit_cpu = row.get("pass_cpu_avg_percent", "")
+    crit_error = row.get("pass_error_rate_percent", "")
+    crit_restart = row.get("pass_restarts_after", "")
+    has_startup = float_or_none(row.get("startup_hls_seconds_mean", "")) is not None
+    has_cpu = float_or_none(row.get("cpu_avg_percent_mean", "")) is not None
+    has_error = float_or_none(row.get("error_rate_percent_mean", "")) is not None
+    has_restart = float_or_none(row.get("restarts_after_mean", "")) is not None
+
+    if row.get("status") == "FAIL":
+        notes.append("falha_execucao")
+    if has_startup and crit_startup == "FAIL":
+        notes.append("startup_hls>15s")
+    if has_error and crit_error == "FAIL":
+        notes.append("taxa_erros>1%")
+    if has_cpu and crit_cpu == "FAIL":
+        notes.append("cpu_medio>80%")
+    if has_restart and crit_restart == "FAIL":
+        notes.append("reinicios>0")
+
+    critical_fail = (
+        row.get("status") == "FAIL"
+        or (has_startup and crit_startup == "FAIL")
+        or (has_restart and crit_restart == "FAIL")
+    )
+    warning_fail = (has_cpu and crit_cpu == "FAIL") or (has_error and crit_error == "FAIL")
+
+    if critical_fail:
+        status_symbol = "✗"
+    elif warning_fail:
+        status_symbol = "⚠"
+    else:
+        status_symbol = "✓"
+
+    obs = "ok" if not notes else "; ".join(notes)
+    return status_symbol, obs
+
+
+def build_final_sheet_rows(aggregated_rows):
+    final_rows = []
+    for row in aggregated_rows:
+        if row.get("mode") != "full":
+            continue
+
+        key = (row.get("server", ""), row.get("transcoder", ""), row.get("viewers", ""))
+        test_id = TEST_MATRIX.get(key, "NA")
+        status_symbol, notes = build_status_and_notes(row)
+
+        final_rows.append(
+            {
+                "ID Teste": test_id,
+                "Servidor RTMP": row.get("server", "").upper(),
+                "Transcodificador": row.get("transcoder", "").upper(),
+                "Viewers": row.get("viewers", ""),
+                "Repeticoes": row.get("repeat_count", ""),
+                "Duracao Janela (s)": format_metric(row.get("measurement_window_seconds_mean", "")),
+                "Latência Ponta a Ponta (s)": format_metric_or_na(row.get("latencia_ponta_a_ponta_s_mean", "")),
+                "Startup HLS Média (s)": format_metric(row.get("startup_hls_seconds_mean", "")),
+                "Startup HLS DP (s)": format_metric(row.get("startup_hls_seconds_stddev", "")),
+                "Tempo até Primeiro Segmento (s)": format_metric_or_na(row.get("tempo_primeiro_segmento_s_mean", "")),
+                "CPU Média (%)": format_metric(row.get("cpu_avg_percent_mean", "")),
+                "CPU Máxima (%)": format_metric(row.get("cpu_max_percent_mean", "")),
+                "RAM Média (MB)": format_metric(row.get("mem_avg_mb_mean", "")),
+                "RAM Máxima (MB)": format_metric(row.get("mem_max_mb_mean", "")),
+                "Bitrate Efetivo (kbps)": format_metric(row.get("bitrate_kbps_mean", "")),
+                "Taxa de Erros (%)": format_metric(row.get("error_rate_percent_mean", "")),
+                "Reinícios Sessão": format_metric(row.get("restarts_after_mean", "")),
+                "Status": status_symbol,
+                "Observações": notes,
+            }
+        )
+
+    def sort_key(r):
+        tid = r.get("ID Teste", "NA")
+        if tid.startswith("T") and tid[1:].isdigit():
+            return int(tid[1:])
+        return 999
+
+    return sorted(final_rows, key=sort_key)
+
+
+def write_final_sheet(output_path, rows):
+    fieldnames = [
+        "ID Teste",
+        "Servidor RTMP",
+        "Transcodificador",
+        "Viewers",
+        "Repeticoes",
+        "Duracao Janela (s)",
+        "Latência Ponta a Ponta (s)",
+        "Startup HLS Média (s)",
+        "Startup HLS DP (s)",
+        "Tempo até Primeiro Segmento (s)",
+        "CPU Média (%)",
+        "CPU Máxima (%)",
+        "RAM Média (MB)",
+        "RAM Máxima (MB)",
+        "Bitrate Efetivo (kbps)",
+        "Taxa de Erros (%)",
+        "Reinícios Sessão",
+        "Status",
+        "Observações",
+    ]
+    with open(output_path, "w", newline="", encoding="utf-8") as f:
+        writer = csv.writer(f)
+        writer.writerow(["Legenda Status", "Descrição"])
+        writer.writerow(["✓", "Passou em critérios críticos e de alerta"])
+        writer.writerow(["⚠", "Passou em critérios críticos, com alerta (CPU ou taxa de erros)"])
+        writer.writerow(["✗", "Falhou em critério crítico ou falha de execução"])
+        writer.writerow([])
+        writer.writerow(["Critérios de Aceitação", "Regra"])
+        writer.writerow(["Startup HLS Média (s)", "<= 15"])
+        writer.writerow(["CPU Média (%)", "<= 80"])
+        writer.writerow(["Taxa de Erros (%)", "<= 1"])
+        writer.writerow(["Reinícios Sessão", "<= 0"])
+        writer.writerow([])
+
+        dict_writer = csv.DictWriter(f, fieldnames=fieldnames, extrasaction="ignore")
+        dict_writer.writeheader()
+        dict_writer.writerows(rows)
+    print(f"Escrito: {output_path}")
+
+
 def main():
     csv_path, output_dir = parse_args()
     rows, _ = load_rows(csv_path)
@@ -161,6 +324,10 @@ def main():
     output_path = output_dir / "results-aggregated.csv"
     fieldnames = build_output_fieldnames()
     write_aggregated(output_path, aggregated, fieldnames)
+
+    final_sheet_rows = build_final_sheet_rows(aggregated)
+    final_sheet_path = output_dir / "resultado.csv"
+    write_final_sheet(final_sheet_path, final_sheet_rows)
 
     print("\nResumo:")
     print(f"  Linhas de entrada : {len(rows)}")
