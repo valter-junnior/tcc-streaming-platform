@@ -19,7 +19,7 @@ Com cargas:
 4. Inicia viewers sinteticos (containers curl) para simular audiencia.
 5. Coleta metricas do container RTMP com docker stats.
 6. Consolida os resultados em CSV bruto e, opcionalmente, CSV agregado:
-- resultado_bruto.csv (detalhado)
+- results.csv (bruto, por run)
 - results-aggregated.csv (agregado estatistico, quando `--aggregate` e usado)
 - resultado.csv (planilha final da matriz T01..T12 para analise do TCC)
 
@@ -63,15 +63,18 @@ python3 benchmark/aggregate-results.py benchmark/results/latest/results.csv benc
 
 ## Estrutura de saida
 - `app/benchmark/results/<run_id>/`   — resultados da execucao especifica
-- `app/benchmark/resultado_bruto.csv` — ultimo CSV bruto completo (copia)
-- `docs/benchmark/resultado_bruto.csv` — ultimo CSV bruto completo (copia para documentacao)
+- `app/benchmark/results/latest/`      — ponteiro para a ultima execucao gerada
+- `docs/benchmark/results.csv`         — copia do bruto mais recente (auditoria)
+- `docs/benchmark/results-raw.csv`     — copia do bruto mais recente (compatibilidade)
 - `docs/benchmark/results-aggregated.csv` — ultimo CSV agregado para analise comparativa e conclusoes (gerado com `--aggregate`)
-- `docs/benchmark/resultado.csv` — planilha final consolidada da matriz (gerada com `--aggregate`)
+- `docs/benchmark/resultado.csv`       — planilha final consolidada da matriz (gerada com `--aggregate`)
+- `docs/benchmark/run-console.log`     — espelho do console da ultima execucao
 
 Dentro de cada `<run_id>/`:
 - `results.csv`               — dados brutos de todas as execucoes (fonte de verdade)
 - `results-aggregated.csv`    — consolidacao estatistica por combinacao (media, desvio padrao e avaliacao PASS/FAIL) para comparar cenarios com menor ruido entre repeticoes
 - `resultado.csv`             — formato final para apresentacao (T01..T12 + metricas essenciais do plano de testes)
+- `run-console.log`           — tudo que apareceu no terminal durante a execucao
 - `summary.txt`               — resumo rapido (pass/fail/totais)
 - `logs/`                     — logs por cenario
 
@@ -85,6 +88,26 @@ Dentro de cada `<run_id>/`:
 - Entrega a planilha final no formato da matriz experimental (T01..T12), pronta para uso no TCC.
 - Mantem apenas o necessario do plano de testes: startup HLS, CPU, memoria, bitrate, taxa de erros, reinicios e status.
 - Inclui colunas de apoio para metricas manuais fora do escopo automatizado atual (`Latencia_ponta_a_ponta_s` e `Tempo_primeiro_segmento_s`).
+
+## Como interpretar as metricas
+- `CPU Média (%)` e `CPU Máxima (%)` representam a ocupação observada no container RTMP durante a execução. O valor pode passar de 100% porque o Docker contabiliza uso agregado de mais de uma thread do host.
+- `RAM Média (MB)` e `RAM Máxima (MB)` representam o consumo observado no container. Para entender o peso real, compare esses valores com a RAM total documentada no host (24 GB) e com a carga dos demais containers.
+- `Taxa de Erros (%)`, `Bitrate Efetivo (kbps)`, `Startup HLS Média (s)` e `Reinícios Sessão` devem ser lidos como indicadores do comportamento do cenário naquele host específico, não como valores absolutos independentes do ambiente.
+- A comparação entre cenários só é defensável porque todos eles foram executados no mesmo ambiente de testes descrito no plano.
+
+## Hardware do ambiente de testes
+O plano de testes registra o ambiente usado no estudo:
+
+| Item | Especificação |
+|---|---|
+| Sistema Operacional | Ubuntu 24.04.3 LTS (x86_64), kernel 6.17.0-23-generic |
+| CPU | Intel Core i5-13420H (13ª geração, 12 threads, 2 threads/núcleo) |
+| RAM total | 24 GB |
+| Armazenamento | NVMe SSD (231 GB) |
+| Rede | Loopback / bridge Docker |
+| Virtualização | Docker Engine |
+
+Observação: a RAM "disponível" durante a execução varia conforme o uso do sistema operacional e dos containers. O valor documentado no plano é a capacidade total do host; para medir disponível em tempo real, use `free -h` ou `cat /proc/meminfo` no momento do benchmark.
 
 ## Resultados esperados
 - PASS para os cenarios que conseguem publicar a live, servir playlists HLS e finalizar sem erro critico.
@@ -147,6 +170,8 @@ Saida adicional: `resultado.csv` — visao final para comparacao da matriz:
 - `Execucao` (T01..T12), `Servidor`, `Transcodificador`, `Espectadores`, `Repeticoes`
 - metricas consolidadas essenciais do plano de testes
 - `Status` com legenda (`✓`, `⚠`, `✗`) e `Observacoes`
+
+Saida de rastreamento: `run-console.log` — espelho textual de tudo que apareceu na tela durante a execução.
 
 Interpretacao recomendada:
 - Use `*_mean` para comparar desempenho medio entre cenarios.

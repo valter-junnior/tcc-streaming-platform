@@ -24,12 +24,11 @@ app/benchmark/results/
 
 ```
 docs/benchmark/
-├── README.md                     ← Documentação de uso
-├── resultado.csv                 ← Última cópia de resultado.csv (para TCC)
-├── results-aggregated.csv        ← Última cópia de results-aggregated.csv (análise técnica)
-├── results-raw.csv               ← Última cópia de results.csv bruto (auditoria)
-├── run-console-latest.log        ← Último console.log da execução
-└── results.csv                   ← Cópia do resultado.csv bruto (compatibilidade)
+├── README.md                  ← Documentação de uso
+├── resultado.csv              ← Última cópia da matriz final (para TCC)
+├── results-aggregated.csv     ← Última cópia do agregado técnico
+├── results.csv                ← Última cópia do bruto (auditoria)
+└── run-console.log            ← Último espelho do console da execução
 ```
 
 ## Fluxo de Versionamento
@@ -48,11 +47,11 @@ docs/benchmark/
    - Tudo do passo anterior, MAIS:
    - `results-aggregated.csv` gerado (agregação estatística)
    - `resultado.csv` gerado (matriz T01..T12 para TCC)
-   - Todas as três versões copiadas para `docs/benchmark/`:
+   - Cópias atualizadas em `docs/benchmark/`:
      - `resultado.csv` ← Use isto no TCC
      - `results-aggregated.csv` ← Use isto para análise comparativa
-     - `results-raw.csv` ← Use isto para auditoria de dados brutos
-     - `run-console-latest.log` ← Último log de execução
+     - `results.csv` ← Use isto para auditoria dos dados brutos mais recentes
+     - `run-console.log` ← Último espelho do console
 
 ## Qual arquivo usar para quê?
 
@@ -60,8 +59,8 @@ docs/benchmark/
 |---------|-------------|----------|
 | `resultado.csv` | `docs/benchmark/` | **TCC**: matriz T01..T12 com legenda e critérios |
 | `results-aggregated.csv` | `docs/benchmark/` | Análise: médias, desvios, pass/fail técnico |
-| `results-raw.csv` | `docs/benchmark/` | Auditoria: todos os dados brutos (fonte de verdade) |
-| `run-console-latest.log` | `docs/benchmark/` | Rastreamento: tudo que aconteceu na execução |
+| `results.csv` | `docs/benchmark/` | Auditoria: bruto mais recente copiado do último run |
+| `run-console.log` | `docs/benchmark/` | Rastreamento: espelho do console da última execução |
 | `results.csv` | `<run_id>/` | Versão original de cada run (nunca deletar) |
 
 ## Estrutura da pasta `logs`
