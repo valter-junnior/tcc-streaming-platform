@@ -74,6 +74,11 @@ Cada teste executado com duração mínima de 5 minutos de stream ativa. Repeti�
 | Tempo até primeiro segmento após `on_publish` | segundos | Log do transcodificador |
 | Estabilidade do pipeline (restarts por sessão) | contagem | Log do transcodificador |
 
+Observação de leitura:
+- As métricas de CPU e memória devem ser interpretadas com base no ambiente de testes documentado neste plano. O percentual de CPU é o uso observado no container e pode exceder 100% quando houver consumo de múltiplas threads do host.
+- A métrica de memória representa o consumo observado no container e deve ser comparada com a RAM total do host (24 GB) e com o restante da carga dos containers.
+- As métricas de latência, bitrate, taxa de erros e reinícios também dependem do host e da stack Docker usada na execução; por isso o mesmo cenário deve ser comparado apenas dentro do mesmo ambiente documentado.
+
 ### Ferramentas de Testes
 
 | Ferramenta | Finalidade |
