@@ -1,0 +1,137 @@
+[2026-05-17 16:43:17] RUN_ID: bench-full-20260517-164317
+[2026-05-17 16:43:17] Log da execucao: /home/junnior/Documentos/apps/tcc/app/benchmark/results/bench-full-20260517-164317/logs/run-console.log
+[2026-05-17 16:43:17] Modo: full
+[2026-05-17 16:43:17] Duracao live ativa: 300s
+[2026-05-17 16:43:17] Cenarios planejados: 36
+[2026-05-17 16:43:17] [1/36] Executando nginx+ffmpeg viewers=1 repeat=1
+[2026-05-17 16:43:17] Iniciando cenario nginx+ffmpeg (viewers=1, repeat=1, retry=0)
+[2026-05-17 16:49:18] Resultado: PASS (nginx+ffmpeg, viewers=1, repeat=1)
+[2026-05-17 16:49:18] [2/36] Executando nginx+ffmpeg viewers=1 repeat=2
+[2026-05-17 16:49:18] Iniciando cenario nginx+ffmpeg (viewers=1, repeat=2, retry=0)
+[2026-05-17 16:55:21] Resultado: PASS (nginx+ffmpeg, viewers=1, repeat=2)
+[2026-05-17 16:55:21] [3/36] Executando nginx+ffmpeg viewers=1 repeat=3
+[2026-05-17 16:55:21] Iniciando cenario nginx+ffmpeg (viewers=1, repeat=3, retry=0)
+[2026-05-17 17:01:25] Resultado: PASS (nginx+ffmpeg, viewers=1, repeat=3)
+[2026-05-17 17:01:25] [4/36] Executando nginx+ffmpeg viewers=10 repeat=1
+[2026-05-17 17:01:25] Iniciando cenario nginx+ffmpeg (viewers=10, repeat=1, retry=0)
+[2026-05-17 17:07:28] Resultado: PASS (nginx+ffmpeg, viewers=10, repeat=1)
+[2026-05-17 17:07:28] [5/36] Executando nginx+ffmpeg viewers=10 repeat=2
+[2026-05-17 17:07:28] Iniciando cenario nginx+ffmpeg (viewers=10, repeat=2, retry=0)
+[2026-05-17 17:13:32] Resultado: PASS (nginx+ffmpeg, viewers=10, repeat=2)
+[2026-05-17 17:13:32] [6/36] Executando nginx+ffmpeg viewers=10 repeat=3
+[2026-05-17 17:13:32] Iniciando cenario nginx+ffmpeg (viewers=10, repeat=3, retry=0)
+[2026-05-17 17:19:35] Resultado: PASS (nginx+ffmpeg, viewers=10, repeat=3)
+[2026-05-17 17:19:35] [7/36] Executando nginx+ffmpeg viewers=50 repeat=1
+[2026-05-17 17:19:35] Iniciando cenario nginx+ffmpeg (viewers=50, repeat=1, retry=0)
+[2026-05-17 17:25:45] Resultado: PASS (nginx+ffmpeg, viewers=50, repeat=1)
+[2026-05-17 17:25:45] [8/36] Executando nginx+ffmpeg viewers=50 repeat=2
+[2026-05-17 17:25:45] Iniciando cenario nginx+ffmpeg (viewers=50, repeat=2, retry=0)
+[2026-05-17 17:31:56] Resultado: PASS (nginx+ffmpeg, viewers=50, repeat=2)
+[2026-05-17 17:31:56] [9/36] Executando nginx+ffmpeg viewers=50 repeat=3
+[2026-05-17 17:31:56] Iniciando cenario nginx+ffmpeg (viewers=50, repeat=3, retry=0)
+[2026-05-17 17:38:08] Resultado: PASS (nginx+ffmpeg, viewers=50, repeat=3)
+[2026-05-17 17:38:08] [10/36] Executando nginx+gstreamer viewers=1 repeat=1
+[2026-05-17 17:38:08] Iniciando cenario nginx+gstreamer (viewers=1, repeat=1, retry=0)
+[2026-05-17 17:44:13] Resultado: PASS (nginx+gstreamer, viewers=1, repeat=1)
+[2026-05-17 17:44:13] [11/36] Executando nginx+gstreamer viewers=1 repeat=2
+[2026-05-17 17:44:13] Iniciando cenario nginx+gstreamer (viewers=1, repeat=2, retry=0)
+[2026-05-17 17:50:16] Resultado: PASS (nginx+gstreamer, viewers=1, repeat=2)
+[2026-05-17 17:50:16] [12/36] Executando nginx+gstreamer viewers=1 repeat=3
+[2026-05-17 17:50:16] Iniciando cenario nginx+gstreamer (viewers=1, repeat=3, retry=0)
+[2026-05-17 17:56:18] Resultado: PASS (nginx+gstreamer, viewers=1, repeat=3)
+[2026-05-17 17:56:18] [13/36] Executando nginx+gstreamer viewers=10 repeat=1
+[2026-05-17 17:56:18] Iniciando cenario nginx+gstreamer (viewers=10, repeat=1, retry=0)
+[2026-05-17 18:02:23] Resultado: PASS (nginx+gstreamer, viewers=10, repeat=1)
+[2026-05-17 18:02:23] [14/36] Executando nginx+gstreamer viewers=10 repeat=2
+[2026-05-17 18:02:23] Iniciando cenario nginx+gstreamer (viewers=10, repeat=2, retry=0)
+[2026-05-17 18:08:25] Resultado: PASS (nginx+gstreamer, viewers=10, repeat=2)
+[2026-05-17 18:08:25] [15/36] Executando nginx+gstreamer viewers=10 repeat=3
+[2026-05-17 18:08:25] Iniciando cenario nginx+gstreamer (viewers=10, repeat=3, retry=0)
+[2026-05-17 18:14:30] Resultado: PASS (nginx+gstreamer, viewers=10, repeat=3)
+[2026-05-17 18:14:30] [16/36] Executando nginx+gstreamer viewers=50 repeat=1
+[2026-05-17 18:14:30] Iniciando cenario nginx+gstreamer (viewers=50, repeat=1, retry=0)
+[2026-05-17 18:20:40] Resultado: PASS (nginx+gstreamer, viewers=50, repeat=1)
+[2026-05-17 18:20:40] [17/36] Executando nginx+gstreamer viewers=50 repeat=2
+[2026-05-17 18:20:40] Iniciando cenario nginx+gstreamer (viewers=50, repeat=2, retry=0)
+[2026-05-17 18:26:51] Resultado: PASS (nginx+gstreamer, viewers=50, repeat=2)
+[2026-05-17 18:26:51] [18/36] Executando nginx+gstreamer viewers=50 repeat=3
+[2026-05-17 18:26:51] Iniciando cenario nginx+gstreamer (viewers=50, repeat=3, retry=0)
+[2026-05-17 18:33:02] Resultado: PASS (nginx+gstreamer, viewers=50, repeat=3)
+[2026-05-17 18:33:02] [19/36] Executando srs+ffmpeg viewers=1 repeat=1
+[2026-05-17 18:33:02] Iniciando cenario srs+ffmpeg (viewers=1, repeat=1, retry=0)
+[2026-05-17 18:38:44] Resultado: PASS (srs+ffmpeg, viewers=1, repeat=1)
+[2026-05-17 18:38:44] [20/36] Executando srs+ffmpeg viewers=1 repeat=2
+[2026-05-17 18:38:44] Iniciando cenario srs+ffmpeg (viewers=1, repeat=2, retry=0)
+[2026-05-17 18:44:26] Resultado: PASS (srs+ffmpeg, viewers=1, repeat=2)
+[2026-05-17 18:44:26] [21/36] Executando srs+ffmpeg viewers=1 repeat=3
+[2026-05-17 18:44:26] Iniciando cenario srs+ffmpeg (viewers=1, repeat=3, retry=0)
+[2026-05-17 18:50:08] Resultado: PASS (srs+ffmpeg, viewers=1, repeat=3)
+[2026-05-17 18:50:08] [22/36] Executando srs+ffmpeg viewers=10 repeat=1
+[2026-05-17 18:50:08] Iniciando cenario srs+ffmpeg (viewers=10, repeat=1, retry=0)
+[2026-05-17 18:55:54] Resultado: PASS (srs+ffmpeg, viewers=10, repeat=1)
+[2026-05-17 18:55:54] [23/36] Executando srs+ffmpeg viewers=10 repeat=2
+[2026-05-17 18:55:54] Iniciando cenario srs+ffmpeg (viewers=10, repeat=2, retry=0)
+[2026-05-17 19:01:38] Resultado: PASS (srs+ffmpeg, viewers=10, repeat=2)
+[2026-05-17 19:01:38] [24/36] Executando srs+ffmpeg viewers=10 repeat=3
+[2026-05-17 19:01:38] Iniciando cenario srs+ffmpeg (viewers=10, repeat=3, retry=0)
+[2026-05-17 19:07:25] Resultado: PASS (srs+ffmpeg, viewers=10, repeat=3)
+[2026-05-17 19:07:25] [25/36] Executando srs+ffmpeg viewers=50 repeat=1
+[2026-05-17 19:07:25] Iniciando cenario srs+ffmpeg (viewers=50, repeat=1, retry=0)
+[2026-05-17 19:13:19] Resultado: PASS (srs+ffmpeg, viewers=50, repeat=1)
+[2026-05-17 19:13:19] [26/36] Executando srs+ffmpeg viewers=50 repeat=2
+[2026-05-17 19:13:19] Iniciando cenario srs+ffmpeg (viewers=50, repeat=2, retry=0)
+[2026-05-17 19:19:11] Resultado: PASS (srs+ffmpeg, viewers=50, repeat=2)
+[2026-05-17 19:19:11] [27/36] Executando srs+ffmpeg viewers=50 repeat=3
+[2026-05-17 19:19:11] Iniciando cenario srs+ffmpeg (viewers=50, repeat=3, retry=0)
+[2026-05-17 19:25:02] Resultado: PASS (srs+ffmpeg, viewers=50, repeat=3)
+[2026-05-17 19:25:02] [28/36] Executando srs+gstreamer viewers=1 repeat=1
+[2026-05-17 19:25:02] Iniciando cenario srs+gstreamer (viewers=1, repeat=1, retry=0)
+[2026-05-17 19:30:44] Resultado: PASS (srs+gstreamer, viewers=1, repeat=1)
+[2026-05-17 19:30:44] [29/36] Executando srs+gstreamer viewers=1 repeat=2
+[2026-05-17 19:30:44] Iniciando cenario srs+gstreamer (viewers=1, repeat=2, retry=0)
+[2026-05-17 19:36:30] Resultado: PASS (srs+gstreamer, viewers=1, repeat=2)
+[2026-05-17 19:36:30] [30/36] Executando srs+gstreamer viewers=1 repeat=3
+[2026-05-17 19:36:30] Iniciando cenario srs+gstreamer (viewers=1, repeat=3, retry=0)
+[2026-05-17 19:42:14] Resultado: PASS (srs+gstreamer, viewers=1, repeat=3)
+[2026-05-17 19:42:14] [31/36] Executando srs+gstreamer viewers=10 repeat=1
+[2026-05-17 19:42:14] Iniciando cenario srs+gstreamer (viewers=10, repeat=1, retry=0)
+[2026-05-17 19:48:01] Resultado: PASS (srs+gstreamer, viewers=10, repeat=1)
+[2026-05-17 19:48:01] [32/36] Executando srs+gstreamer viewers=10 repeat=2
+[2026-05-17 19:48:01] Iniciando cenario srs+gstreamer (viewers=10, repeat=2, retry=0)
+[2026-05-17 19:53:47] Resultado: PASS (srs+gstreamer, viewers=10, repeat=2)
+[2026-05-17 19:53:47] [33/36] Executando srs+gstreamer viewers=10 repeat=3
+[2026-05-17 19:53:47] Iniciando cenario srs+gstreamer (viewers=10, repeat=3, retry=0)
+[2026-05-17 19:59:34] Resultado: PASS (srs+gstreamer, viewers=10, repeat=3)
+[2026-05-17 19:59:34] [34/36] Executando srs+gstreamer viewers=50 repeat=1
+[2026-05-17 19:59:34] Iniciando cenario srs+gstreamer (viewers=50, repeat=1, retry=0)
+[2026-05-17 20:07:59] Resultado: PASS (srs+gstreamer, viewers=50, repeat=1)
+[2026-05-17 20:07:59] [35/36] Executando srs+gstreamer viewers=50 repeat=2
+[2026-05-17 20:07:59] Iniciando cenario srs+gstreamer (viewers=50, repeat=2, retry=0)
+[2026-05-17 20:13:50] Resultado: PASS (srs+gstreamer, viewers=50, repeat=2)
+[2026-05-17 20:13:50] [36/36] Executando srs+gstreamer viewers=50 repeat=3
+[2026-05-17 20:13:50] Iniciando cenario srs+gstreamer (viewers=50, repeat=3, retry=0)
+[2026-05-17 20:19:40] Resultado: PASS (srs+gstreamer, viewers=50, repeat=3)
+[2026-05-17 20:19:40] Execucao finalizada. PASS=36 FAIL=0
+[2026-05-17 20:19:40] CSV consolidado: /home/junnior/Documentos/apps/tcc/app/benchmark/results/bench-full-20260517-164317/results.csv
+[2026-05-17 20:19:40] Benchmark concluido com sucesso
+[2026-05-17 20:19:40] Agregando resultados com aggregate-results.py ...
+Escrito: /home/junnior/Documentos/apps/tcc/app/benchmark/results/bench-full-20260517-164317/results-aggregated.csv
+Escrito: /home/junnior/Documentos/apps/tcc/app/benchmark/results/bench-full-20260517-164317/resultado.csv
+
+Resumo:
+  Linhas de entrada : 36
+  Combinações únicas: 12
+  nginx + ffmpeg     viewers= 1  repeticoes=3  status=PASS
+  nginx + ffmpeg     viewers=10  repeticoes=3  status=PASS
+  nginx + ffmpeg     viewers=50  repeticoes=3  status=PASS
+  nginx + gstreamer  viewers= 1  repeticoes=3  status=PASS
+  nginx + gstreamer  viewers=10  repeticoes=3  status=PASS
+  nginx + gstreamer  viewers=50  repeticoes=3  status=PASS
+  srs   + ffmpeg     viewers= 1  repeticoes=3  status=PASS
+  srs   + ffmpeg     viewers=10  repeticoes=3  status=PASS
+  srs   + ffmpeg     viewers=50  repeticoes=3  status=PASS
+  srs   + gstreamer  viewers= 1  repeticoes=3  status=PASS
+  srs   + gstreamer  viewers=10  repeticoes=3  status=PASS
+  srs   + gstreamer  viewers=50  repeticoes=3  status=PASS
+[2026-05-17 20:19:40] CSV agregado: /home/junnior/Documentos/apps/tcc/app/benchmark/results/bench-full-20260517-164317/results-aggregated.csv
+[2026-05-17 20:19:40] CSV final (matriz): /home/junnior/Documentos/apps/tcc/app/benchmark/results/bench-full-20260517-164317/resultado.csv

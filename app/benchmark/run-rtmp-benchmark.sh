@@ -961,7 +961,7 @@ main() {
         log "CSV final (matriz): ${RUN_DIR}/resultado.csv"
       fi
       cp "${CSV_FILE}" "${DOCS_BENCHMARK_DIR}/results-raw.csv"
-      cp "${LOG_DIR}/run-console.log" "${DOCS_BENCHMARK_DIR}/run-console-latest.log" 2>/dev/null || true
+      cp "${LOG_DIR}/run-console.log" "${DOCS_BENCHMARK_DIR}/run-console.log" 2>/dev/null || true
     else
       log "AVISO: python3 ou aggregate-results.py nao encontrado, pulando agregacao."
     fi
