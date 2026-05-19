@@ -1,5 +1,3 @@
-Agora com todos os resultados gerados dentro de docs/tcc quero que inicie um template simples com latex para um artigo de 10 paginas iniciais que será utilizado como tcc tendo em vista o titulo: Análise de Desempenho de Servidores RTMP e Transcodificadores no Streaming de Vídeo
+Iniciamos o tcc mais ainda tudo que foi feito no artigo quero que seja refeito, inicialmente quero que leia os artigos .pdf dentro de docs/example, principalmente o artigo_pedro_assunção.pdf, por que será nessa estrutura e forma de escrita que seguiremos nosso artigo inicial também.
 
-tente documentar o projeto para reutilizar na hora da escrita assim como os resultados que estão em app/benchmark/results/latest para escrita do artigo, tente adicionar referencias e não copiar nada de outro lugar
-
-tranforme os .md dentro de docs/tcc em documentos latex
+Veja os exemplos, mas antes de começar a escrever compartilhe comigo uma proposta de estrutura do artigo para discutirmos.
