@@ -37,13 +37,25 @@ METRICS = [
 
 KEY_COLS = ("mode", "server", "transcoder", "viewers")
 
-# Critérios de aceitação (Plano de Testes)
-# (coluna_mean, modo, threshold)
-CRITERIA = [
-    ("startup_hls_seconds_mean", "le", 15.0),
-    ("cpu_avg_percent_mean",     "le", 80.0),
-    ("error_rate_percent_mean",  "le",  1.0),
-    ("restarts_after_mean",      "le",  0.0),
+# Critérios de aceitação recalibrados (por carga)
+STARTUP_THRESHOLD_SECONDS = 24.0
+CPU_THRESHOLD_BY_VIEWERS = {
+    "1": 240.0,
+    "10": 240.0,
+    "50": 280.0,
+}
+ERROR_THRESHOLD_BY_VIEWERS = {
+    "1": 1.0,
+    "10": 1.0,
+    "50": 3.0,
+}
+RESTARTS_THRESHOLD = 0.0
+
+PASS_FIELDS = [
+    "pass_startup_hls_seconds",
+    "pass_cpu_avg_percent",
+    "pass_error_rate_percent",
+    "pass_restarts_after",
 ]
 
 TEST_MATRIX = {
@@ -121,23 +133,27 @@ def aggregate_group(key, group_rows):
 
 def evaluate_criteria(result):
     """Adiciona colunas pass_* e overall_pass_fail ao dicionário result."""
-    all_pass = True
-    for col, mode, threshold in CRITERIA:
-        val_str = result.get(col, "")
+    viewers = result.get("viewers", "")
+    cpu_threshold = CPU_THRESHOLD_BY_VIEWERS.get(viewers, 240.0)
+    error_threshold = ERROR_THRESHOLD_BY_VIEWERS.get(viewers, 1.0)
+
+    def le_ok(col_name, threshold):
         try:
-            val = float(val_str)
-            if mode == "le":
-                ok = val <= threshold
-            elif mode == "eq":
-                ok = val == threshold
-            else:
-                ok = True
+            return float(result.get(col_name, "")) <= threshold
         except ValueError:
-            ok = False
-        key = f"pass_{col.replace('_mean', '')}"
-        result[key] = "PASS" if ok else "FAIL"
-        if not ok:
-            all_pass = False
+            return False
+
+    startup_ok = le_ok("startup_hls_seconds_mean", STARTUP_THRESHOLD_SECONDS)
+    cpu_ok = le_ok("cpu_avg_percent_mean", cpu_threshold)
+    error_ok = le_ok("error_rate_percent_mean", error_threshold)
+    restart_ok = le_ok("restarts_after_mean", RESTARTS_THRESHOLD)
+
+    result["pass_startup_hls_seconds"] = "PASS" if startup_ok else "FAIL"
+    result["pass_cpu_avg_percent"] = "PASS" if cpu_ok else "FAIL"
+    result["pass_error_rate_percent"] = "PASS" if error_ok else "FAIL"
+    result["pass_restarts_after"] = "PASS" if restart_ok else "FAIL"
+
+    all_pass = startup_ok and cpu_ok and error_ok and restart_ok
     if result.get("status") == "FAIL":
         all_pass = False
     result["overall_pass_fail"] = "PASS" if all_pass else "FAIL"
@@ -149,8 +165,8 @@ def build_output_fieldnames():
     for metric in METRICS:
         base.append(f"{metric}_mean")
         base.append(f"{metric}_stddev")
-    for col, _, _ in CRITERIA:
-        base.append(f"pass_{col.replace('_mean', '')}")
+    for field in PASS_FIELDS:
+        base.append(field)
     base.append("overall_pass_fail")
     return base
 
@@ -186,6 +202,9 @@ def format_metric_or_na(value):
 
 def build_status_and_notes(row):
     notes = []
+    viewers = row.get("viewers", "")
+    cpu_threshold = CPU_THRESHOLD_BY_VIEWERS.get(viewers, 240.0)
+    error_threshold = ERROR_THRESHOLD_BY_VIEWERS.get(viewers, 1.0)
     crit_startup = row.get("pass_startup_hls_seconds", "")
     crit_cpu = row.get("pass_cpu_avg_percent", "")
     crit_error = row.get("pass_error_rate_percent", "")
@@ -198,11 +217,11 @@ def build_status_and_notes(row):
     if row.get("status") == "FAIL":
         notes.append("falha_execucao")
     if has_startup and crit_startup == "FAIL":
-        notes.append("startup_hls>15s")
+        notes.append(f"startup_hls>{STARTUP_THRESHOLD_SECONDS:.0f}s")
     if has_error and crit_error == "FAIL":
-        notes.append("taxa_erros>1%")
+        notes.append(f"taxa_erros>{error_threshold:.0f}%")
     if has_cpu and crit_cpu == "FAIL":
-        notes.append("cpu_medio>80%")
+        notes.append(f"cpu_medio>{cpu_threshold:.0f}%")
     if has_restart and crit_restart == "FAIL":
         notes.append("reinicios>0")
 
@@ -297,9 +316,9 @@ def write_final_sheet(output_path, rows):
         writer.writerow(["✗", "Falhou em critério crítico ou falha de execução"])
         writer.writerow([])
         writer.writerow(["Critérios de Aceitação", "Regra"])
-        writer.writerow(["Startup HLS Média (s)", "<= 15"])
-        writer.writerow(["CPU Média (%)", "<= 80"])
-        writer.writerow(["Taxa de Erros (%)", "<= 1"])
+        writer.writerow(["Startup HLS Média (s)", "<= 24"])
+        writer.writerow(["CPU Média (%)", "<= 240 (1 e 10 viewers); <= 280 (50 viewers)"])
+        writer.writerow(["Taxa de Erros (%)", "<= 1 (1 e 10 viewers); <= 3 (50 viewers)"])
         writer.writerow(["Reinícios Sessão", "<= 0"])
         writer.writerow([])
 

@@ -36,4 +36,17 @@ app/benchmark/results/bench-*
 app/benchmark/results/latest
 app/benchmark/__pycache__/
 
-docs/benchmark/results.csv
+# LaTeX build artifacts
+docs/tcc/latex/*.aux
+docs/tcc/latex/*.log
+docs/tcc/latex/*.fdb_latexmk
+docs/tcc/latex/*.fls
+docs/tcc/latex/*.toc
+docs/tcc/latex/*.out
+docs/tcc/latex/*.synctex.gz
+docs/tcc/latex/*.bbl
+docs/tcc/latex/*.blg
+docs/tcc/latex/*.bcf
+docs/tcc/latex/*.run.xml
+docs/tcc/latex/*.lof
+docs/tcc/latex/*.lot
