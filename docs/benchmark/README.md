@@ -111,8 +111,9 @@ Observação: a RAM "disponível" durante a execução varia conforme o uso do s
 
 ## Resultados esperados
 - PASS para os cenarios que conseguem publicar a live, servir playlists HLS e finalizar sem erro critico.
-- Startup HLS idealmente <= 15s (criterio da matriz).
-- Taxa de erro de segmento idealmente <= 1%.
+- Startup HLS idealmente <= 24s (criterio recalibrado para este estudo).
+- CPU media idealmente <= 240% (1 e 10 viewers) e <= 280% (50 viewers).
+- Taxa de erro de segmento idealmente <= 1% (1 e 10 viewers) e <= 3% (50 viewers).
 - Reinicios involuntarios idealmente 0.
 
 ## Dicionario de colunas

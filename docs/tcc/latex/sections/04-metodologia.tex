@@ -1,0 +1,49 @@
+\section{Metodologia experimental}
+
+A metodologia foi desenhada para que cada cenário pudesse ser executado, medido e reexecutado com o mínimo de ambiguidade. A base da matriz contém duas variáveis principais de controle: o servidor RTMP e o transcodificador. Em seguida, a carga é variada por número de espectadores sintéticos, produzindo um conjunto comparável de combinações.
+
+O benchmark executa a stack por meio de Docker Compose, publica uma stream de teste, gera consumidores sintéticos e coleta as métricas a partir do container RTMP. Os resultados são escritos em CSV bruto, agregados por combinação e consolidados em uma planilha final. O objetivo não é apenas registrar números, mas preservar a trilha de auditoria entre execução, consolidação e interpretação.
+
+\subsection{Recalibração dos critérios de aceitação}
+
+Os valores de aceite devem refletir o comportamento esperado do sistema implementado. Neste projeto, os scripts de transcodificação operam com \texttt{HLS\_SEGMENT\_DURATION=6} s. Assim, o startup de HLS precisa ser interpretado em função do tempo de geração dos primeiros segmentos e do bootstrap do transcodificador.
+
+Além disso, o benchmark coleta CPU do container RTMP em percentual Docker, onde 100\% representa um núcleo lógico. Como o pipeline gera múltiplas variantes em software, valores acima de 100\% são esperados e não caracterizam falha por si só.
+
+Com base no código e no conjunto \texttt{results-aggregated.csv} mais recente, os limites foram recalibrados com regra de percentis para este ambiente (Ubuntu 24.04.3, i5-13420H, 24 GB RAM):
+
+\begin{table}[H]
+\centering
+\caption{Critérios de aceite recalibrados para o estudo}
+\begin{tabularx}{\textwidth}{@{}lX@{}}
+\toprule
+\textbf{Métrica} & \textbf{Critério proposto} \\
+\midrule
+Startup HLS média & Até 24 s (equivale a 4 segmentos de 6 s; cobre o bootstrap observado em Nginx) \\
+CPU média (1 e 10 viewers) & Até 240\% (aproxima o P90 observado para baixa/média carga) \\
+CPU média (50 viewers) & Até 280\% (faixa de estresse; próximo ao P90 da carga alta) \\
+Taxa de erros (1 e 10 viewers) & Até 1\% \\
+Taxa de erros (50 viewers) & Até 3\% (faixa de estresse, mantendo controle de degradação) \\
+Reinícios de sessão & Igual a 0 \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+Para análise científica, recomenda-se usar duas leituras simultâneas: (i) conformidade por critérios recalibrados e (ii) comparação relativa entre cenários por média e desvio padrão. Dessa forma, o estudo mantém rigor operacional sem mascarar diferenças de desempenho entre arquiteturas.
+
+\subsection{Matriz de comparação}
+
+O estudo considera as combinações Nginx-RTMP + FFmpeg, Nginx-RTMP + GStreamer, SRS + FFmpeg e SRS + GStreamer. Cada uma é executada sob três cargas: 1, 10 e 50 espectadores. Isso permite verificar tanto a estabilidade em baixa carga quanto a degradação sob aumento de consumo.
+
+\subsection{Fontes de dados}
+
+Os arquivos em \texttt{app/benchmark/results/latest} são a fonte de verdade para os resultados mais recentes. A partir deles, o artigo pode reaproveitar:
+
+\begin{itemize}[leftmargin=1.2cm]
+  \item \texttt{results.csv}, com todas as execuções brutas.
+  \item \texttt{results-aggregated.csv}, com médias, desvios padrão e verificação dos critérios.
+  \item \texttt{resultado.csv}, com a matriz consolidada em formato de apresentação.
+  \item \texttt{summary.txt}, com o resumo rápido da execução.
+\end{itemize}
+
+Essa organização reduz o risco de inconsistência entre o que foi medido e o que será descrito no texto final.

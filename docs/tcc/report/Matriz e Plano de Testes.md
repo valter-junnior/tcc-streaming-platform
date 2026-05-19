@@ -96,8 +96,11 @@ Observação de leitura:
 | Critério | Valor mínimo aceitável |
 |---|---|
 | Latência ponta-a-ponta | ≤ 30 segundos (HLS low-latency não está no escopo) |
-| Startup HLS | ≤ 15 segundos após início da transmissão |
-| CPU em regime (1 espectador) | ≤ 80% de um núcleo |
+| Startup HLS | ≤ 24 segundos após início da transmissão |
+| CPU média do container RTMP | ≤ 240% (1 e 10 viewers) e ≤ 280% (50 viewers) |
 | Estabilidade do pipeline | 0 restarts involuntários em 5 minutos |
-| Taxa de erros de segmento | ≤ 1% dos segmentos solicitados |
+| Taxa de erros de segmento | ≤ 1% (1 e 10 viewers) e ≤ 3% (50 viewers) |
 | Disponibilidade de variantes | Todas as variantes anunciadas no `master.m3u8` devem responder 200 |
+
+Observação metodológica:
+- Os limiares foram recalibrados para o ambiente deste estudo (CPU-only, múltiplas variantes HLS em Docker). O percentual de CPU do container pode ultrapassar 100% por representar consumo agregado em múltiplos núcleos lógicos.

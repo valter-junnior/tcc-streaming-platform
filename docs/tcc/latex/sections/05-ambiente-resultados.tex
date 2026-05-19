@@ -1,0 +1,43 @@
+\section{Ambiente de testes e resultados preliminares}
+
+O experimento foi executado em Ubuntu 24.04.3 LTS, kernel 6.17.0-23-generic, com processador Intel Core i5-13420H, 24 GB de RAM e armazenamento NVMe SSD. A orquestração ficou a cargo do Docker Engine, em rede bridge local. Esse contexto é essencial porque as métricas observadas dependem do host e da sobrecarga simultânea dos containers.
+
+\begin{table}[H]
+\centering
+\caption{Resumo do ambiente utilizado no benchmark}
+\begin{tabularx}{\textwidth}{@{}lX@{}}
+\toprule
+\textbf{Item} & \textbf{Especificação} \\
+\midrule
+Sistema operacional & Ubuntu 24.04.3 LTS (x86\_64), kernel 6.17.0-23-generic \\
+CPU & Intel Core i5-13420H, 13ª geração, 12 threads \\
+RAM total & 24 GB \\
+Armazenamento & NVMe SSD (231 GB) \\
+Rede & Loopback / bridge Docker \\
+Virtualização & Docker Engine \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+O último conjunto agregado indica que o servidor influencia diretamente o startup do HLS, enquanto o transcodificador altera a taxa de consumo e a estabilidade. Em termos de leitura prática, os cenários com Nginx exibiram startup acima do limite definido na matriz, enquanto SRS reduziu o tempo para disponibilização do fluxo. Ainda assim, todos os cenários permaneceram pressionados pelo uso de CPU, o que reforça o caráter de comparação do estudo.
+
+\subsection{Como ler os resultados de falha}
+
+O rótulo FAIL significa que o cenário violou pelo menos um critério de aceitação do plano. Ele não indica erro de execução do benchmark. Na leitura do estudo, cada combinação deve ser classificada pelo critério violado mais relevante para a conclusão.
+
+\begin{table}[H]
+\centering
+\caption{Síntese dos resultados agregados mais recentes por combinação}
+\begin{tabularx}{\textwidth}{@{}lXXXXX@{}}
+\toprule
+\textbf{Combinação} & \textbf{Startup HLS} & \textbf{CPU média} & \textbf{RAM média} & \textbf{Bitrate efetivo} & \textbf{Falha principal} \\
+\midrule
+Nginx + FFmpeg & 21,7--22,3 s & 159--197\% & 1,64--1,68 GB & 3522--3526 kbps & Conforme no critério recalibrado \\
+Nginx + GStreamer & 22,0 s & 233--292\% & 623--657 MB & 5343--5345 kbps & Alerta em 50 viewers por CPU acima de 280\% \\
+SRS + FFmpeg & 8,0 s & 195--216\% & 1,62--1,68 GB & 3155--3158 kbps & Conforme no critério recalibrado \\
+SRS + GStreamer & 1,0--7,0 s & 192--216\% & 501--642 MB & 5338--5340 kbps & Alerta em 50 viewers por taxa de erros acima de 3\% \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+O arquivo \texttt{resultado.csv} da última execução confirma que, com os critérios recalibrados para o contexto deste estudo, a maior parte da matriz fica conforme. Os alertas concentram-se em carga alta (50 viewers), especialmente em CPU para Nginx + GStreamer e em taxa de erros para SRS + GStreamer.

@@ -1,0 +1,41 @@
+\section{Versão LaTeX convertida do documento-base}
+
+\subsection{Escopo do projeto}
+
+O projeto implementa uma plataforma de streaming ao vivo com backend em Java, frontend em TypeScript e orquestração por Docker Compose. O objetivo é comparar servidores RTMP e transcodificadores em uma arquitetura capaz de gerar e servir múltiplas variantes HLS, mantendo rastreabilidade entre execução e análise.
+
+\subsection{Tecnologias principais}
+
+\begin{table}[H]
+\centering
+\caption{Tecnologias que compõem a plataforma}
+\begin{tabularx}{\textwidth}{@{}lXX@{}}
+\toprule
+\textbf{Camada} & \textbf{Tecnologia} & \textbf{Uso} \\
+\midrule
+Backend & Spring Boot / Spring Data JPA / Spring AMQP / Spring Retry & Controle da aplicação e integrações \\
+Frontend & React / Vite / TanStack Query / HLS.js / Plyr & Interface de reprodução e observação \\
+Ingestão RTMP & Nginx-RTMP ou SRS & Recebimento da live \\
+Transcodificação & FFmpeg ou GStreamer & Geração de variantes HLS \\
+Infraestrutura & Docker Compose & Isolamento e repetição do experimento \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\subsection{Fluxo de streaming}
+
+\begin{enumerate}[leftmargin=1.2cm]
+  \item O streamer publica a live via RTMP.
+  \item O servidor RTMP aciona callbacks no backend.
+  \item O transcodificador gera a playlist mestre e os segmentos.
+  \item Os espectadores consomem o fluxo via HLS.
+  \item Os scripts registram os dados em CSV e logs versionados.
+\end{enumerate}
+
+\subsection{Uso dos diagramas}
+
+Os diagramas originais permanecem mantidos em \texttt{docs/tcc/diagrams} como fonte Mermaid. Nesta primeira versão em LaTeX, eles podem ser exportados futuramente para PNG ou PDF e incluídos diretamente na compilação final. A estrutura textual, porém, já está preparada para receber as figuras sem alterar o restante do artigo.
+
+\subsection{Matriz comparativa}
+
+As quatro combinações estudadas são Nginx + FFmpeg, Nginx + GStreamer, SRS + FFmpeg e SRS + GStreamer. Esse recorte é suficiente para avaliar como a escolha do servidor e do transcodificador afeta o desempenho percebido em diferentes níveis de audiência.

@@ -1,0 +1,8 @@
+\section*{Resumo}
+\addcontentsline{toc}{section}{Resumo}
+
+O objetivo deste trabalho é analisar o desempenho de combinações de servidores RTMP e transcodificadores em cenários de streaming de vídeo ao vivo, com foco na latência de disponibilização do HLS, no uso de CPU e memória do container de ingestão, na taxa de erros e na estabilidade do pipeline. O ambiente foi estruturado com Docker Compose, backend em Spring Boot e uma camada de apresentação em React, permitindo executar a matriz experimental de forma reprodutível e com registros versionados.
+
+Os resultados preliminares indicam que a troca do servidor RTMP e do transcodificador altera significativamente o tempo de startup do HLS e o perfil de consumo de recursos. O conjunto atual de scripts opera em CPU, sem aceleração por GPU, o que simplifica a replicação do experimento e torna a leitura dos resultados diretamente associada ao host documentado.
+
+\textbf{Palavras-chave:} RTMP; transcodificação; streaming de vídeo; Docker; HLS; desempenho.

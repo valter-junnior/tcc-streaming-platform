@@ -1,0 +1,13 @@
+\section{Fundamentação técnica}
+
+O fluxo do trabalho é composto por ingestão RTMP, transcodificação em múltiplas variantes e disponibilização via HLS. O padrão HLS é descrito no RFC 8216, que orienta a segmentação do vídeo e a composição de playlists adaptativas \cite{rfc8216}. Na prática, a solução utiliza servidores e transcodificadores distintos para isolar o impacto de cada componente no desempenho final.
+
+O FFmpeg é utilizado como transcodificador por sua ampla adoção e flexibilidade em pipelines de áudio e vídeo \cite{ffmpeg-docs}. Já o GStreamer oferece uma abordagem de construção por elementos, com boa capacidade de composição de fluxos multimídia \cite{gstreamer-docs}. No lado da ingestão, Nginx-RTMP fornece uma base enxuta e tradicional para RTMP, enquanto o SRS oferece um servidor especializado em streaming em tempo real \cite{nginx-rtmp-module,srs-docs}.
+
+O projeto está empacotado em containers Docker, o que facilita o isolamento do ambiente e a repetição dos testes \cite{docker-docs}. O backend em Spring Boot coordena parte do ciclo de vida da aplicação e expõe a camada de controle usada pelos scripts de benchmark \cite{spring-boot-docs}. O frontend, por sua vez, atua como superfície de reprodução e observação do comportamento do HLS durante os testes.
+
+\subsection{Leitura correta das métricas}
+
+As métricas de CPU e memória precisam ser lidas sempre em relação ao host documentado, porque o percentual de CPU do container pode ultrapassar 100\% quando há execução concorrente em múltiplas threads. Isso não indica erro por si só; indica a intensidade de uso agregada pelo container. A mesma lógica vale para memória: o consumo observado deve ser comparado com a capacidade total do equipamento e com a carga dos demais serviços em execução.
+
+No conjunto atual, não há uso de GPU no pipeline. Portanto, qualquer ganho ou perda de desempenho observada nos resultados deve ser atribuída ao comportamento do software, ao ambiente Docker e ao hardware do host, e não a aceleração por dispositivos gráficos.
