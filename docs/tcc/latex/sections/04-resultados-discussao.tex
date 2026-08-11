@@ -1,0 +1,39 @@
+\section{Resultados e Discussão}
+
+Esta seção usa o arquivo agregado disponível em \path{docs/benchmark/results-aggregated.csv}. Os valores são médias de três repetições; o desvio padrão deve ser consultado no mesmo arquivo. A tabela não substitui a auditoria dos dados brutos em \path{docs/benchmark/results.csv}.
+
+\begin{table}[H]
+\centering
+\scriptsize
+\caption{Médias agregadas dos tratamentos}
+\begin{tabular}{@{}llrrrrrr@{}}
+\toprule
+Servidor & Transcod. & Viewers & Startup (s) & CPU (\%) & RAM (MB) & Bitrate (kbps) & Erros (\%) \\
+\midrule
+Nginx & FFmpeg & 1 & 21,67 & 177,88 & 1658,06 & 3524,66 & 0,00 \\
+Nginx & FFmpeg & 10 & 22,00 & 159,35 & 1679,64 & 3526,08 & 0,00 \\
+Nginx & FFmpeg & 50 & 22,33 & 196,86 & 1640,75 & 3522,54 & 0,00 \\
+Nginx & GStreamer & 1 & 22,00 & 233,44 & 657,02 & 5344,59 & 0,00 \\
+Nginx & GStreamer & 10 & 22,00 & 243,48 & 623,47 & 5342,92 & 0,00 \\
+Nginx & GStreamer & 50 & 22,00 & 292,13 & 629,52 & 5344,05 & 0,00 \\
+SRS & FFmpeg & 1 & 8,00 & 195,32 & 1665,30 & 3155,57 & 0,00 \\
+SRS & FFmpeg & 10 & 8,00 & 197,34 & 1678,86 & 3156,01 & 0,00 \\
+SRS & FFmpeg & 50 & 8,00 & 215,74 & 1623,08 & 3157,79 & 0,00 \\
+SRS & GStreamer & 1 & 1,00 & 207,80 & 642,26 & 5340,31 & 0,00 \\
+SRS & GStreamer & 10 & 1,00 & 215,82 & 625,27 & 5338,16 & 0,00 \\
+SRS & GStreamer & 50 & 1,00 & 192,35 & 500,90 & 5337,81 & 3,15 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Síntese dos achados}
+
+Nos dados atuais, o SRS apresenta startup de playlist menor que o Nginx nos dois transcodificadores: 8 s contra aproximadamente 22 s com FFmpeg e 1 s contra 22 s com GStreamer. Essa vantagem deve ser descrita como vantagem de disponibilização da playlist, não como redução comprovada da latência percebida, pois a instrumentação de latência ponta a ponta é incompleta.
+
+O FFmpeg consome aproximadamente 1,62--1,68 GB de memória média, enquanto o GStreamer fica aproximadamente entre 0,50 e 0,66 GB. Em contrapartida, o GStreamer apresenta maior CPU média, especialmente com Nginx: 243,48\% em 10 viewers e 292,13\% em 50 viewers. Portanto, os dados sugerem um trade-off entre memória e CPU, mas não permitem concluir que um transcodificador seja globalmente melhor sem normalizar o número de variantes, bitrate e parâmetros de codificação.
+
+A taxa de erros foi zero em todos os tratamentos, exceto SRS + GStreamer + 50 viewers, que apresentou 3,15\% e 1229 requisições com erro em média. Esse resultado é relevante porque ultrapassa o limite local de 3\% e indica degradação sob carga alta. Deve-se investigar nos logs se os erros correspondem a segmentos ausentes, janela de playlist, saturação de conexão ou falha transitória do viewer.
+
+\subsection{O que ainda falta para uma conclusão forte}
+
+Antes da submissão final, recomenda-se repetir os 12 tratamentos após: (i) validar o mesmo número de variantes em FFmpeg e GStreamer; (ii) registrar versões exatas das imagens e ferramentas; (iii) medir latência ponta a ponta com um timestamp embutido no conteúdo; (iv) coletar percentis, especialmente p50, p95 e p99, para startup e requisições; e (v) separar erros de playlist, segmentos e conexão. Sem essas medidas, a conclusão deve permanecer restrita a desempenho operacional do container e disponibilidade HLS.

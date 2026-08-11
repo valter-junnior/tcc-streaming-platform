@@ -1,0 +1,9 @@
+\section{Conclusão}
+
+Este trabalho propõe uma avaliação experimental de servidores RTMP e transcodificadores em uma plataforma de streaming de vídeo ao vivo. A implementação permite comparar Nginx-RTMP e SRS com FFmpeg e GStreamer sob 1, 10 e 50 viewers, com execução automatizada, coleta em CSV e agregação estatística.
+
+Os resultados disponíveis sustentam três conclusões preliminares. Primeiro, o SRS apresentou menor tempo de disponibilização da playlist HLS nos cenários medidos. Segundo, o GStreamer apresentou menor consumo de memória média, mas maior pressão de CPU em parte das cargas. Terceiro, a combinação SRS + GStreamer apresentou taxa de erros acima do critério adotado com 50 viewers, indicando que a menor disponibilização inicial não implica necessariamente maior estabilidade sob carga.
+
+Essas conclusões não devem ser generalizadas para qualquer hardware, codec ou configuração. O estudo foi executado em um único host, com codificação CPU-only, rede local e parâmetros específicos de resolução, bitrate e duração de segmento. A latência ponta a ponta também não está validada no conjunto atual. Assim, o principal resultado desta versão é uma base experimental reproduzível e uma comparação inicial, não um ranking universal das tecnologias.
+
+Como trabalhos futuros, recomenda-se instrumentar a latência de ponta a ponta, incluir p95/p99, testar cargas superiores, repetir o experimento em outros hosts, avaliar aceleração por GPU, controlar rigorosamente as variantes de saída e investigar os erros de segmentos no tratamento SRS + GStreamer + 50 viewers. Após essas etapas, será possível formular uma conclusão mais forte sobre capacidade, escalabilidade e adequação operacional de cada combinação.

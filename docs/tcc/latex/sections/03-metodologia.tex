@@ -1,0 +1,62 @@
+\section{Metodologia}
+
+Foi adotada uma abordagem quantitativa, experimental e comparativa. O fator servidor possui dois níveis (Nginx-RTMP e SRS), o fator transcodificador possui dois níveis (FFmpeg e GStreamer) e a carga possui três níveis (1, 10 e 50 espectadores sintéticos). O delineamento resulta em 12 tratamentos, cada um repetido três vezes, totalizando 36 execuções.
+
+\begin{table}[H]
+\centering
+\caption{Fatores e níveis do experimento}
+\begin{tabularx}{\textwidth}{@{}lXX@{}}
+\toprule
+Fator & Níveis & Papel no experimento \\
+\midrule
+Servidor RTMP & Nginx-RTMP; SRS & Recebe a publicação RTMP e dispara o processamento \\
+Transcodificador & FFmpeg; GStreamer & Gera as variantes HLS \\
+Carga & 1; 10; 50 viewers & Simula demanda crescente de leitura \\
+Repetição & 3 por tratamento & Permite estimar média e desvio padrão \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\subsection{Arquitetura e fluxo}
+
+O streamer publica em RTMP. O servidor selecionado chama o callback do backend, que valida a chave da transmissão. Em seguida, o script de transcodificação lê o fluxo RTMP, codifica as variantes e escreve playlists e segmentos HLS. Viewers sintéticos requisitam a playlist e os segmentos pelo servidor HTTP do container. O backend, PostgreSQL, RabbitMQ e frontend fazem parte da plataforma, mas a medição de CPU e memória do benchmark tem como alvo principal o container RTMP/transcodificador.
+
+\begin{figure}[H]
+\centering
+\IfFileExists{../../diagrams/diagrama-arquitetura.mmd}{\fbox{\parbox{0.8\textwidth}{\centering O diagrama Mermaid está em \texttt{docs/tcc/diagrams/diagrama-arquitetura.mmd}. Exportar para PDF/PNG antes da entrega final.}}}{\fbox{\parbox{0.8\textwidth}{\centering Inserir diagrama de arquitetura exportado do projeto.}}}
+\caption{Arquitetura experimental da plataforma.}
+\end{figure}
+
+\subsection{Configuração do conteúdo e do pipeline}
+
+O FFmpeg gera quatro variantes (1080p, 720p, 480p e 360p). O script atual do GStreamer também cria quatro playlists de variantes, embora versões anteriores da documentação mencionem duas; essa divergência deve ser eliminada antes da versão final. A duração nominal dos segmentos HLS é de 6 segundos, o comprimento da playlist é 10 e a codificação é realizada em CPU, sem GPU.
+
+\subsection{Métricas}
+
+\begin{table}[H]
+\centering
+\caption{Métricas coletadas e interpretação}
+\begin{tabularx}{\textwidth}{@{}lXX@{}}
+\toprule
+Métrica & Unidade & Definição operacional \\
+\midrule
+Startup HLS & s & Tempo até a playlist mestre responder com sucesso \\
+CPU média/máxima & \% & Uso agregado do container RTMP durante a janela medida \\
+Memória média/máxima & MB & Memória observada no container \\
+Bitrate efetivo & kbps & Estimativa a partir dos segmentos HLS \\
+Taxa de erros & \% & Requisições HTTP com erro divididas pelo total \\
+Reinícios & contagem & Diferença do contador de reinícios do container \\
+Latência ponta a ponta & s & Campo previsto, mas não validado na coleta atual \\
+\bottomrule
+\end{tabularx}
+\end{table}
+
+\subsection{Procedimento e análise}
+
+Cada cenário sobe uma stack limpa via Docker Compose, cria uma transmissão, publica uma fonte sintética, inicia a quantidade definida de viewers e coleta os dados durante aproximadamente cinco minutos. Os resultados são salvos em CSV bruto. O script \texttt{aggregate-results.py} calcula médias e desvios padrão agrupados por servidor, transcodificador e carga.
+
+Os critérios operacionais atuais são startup HLS de até 24 s, CPU média de até 240\% para 1 e 10 viewers e 280\% para 50 viewers, taxa de erros de até 1\% para 1 e 10 viewers e 3\% para 50 viewers, além de zero reinícios. Esses limites são critérios de aceitação do experimento local, não requisitos universais de streaming.
+
+\subsection{Validade e limitações}
+
+Os resultados são internos ao host Ubuntu 24.04.3, Intel Core i5-13420H, 24 GB de RAM, SSD NVMe e Docker Engine. Não há rede externa, GPU, variação de codec, variação de resolução de entrada ou comparação com outros hosts. Além disso, a latência ponta a ponta está zerada ou não instrumentada na maior parte dos registros. A playlist mestre responder não significa necessariamente que o primeiro segmento válido já esteja disponível. Por esse motivo, essas métricas devem ser coletadas novamente com timestamps sincronizados entre publicação, criação do segmento, disponibilização HTTP e leitura pelo viewer.

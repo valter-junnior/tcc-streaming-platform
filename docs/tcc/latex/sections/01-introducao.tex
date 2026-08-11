@@ -1,0 +1,32 @@
+\section{Introdução}
+
+O streaming ao vivo exige que uma cadeia de processamento receba o vídeo, transforme-o em representações adequadas e o entregue aos espectadores com continuidade e atraso reduzido. Nessa cadeia, o servidor de ingestão e o transcodificador podem consumir recursos de forma diferente e introduzir atrasos distintos. A escolha entre alternativas aparentemente equivalentes, portanto, deve ser apoiada por medições reproduzíveis, e não apenas por disponibilidade de documentação ou popularidade.
+
+O projeto deste trabalho implementa uma plataforma de streaming composta por frontend, backend de controle, servidor RTMP, transcodificador e entrega HLS. O desenho permite alternar o servidor entre Nginx-RTMP e SRS e o transcodificador entre FFmpeg e GStreamer, mantendo a aplicação e o conteúdo de teste sob controle. Essa característica torna possível investigar o efeito da combinação dos componentes sobre uma mesma carga de trabalho.
+
+O problema de pesquisa é: \textit{como as combinações de servidores RTMP e transcodificadores influenciam o desempenho, o consumo de recursos e a estabilidade de uma plataforma de streaming de vídeo ao vivo em um ambiente conteinerizado?}
+
+\subsection{Objetivo geral}
+
+Avaliar o desempenho de servidores RTMP e transcodificadores no streaming de vídeo, comparando Nginx-RTMP e SRS combinados com FFmpeg e GStreamer em cargas controladas.
+
+\subsection{Objetivos específicos}
+\begin{itemize}[leftmargin=1.2cm]
+  \item Descrever a arquitetura implementada e o fluxo RTMP--transcodificação--HLS.
+  \item Definir uma matriz experimental que permita comparar servidor, transcodificador e número de espectadores.
+  \item Medir tempo de disponibilização, CPU, memória, bitrate, erros de entrega e reinícios.
+  \item Analisar a estabilidade dos cenários por médias e desvios padrão de três repetições.
+  \item Identificar limitações da instrumentação e propor melhorias para uma avaliação posterior.
+\end{itemize}
+
+\subsection{Contribuições}
+\begin{itemize}[leftmargin=1.2cm]
+  \item Uma plataforma de streaming configurável e executável por Docker Compose.
+  \item Um benchmark automatizado com dados brutos, logs e agregação estatística.
+  \item Uma comparação experimental entre quatro combinações de software sob três cargas.
+  \item Uma análise explícita das limitações de validade dos resultados disponíveis.
+\end{itemize}
+
+\subsection{Organização do trabalho}
+
+O texto está organizado em seis seções principais. A Seção 2 apresenta os trabalhos relacionados; a Seção 3 descreve a metodologia; a Seção 4 apresenta e discute os resultados; a Seção 5 conclui o estudo e indica trabalhos futuros; e a Seção 6 reúne as referências utilizadas.

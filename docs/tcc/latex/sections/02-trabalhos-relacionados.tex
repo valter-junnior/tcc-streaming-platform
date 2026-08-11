@@ -1,0 +1,15 @@
+\section{Trabalhos Relacionados}
+
+Estudos de desempenho em sistemas de streaming normalmente observam atraso, continuidade da reprodução, qualidade percebida, vazão e consumo de recursos. A literatura de streaming adaptativo destaca que o comportamento percebido pelo usuário resulta da interação entre qualidade de vídeo, variações de bitrate, tempo de início e interrupções \cite{seufert,barman}. Neste trabalho, o foco é anterior à decisão adaptativa do cliente: avaliar como a ingestão RTMP e a geração das representações HLS afetam o comportamento do serviço.
+
+Seufert et al. apresentam uma revisão de qualidade de experiência em HTTP Adaptive Streaming, discutindo fatores técnicos e perceptuais associados à adaptação de vídeo. Barman e Martini ampliam essa discussão ao revisar modelos de QoE e desafios de avaliação. Esses trabalhos orientam a seleção de métricas relacionadas à experiência, mas não comparam diretamente as quatro combinações implementadas neste projeto.
+
+Em relação a protocolos, a especificação do RTMP descreve um protocolo de aplicação baseado em transporte confiável, adequado à multiplexação de áudio, vídeo e dados \cite{rtmp}. O HLS, por sua vez, organiza a apresentação em playlists e segmentos acessíveis por HTTP \cite{hls}. A solução avaliada usa RTMP na publicação e HLS na distribuição, refletindo uma arquitetura comum de ingestão e entrega desacopladas.
+
+As documentações oficiais do FFmpeg e do GStreamer descrevem mecanismos diferentes de composição de pipelines \cite{ffmpeg,gstreamer}. FFmpeg oferece uma ferramenta integrada para demux, filtros, codificação e mux; GStreamer organiza o processamento como uma cadeia de elementos conectados. A comparação deste trabalho não pretende declarar um transcodificador universalmente superior, pois os resultados dependem das versões, parâmetros, número de variantes e hardware utilizados.
+
+A principal lacuna abordada é a comparação controlada entre servidor RTMP e transcodificador na mesma plataforma, com a mesma entrada, parâmetros de saída e cargas de espectadores. O uso de containers favorece a repetição do ambiente \cite{docker}, enquanto Nginx-RTMP e SRS fornecem as alternativas de servidor avaliadas \cite{nginxrtmp,srs}. O benchmark automatizado e os artefatos versionados aproximam o estudo de uma avaliação reprodutível, mas seus resultados permanecem limitados ao ambiente documentado.
+
+\subsection{Síntese da lacuna}
+
+Os trabalhos consultados oferecem fundamentos para protocolos, QoE e ferramentas multimídia. Contudo, não respondem diretamente qual combinação Nginx-RTMP/SRS e FFmpeg/GStreamer apresenta melhor comportamento sob as cargas definidas. A contribuição experimental deste TCC é preencher esse recorte com uma matriz comparável e explicitar as métricas que ainda não foram instrumentadas adequadamente.

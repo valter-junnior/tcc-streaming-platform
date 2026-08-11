@@ -7,13 +7,13 @@
 \usepackage{geometry}
 \usepackage{amsmath,amssymb}
 \usepackage{booktabs}
-\usepackage{longtable}
 \usepackage{tabularx}
 \usepackage{array}
 \usepackage{enumitem}
 \usepackage{graphicx}
 \usepackage{float}
 \usepackage{xcolor}
+\usepackage{listings}
 \usepackage[hidelinks]{hyperref}
 \usepackage{fancyhdr}
 
@@ -22,6 +22,8 @@
 \setlength{\parskip}{0.35em}
 \setlength{\headheight}{15pt}
 \renewcommand{\arraystretch}{1.15}
+\newcommand{\articletitle}{Análise de Desempenho de Servidores RTMP e Transcodificadores no Streaming de Vídeo}
+\newcommand{\placeholder}[1]{\textcolor{red}{[Preencher: #1]}}
 
 \pagestyle{fancy}
 \fancyhf{}
@@ -29,32 +31,30 @@
 \rhead{TCC}
 \cfoot{\thepage}
 
-\newcommand{\articletitle}{Análise de Desempenho de Servidores RTMP e Transcodificadores no Streaming de Vídeo}
+\lstset{basicstyle=\ttfamily\small,breaklines=true,frame=single}
 
-\title{\articletitle\\\large Versão inicial em LaTeX para o TCC}
-\author{Nome do(a) autor(a)}
-\date{\today}
+\title{\articletitle}
+\author{\placeholder{Nome do(a) autor(a)}\\\placeholder{Instituição e curso}\\\placeholder{Orientador(a)}}
+\date{\placeholder{Cidade -- ano}}
 
 \begin{document}
-
 \maketitle
 
 \begin{abstract}
-Este artigo apresenta a base inicial de um Trabalho de Conclusão de Curso sobre a comparação de desempenho entre servidores RTMP e transcodificadores em uma plataforma de streaming ao vivo. O projeto utiliza uma arquitetura baseada em Docker, backend em Spring Boot, frontend em React e uma matriz experimental com Nginx-RTMP e SRS, combinados com FFmpeg e GStreamer. Os resultados preliminares do benchmark mais recente já estão organizados em formato reutilizável para redação, análise comparativa e rastreabilidade metodológica.
+Este trabalho apresenta um estudo experimental para avaliar o desempenho de servidores RTMP e transcodificadores empregados em uma plataforma de streaming de vídeo ao vivo. A plataforma implementada combina Nginx-RTMP ou SRS para ingestão, FFmpeg ou GStreamer para transcodificação e HLS para entrega ao navegador. A avaliação considera uma matriz fatorial de quatro combinações tecnológicas submetidas a cargas de 1, 10 e 50 espectadores sintéticos, com três repetições por cenário. São analisados tempo de disponibilização da playlist HLS, consumo de CPU e memória, bitrate efetivo, taxa de erros HTTP e reinícios de sessão. Os resultados disponíveis indicam vantagem do SRS no startup da playlist e menor consumo de memória nos cenários com GStreamer, enquanto o GStreamer apresenta maior pressão de CPU sob carga. A latência ponta a ponta ainda requer instrumentação específica e, por isso, não é usada como evidência conclusiva nesta versão.
 \end{abstract}
 
+\noindent\textbf{Palavras-chave:} streaming de vídeo; RTMP; transcodificação; FFmpeg; GStreamer; desempenho; HLS.
+
+\clearpage
 \tableofcontents
 \clearpage
 
-\input{sections/01-resumo}
-\input{sections/02-introducao}
-\input{sections/03-fundamentacao}
-\input{sections/04-metodologia}
-\input{sections/05-ambiente-resultados}
-\input{sections/06-discussao}
-\input{sections/07-conclusao}
-
-\clearpage
-\input{references}
+\input{sections/01-introducao}
+\input{sections/02-trabalhos-relacionados}
+\input{sections/03-metodologia}
+\input{sections/04-resultados-discussao}
+\input{sections/05-conclusao}
+\input{sections/06-referencias}
 
 \end{document}
