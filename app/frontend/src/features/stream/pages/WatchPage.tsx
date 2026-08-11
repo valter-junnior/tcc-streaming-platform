@@ -5,7 +5,6 @@ import {
   AlertCircle,
   Loader2,
   Clock,
-  Video as VideoIcon,
 } from "lucide-react";
 import { apiService } from "../../../app/services/apiService";
 import { sseService } from "../../../app/services/sseService";
@@ -204,7 +203,7 @@ export function WatchPage() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-slate-900 flex items-center justify-center">
+      <div className="min-h-screen bg-[#0b0d10] flex items-center justify-center">
         <Loader2 className="w-8 h-8 text-purple-500 animate-spin" />
       </div>
     );
@@ -212,8 +211,8 @@ export function WatchPage() {
 
   if (error || !stream) {
     return (
-      <div className="min-h-screen bg-slate-900 flex items-center justify-center p-4">
-        <div className="bg-slate-800 rounded-lg p-8 max-w-md text-center border border-slate-700">
+      <div className="min-h-screen bg-[#0b0d10] flex items-center justify-center p-4">
+        <div className="bg-white/[0.04] rounded-xl p-8 max-w-md text-center border border-white/10">
           <AlertCircle className="w-16 h-16 text-red-500 mx-auto mb-4" />
           <h2 className="text-2xl font-bold text-white mb-2">
             Stream não encontrada
@@ -234,8 +233,8 @@ export function WatchPage() {
   const hlsUrl = `${HLS_URL}/${stream.streamKey}/master.m3u8`;
 
   return (
-    <div className="min-h-screen bg-slate-900">
-      <div className="container mx-auto px-4 py-8 max-w-6xl">
+    <div className="min-h-screen bg-[#0b0d10]">
+      <div className="container mx-auto max-w-7xl px-5 py-10">
         {/* Back Button */}
         <button
           onClick={() => navigate(routes.home())}
@@ -251,7 +250,7 @@ export function WatchPage() {
               <VideoPlayer hlsUrl={hlsUrl} />
             ) : stream.status === "LIVE" && !hlsAvailable ? (
               <div
-                className="relative w-full bg-slate-800 rounded-lg flex items-center justify-center border border-slate-700"
+                className="relative w-full bg-white/[0.04] rounded-xl flex items-center justify-center border border-white/10"
                 style={{ aspectRatio: "16/9" }}
               >
                 <div className="text-center p-8">
@@ -268,7 +267,7 @@ export function WatchPage() {
               </div>
             ) : stream.status === "WAITING" ? (
               <div
-                className="relative w-full bg-slate-800 rounded-lg flex items-center justify-center border border-slate-700"
+                className="relative w-full bg-white/[0.04] rounded-xl flex items-center justify-center border border-white/10"
                 style={{ aspectRatio: "16/9" }}
               >
                 <div className="text-center p-8">
@@ -283,7 +282,7 @@ export function WatchPage() {
               </div>
             ) : (
               <div
-                className="relative w-full bg-slate-800 rounded-lg flex items-center justify-center border border-slate-700"
+                className="relative w-full bg-white/[0.04] rounded-xl flex items-center justify-center border border-white/10"
                 style={{ aspectRatio: "16/9" }}
               >
                 <div className="text-center p-8">
@@ -312,7 +311,7 @@ export function WatchPage() {
           {/* Sidebar */}
           <div className="space-y-4">
             {/* Status Card */}
-            <div className="bg-slate-800 rounded-lg p-6 border border-slate-700">
+            <div className="bg-white/[0.04] rounded-xl p-5 border border-white/10">
               <div className="flex items-center gap-2 mb-4">
                 {stream.status === "LIVE" ? (
                   <>
@@ -388,42 +387,6 @@ export function WatchPage() {
               </div>
             </div>
 
-            {/* About Streaming */}
-            <div className="bg-slate-800 rounded-lg p-6 border border-slate-700">
-              <div className="flex items-center gap-2 mb-3">
-                <VideoIcon className="w-5 h-5 text-purple-400" />
-                <h3 className="font-semibold text-white">Sobre o Streaming</h3>
-              </div>
-              <div className="text-sm text-slate-400 space-y-2">
-                <p>
-                  Esta plataforma utiliza{" "}
-                  <strong className="text-white">
-                    HLS (HTTP Live Streaming)
-                  </strong>{" "}
-                  para entregar vídeo adaptativo.
-                </p>
-                <p>
-                  O player seleciona automaticamente a melhor qualidade baseado
-                  na sua conexão.
-                </p>
-              </div>
-            </div>
-
-            {/* Create Your Own */}
-            <div className="bg-gradient-to-br from-purple-900/50 to-purple-800/50 rounded-lg p-6 border border-purple-700/50">
-              <h3 className="font-semibold text-white mb-2">
-                Quer transmitir também?
-              </h3>
-              <p className="text-sm text-slate-300 mb-4">
-                Crie sua própria transmissão em segundos!
-              </p>
-              <button
-                onClick={() => navigate(routes.home())}
-                className="w-full px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-colors font-semibold"
-              >
-                Iniciar Minha Stream
-              </button>
-            </div>
           </div>
         </div>
       </div>

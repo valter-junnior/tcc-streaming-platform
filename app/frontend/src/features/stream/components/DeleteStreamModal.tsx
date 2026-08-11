@@ -73,10 +73,10 @@ export function DeleteStreamModal({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-      <div className="bg-slate-800 rounded-lg shadow-xl max-w-md w-full border border-slate-700">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm">
+      <div className="w-full max-w-md rounded-xl border border-white/10 bg-[#15181d] shadow-2xl">
         {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-slate-700">
+        <div className="flex items-center justify-between border-b border-white/10 p-5">
           <h2 className="text-2xl font-bold text-white flex items-center gap-2">
             <AlertTriangle className="w-6 h-6 text-red-500" />
             Excluir Stream
@@ -138,7 +138,7 @@ export function DeleteStreamModal({
               type="button"
               onClick={handleClose}
               disabled={deleteStream.isPending}
-              className="flex-1 px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg transition-colors disabled:opacity-50"
+              className="flex-1 rounded-md border border-white/10 bg-white/[0.06] px-4 py-2 text-white transition-colors hover:bg-white/10 disabled:opacity-50"
             >
               Cancelar
             </button>
@@ -146,7 +146,7 @@ export function DeleteStreamModal({
               type="button"
               onClick={handleDelete}
               disabled={deleteStream.isPending || isLive}
-              className="flex-1 px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+              className="flex-1 rounded-md bg-red-600 px-4 py-2 text-white transition-colors hover:bg-red-500 disabled:opacity-50 flex items-center justify-center gap-2"
             >
               {deleteStream.isPending ? (
                 <>

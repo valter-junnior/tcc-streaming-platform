@@ -117,6 +117,19 @@
   * {
     @apply border-border outline-ring/50;
   }
+
+  button:not(:disabled),
+  a,
+  summary,
+  [role="button"]:not([aria-disabled="true"]) {
+    cursor: pointer;
+  }
+
+  button:disabled,
+  [aria-disabled="true"] {
+    cursor: not-allowed;
+  }
+
   body {
     @apply bg-background text-foreground;
   }
