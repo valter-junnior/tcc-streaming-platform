@@ -2,6 +2,7 @@ import { useState } from "react";
 import {
   Video,
   Play,
+  Plus,
   Edit2,
   Trash2,
   Loader2,
@@ -27,7 +28,7 @@ export function MyStreamsPage() {
 
   if (isLoading || !userId) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center">
+      <div className="min-h-screen bg-[#0b0d10] flex items-center justify-center">
         <Loader2 className="w-12 h-12 text-purple-500 animate-spin" />
       </div>
     );
@@ -35,7 +36,7 @@ export function MyStreamsPage() {
 
   if (error) {
     return (
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 flex items-center justify-center">
+      <div className="min-h-screen bg-[#0b0d10] flex items-center justify-center">
         <div className="bg-red-500/10 border border-red-500 rounded-lg p-6 max-w-md">
           <div className="flex items-center gap-3 text-red-500">
             <AlertCircle className="w-6 h-6" />
@@ -47,37 +48,44 @@ export function MyStreamsPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
-      <div className="container mx-auto px-4 py-16">
+    <div className="min-h-screen bg-[#0b0d10]">
+      <div className="container mx-auto max-w-7xl px-5 py-10">
         {/* Header */}
-        <div className="mb-12">
-          <div className="flex items-center gap-3 mb-4">
-            <Video className="w-10 h-10 text-purple-400" />
-            <h1 className="text-4xl font-bold text-white">Minhas Lives</h1>
+        <div className="mb-10 flex flex-col gap-4 border-b border-white/10 pb-8 sm:flex-row sm:items-end sm:justify-between">
+          <div>
+            <div className="mb-3 flex items-center gap-2 text-violet-400">
+              <Video className="h-5 w-5" />
+              <span className="text-sm font-medium uppercase tracking-[0.16em]">Studio</span>
+            </div>
+            <h1 className="text-3xl font-semibold tracking-tight text-white">Minhas transmissões</h1>
+            <p className="mt-2 text-sm text-slate-500">Acesse o painel ou atualize os dados da live.</p>
           </div>
-          <p className="text-slate-300">
-            Gerencie suas transmissões, edite informações e acompanhe
-            estatísticas
-          </p>
+          <button
+            onClick={() => setIsCreateModalOpen(true)}
+            className="inline-flex w-fit items-center gap-2 rounded-md bg-violet-600 px-4 py-2.5 text-sm font-semibold text-white transition hover:bg-violet-500"
+          >
+            <Plus className="h-4 w-4" />
+            Nova transmissão
+          </button>
         </div>
 
         {/* Streams List */}
         {!streams || streams.length === 0 ? (
-          <div className="max-w-2xl mx-auto text-center py-16">
-            <div className="bg-slate-800/50 backdrop-blur rounded-lg p-12 border border-slate-700">
+          <div className="mx-auto max-w-2xl py-16 text-center">
+            <div className="rounded-xl border border-dashed border-white/15 bg-white/[0.02] p-12">
               <Video className="w-16 h-16 text-slate-600 mx-auto mb-4" />
               <h2 className="text-2xl font-semibold text-white mb-2">
-                Nenhuma stream criada ainda
+                Nenhuma transmissão criada
               </h2>
               <p className="text-slate-400 mb-6">
-                Crie sua primeira transmissão para começar
+                Crie uma transmissão para começar.
               </p>
               <button
                 onClick={() => setIsCreateModalOpen(true)}
                 className="inline-flex items-center gap-2 bg-purple-600 hover:bg-purple-700 text-white font-semibold px-6 py-3 rounded-lg transition-colors"
               >
                 <Play className="w-5 h-5" />
-                Criar Stream
+                Criar transmissão
               </button>
             </div>
           </div>

@@ -22,6 +22,9 @@ export function VideoPlayerPlyr({
   const addLiveButton = (player: Plyr) => {
     const controlsContainer =
       player.elements?.container?.querySelector(".plyr__controls");
+    const media = player.elements?.container?.querySelector(
+      "video",
+    ) as HTMLVideoElement | null;
     if (controlsContainer) {
       const liveButton = document.createElement("button");
       liveButton.className = "plyr__control plyr__control--live";
@@ -31,23 +34,23 @@ export function VideoPlayerPlyr({
         e.preventDefault();
         e.stopPropagation();
 
-        if (hlsRef.current && player.media) {
-          const seekableLength = player.media.seekable.length;
+        if (hlsRef.current && media) {
+          const seekableLength = media.seekable.length;
           if (seekableLength > 0) {
-            const livePosition = player.media.seekable.end(seekableLength - 1);
-            player.media.currentTime = livePosition;
+            const livePosition = media.seekable.end(seekableLength - 1);
+            media.currentTime = livePosition;
           } else {
             if (player.duration && player.duration > 0) {
-              player.media.currentTime = player.duration;
+              media.currentTime = player.duration;
             }
           }
-        } else if (player.media) {
-          const seekableLength = player.media.seekable.length;
+        } else if (media) {
+          const seekableLength = media.seekable.length;
           if (seekableLength > 0) {
-            const livePosition = player.media.seekable.end(seekableLength - 1);
-            player.media.currentTime = livePosition;
+            const livePosition = media.seekable.end(seekableLength - 1);
+            media.currentTime = livePosition;
           } else {
-            player.media.currentTime = player.duration || 0;
+            media.currentTime = player.duration || 0;
           }
         }
       };
