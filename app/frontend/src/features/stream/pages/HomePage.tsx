@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Video, Play, TrendingUp, Eye, Loader2, ListVideo } from "lucide-react";
+import { Eye, Loader2, Play, Plus, Radio, Video } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { CreateStreamModal } from "../components/CreateStreamModal";
 import { useLiveStreams } from "../../../app/hooks/useLiveStreams";
@@ -11,170 +11,105 @@ export function HomePage() {
   const { data: liveStreams, isLoading } = useLiveStreams();
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900">
-      <div className="container mx-auto px-4 py-16">
-        {/* Header */}
-        <header className="text-center mb-16 relative">
-          <div className="absolute top-0 right-4">
-            <button
-              onClick={() => navigate(routes.myStreams())}
-              className="inline-flex items-center gap-2 bg-slate-800/70 hover:bg-slate-700/70 border border-slate-700 text-white px-4 py-2 rounded-lg transition-colors"
-            >
-              <ListVideo className="w-5 h-5" />
-              Minhas Lives
-            </button>
-          </div>
-          <div className="flex items-center justify-center gap-3 mb-4">
-            <Video className="w-12 h-12 text-purple-400" />
-            <h1 className="text-5xl font-bold text-white">StreamLab</h1>
-          </div>
-          <p className="text-xl text-slate-300">
-            Plataforma de Streaming com Análise Comparativa
-          </p>
-        </header>
+    <div className="min-h-screen bg-[#0b0d10] text-white">
+      <header className="border-b border-white/10 bg-[#0b0d10]/95">
+        <div className="mx-auto flex max-w-7xl items-center justify-between px-5 py-4">
+          <button
+            onClick={() => navigate(routes.home())}
+            className="flex items-center gap-2 text-lg font-semibold tracking-tight"
+          >
+            <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-violet-600">
+              <Radio className="h-4 w-4" />
+            </span>
+            StreamLab
+          </button>
 
-        {/* Hero Section */}
-        <div className="max-w-4xl mx-auto text-center mb-16">
-          <h2 className="text-4xl font-bold text-white mb-6">
-            Transmita ao vivo em segundos
-          </h2>
-          <p className="text-lg text-slate-300 mb-8">
-            Crie sua transmissão, configure o OBS e comece a streamar. Sem
-            cadastro, sem complicação.
-          </p>
+          <button
+            onClick={() => navigate(routes.myStreams())}
+            className="rounded-md px-3 py-2 text-sm text-slate-300 transition hover:bg-white/10 hover:text-white"
+          >
+            Minhas transmissões
+          </button>
+        </div>
+      </header>
+
+      <main className="mx-auto max-w-7xl px-5 pb-16">
+        <section className="flex flex-col gap-6 border-b border-white/10 py-16 md:flex-row md:items-end md:justify-between">
+          <div className="max-w-2xl">
+            <p className="mb-3 text-sm font-medium uppercase tracking-[0.18em] text-violet-400">
+              Streaming ao vivo
+            </p>
+            <h1 className="text-4xl font-semibold tracking-tight text-white md:text-5xl">
+              Transmita. Assista. Ao vivo.
+            </h1>
+            <p className="mt-4 max-w-xl text-base leading-7 text-slate-400">
+              Publique sua live via OBS e acompanhe o conteúdo direto do navegador.
+            </p>
+          </div>
 
           <button
             onClick={() => setIsModalOpen(true)}
-            className="inline-flex items-center gap-2 bg-purple-600 hover:bg-purple-700 text-white font-semibold px-8 py-4 rounded-lg text-lg transition-colors shadow-lg hover:shadow-xl"
+            className="inline-flex w-fit items-center gap-2 rounded-md bg-violet-600 px-4 py-3 text-sm font-semibold transition hover:bg-violet-500"
           >
-            <Play className="w-6 h-6" />
-            Iniciar Streaming
+            <Plus className="h-4 w-4" />
+            Nova transmissão
           </button>
-        </div>
+        </section>
 
-        {/* Live Streams Section */}
-        {isLoading ? (
-          <div className="flex items-center justify-center py-12">
-            <Loader2 className="w-8 h-8 text-purple-500 animate-spin" />
+        <section className="pt-10">
+          <div className="mb-5 flex items-center justify-between">
+            <div>
+              <h2 className="text-xl font-semibold">Ao vivo agora</h2>
+              <p className="mt-1 text-sm text-slate-500">
+                {liveStreams?.length ?? 0} transmissões disponíveis
+              </p>
+            </div>
           </div>
-        ) : liveStreams && liveStreams.length > 0 ? (
-          <div className="max-w-6xl mx-auto mb-16">
-            <h3 className="text-3xl font-bold text-white mb-6 flex items-center gap-2">
-              <Play className="w-8 h-8 text-red-500 animate-pulse" />
-              Ao Vivo Agora
-            </h3>
 
-            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {liveStreams?.map((stream) => (
-                <div
+          {isLoading ? (
+            <div className="flex min-h-48 items-center justify-center rounded-xl border border-white/10 bg-white/[0.03]">
+              <Loader2 className="h-6 w-6 animate-spin text-violet-400" />
+            </div>
+          ) : liveStreams && liveStreams.length > 0 ? (
+            <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+              {liveStreams.map((stream) => (
+                <button
                   key={stream.id}
                   onClick={() => navigate(routes.watch(stream.id))}
-                  className="bg-slate-800/70 backdrop-blur rounded-lg border border-slate-700 overflow-hidden cursor-pointer hover:border-purple-500 transition-all hover:scale-105"
+                  className="group overflow-hidden rounded-xl border border-white/10 bg-white/[0.04] text-left transition hover:-translate-y-0.5 hover:border-violet-500/70 hover:bg-white/[0.07]"
                 >
-                  {/* Thumbnail Placeholder */}
-                  <div className="aspect-video bg-gradient-to-br from-purple-900/50 to-slate-900 flex items-center justify-center relative">
-                    <Play className="w-16 h-16 text-white/80" />
-                    <div className="absolute top-2 left-2 bg-red-600 text-white text-xs font-bold px-2 py-1 rounded flex items-center gap-1">
-                      <span className="w-2 h-2 bg-white rounded-full animate-pulse"></span>
+                  <div className="relative flex aspect-video items-center justify-center overflow-hidden bg-gradient-to-br from-violet-950 via-slate-900 to-[#11151b]">
+                    <Video className="h-10 w-10 text-white/30 transition group-hover:scale-110 group-hover:text-violet-300" />
+                    <span className="absolute left-3 top-3 inline-flex items-center gap-1.5 rounded bg-red-500 px-2 py-1 text-[10px] font-bold tracking-wide">
+                      <span className="h-1.5 w-1.5 rounded-full bg-white" />
                       AO VIVO
-                    </div>
+                    </span>
                   </div>
-
-                  {/* Stream Info */}
                   <div className="p-4">
-                    <h4 className="text-lg font-semibold text-white mb-2 truncate">
-                      {stream.title}
-                    </h4>
-                    {stream.description && (
-                      <p className="text-sm text-slate-400 mb-3 line-clamp-2">
-                        {stream.description}
-                      </p>
-                    )}
-                    <div className="flex items-center gap-2 text-sm text-slate-300">
-                      <Eye className="w-4 h-4" />
-                      <span>{stream.currentViewers} assistindo</span>
+                    <h3 className="truncate font-medium text-white">{stream.title}</h3>
+                    <div className="mt-2 flex items-center gap-1.5 text-sm text-slate-400">
+                      <Eye className="h-4 w-4" />
+                      {stream.currentViewers} assistindo
                     </div>
                   </div>
-                </div>
+                </button>
               ))}
             </div>
-          </div>
-        ) : null}
-
-        {/* Features */}
-        <div className="max-w-5xl mx-auto grid md:grid-cols-3 gap-8 mt-20">
-          <div className="bg-slate-800/50 backdrop-blur p-6 rounded-lg border border-slate-700">
-            <div className="w-12 h-12 bg-purple-500/20 rounded-lg flex items-center justify-center mb-4">
-              <Video className="w-6 h-6 text-purple-400" />
+          ) : (
+            <div className="rounded-xl border border-dashed border-white/15 bg-white/[0.02] px-6 py-14 text-center">
+              <Play className="mx-auto h-8 w-8 text-slate-600" />
+              <p className="mt-3 text-sm text-slate-400">Nenhuma transmissão ao vivo no momento.</p>
+              <button
+                onClick={() => setIsModalOpen(true)}
+                className="mt-5 text-sm font-medium text-violet-400 hover:text-violet-300"
+              >
+                Começar uma transmissão
+              </button>
             </div>
-            <h3 className="text-xl font-semibold text-white mb-2">
-              Sem Cadastro
-            </h3>
-            <p className="text-slate-400">
-              Clique, configure e transmita. Acesso instantâneo sem burocracia.
-            </p>
-          </div>
+          )}
+        </section>
+      </main>
 
-          <div className="bg-slate-800/50 backdrop-blur p-6 rounded-lg border border-slate-700">
-            <div className="w-12 h-12 bg-purple-500/20 rounded-lg flex items-center justify-center mb-4">
-              <TrendingUp className="w-6 h-6 text-purple-400" />
-            </div>
-            <h3 className="text-xl font-semibold text-white mb-2">
-              Tempo Real
-            </h3>
-            <p className="text-slate-400">
-              Veja o número de espectadores atualizando ao vivo via SSE.
-            </p>
-          </div>
-
-          <div className="bg-slate-800/50 backdrop-blur p-6 rounded-lg border border-slate-700">
-            <div className="w-12 h-12 bg-purple-500/20 rounded-lg flex items-center justify-center mb-4">
-              <Play className="w-6 h-6 text-purple-400" />
-            </div>
-            <h3 className="text-xl font-semibold text-white mb-2">
-              Múltiplas Qualidades
-            </h3>
-            <p className="text-slate-400">
-              Transcodificação automática em 360p, 480p, 720p e 1080p.
-            </p>
-          </div>
-        </div>
-
-        {/* About Project */}
-        <div className="max-w-3xl mx-auto mt-20 bg-slate-800/30 backdrop-blur p-8 rounded-lg border border-slate-700">
-          <h3 className="text-2xl font-bold text-white mb-4">
-            Sobre o Projeto
-          </h3>
-          <p className="text-slate-300 leading-relaxed mb-4">
-            O <strong>StreamLab</strong> é um{" "}
-            <strong>Trabalho de Conclusão de Curso (TCC)</strong> que implementa
-            uma plataforma completa de streaming de vídeo ao vivo para avaliar
-            comparativamente diferentes combinações de tecnologias de ingestão e
-            transcodificação.
-          </p>
-          <p className="text-slate-300 leading-relaxed mb-4">
-            O fluxo principal é: o streamer transmite via{" "}
-            <strong>OBS Studio</strong> usando o protocolo <strong>RTMP</strong>
-            , o servidor de ingestão (<strong>Nginx-RTMP</strong> ou{" "}
-            <strong>SRS</strong>) aciona o transcodificador (
-            <strong>FFmpeg</strong> ou <strong>GStreamer</strong>), que gera
-            segmentos <strong>HLS</strong> em quatro qualidades (1080p, 720p,
-            480p, 360p), e o espectador assiste no navegador via{" "}
-            <strong>HLS.js + Plyr</strong>.
-          </p>
-          <p className="text-slate-300 leading-relaxed">
-            O backend em <strong>Java 21 / Spring Boot</strong> gerencia os
-            estados da stream, o contador de viewers em tempo real via{" "}
-            <strong>SSE</strong>, e os eventos de métricas através do{" "}
-            <strong>RabbitMQ</strong>. O objetivo do TCC é comparar as quatro
-            combinações (Nginx × SRS) × (FFmpeg × GStreamer) por meio de
-            métricas quantitativas de latência, uso de recursos e
-            confiabilidade.
-          </p>
-        </div>
-      </div>
-
-      {/* Modal */}
       <CreateStreamModal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}
