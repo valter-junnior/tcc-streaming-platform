@@ -1,3 +1,0 @@
-Iniciamos o tcc mais ainda tudo que foi feito no artigo quero que seja refeito, inicialmente quero que leia os artigos .pdf dentro de docs/example, principalmente o artigo_pedro_assunção.pdf, por que será nessa estrutura e forma de escrita que seguiremos nosso artigo inicial também.
-
-Veja os exemplos, mas antes de começar a escrever compartilhe comigo uma proposta de estrutura do artigo para discutirmos.
