@@ -23,7 +23,7 @@ O streamer publica em RTMP. O servidor selecionado chama o callback do backend, 
 
 \begin{figure}[H]
 \centering
-\IfFileExists{../../diagrams/diagrama-arquitetura.mmd}{\fbox{\parbox{0.8\textwidth}{\centering O diagrama Mermaid está em \texttt{docs/tcc/diagrams/diagrama-arquitetura.mmd}. Exportar para PDF/PNG antes da entrega final.}}}{\fbox{\parbox{0.8\textwidth}{\centering Inserir diagrama de arquitetura exportado do projeto.}}}
+\fbox{\parbox{0.8\textwidth}{\centering Inserir o diagrama de arquitetura da plataforma nesta figura.}}
 \caption{Arquitetura experimental da plataforma.}
 \end{figure}
 
@@ -53,7 +53,7 @@ Latência ponta a ponta & s & Campo previsto, mas não validado na coleta atual 
 
 \subsection{Procedimento e análise}
 
-Cada cenário sobe uma stack limpa via Docker Compose, cria uma transmissão, publica uma fonte sintética, inicia a quantidade definida de viewers e coleta os dados durante aproximadamente cinco minutos. Os resultados são salvos em CSV bruto. O script \texttt{aggregate-results.py} calcula médias e desvios padrão agrupados por servidor, transcodificador e carga.
+Cada cenário sobe uma instância limpa do ambiente conteinerizado, cria uma transmissão, publica uma fonte sintética, inicia a quantidade definida de viewers e coleta os dados durante aproximadamente cinco minutos. Os dados brutos são consolidados por uma rotina de agregação estatística, que calcula médias e desvios padrão agrupados por servidor, transcodificador e carga.
 
 Os critérios operacionais atuais são startup HLS de até 24 s, CPU média de até 240\% para 1 e 10 viewers e 280\% para 50 viewers, taxa de erros de até 1\% para 1 e 10 viewers e 3\% para 50 viewers, além de zero reinícios. Esses limites são critérios de aceitação do experimento local, não requisitos universais de streaming.
 

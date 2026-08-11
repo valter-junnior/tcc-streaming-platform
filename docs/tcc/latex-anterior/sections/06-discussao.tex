@@ -1,7 +1,0 @@
-\section{Discussão}
-
-Os resultados sugerem que o custo de disponibilização inicial do HLS não depende apenas do número de espectadores, mas também da interação entre o servidor RTMP e o transcodificador. Nginx apresentou maior atraso para iniciar a entrega do conteúdo, enquanto SRS respondeu mais rapidamente. Em contrapartida, o uso de CPU permaneceu elevado em todos os cenários, o que mostra que o gargalo do experimento está concentrado na transcodificação em software e na multiplicidade de variantes geradas.
-
-Outro ponto relevante é que a ausência de GPU no pipeline simplifica a interpretação do experimento, mas também delimita o alcance das conclusões. O estudo mede o desempenho realista de uma arquitetura CPU-only, que continua sendo comum em ambientes de laboratório, em provedores de menor porte e em cenários de custo controlado. Caso a evolução do trabalho inclua aceleração por GPU, os parâmetros de comparação precisarão ser reabertos, porque a natureza do gargalo muda de forma significativa.
-
-Do ponto de vista de escrita acadêmica, o material já está organizado para sustentar a seção de método, a seção de resultados e parte da discussão. Isso permite separar com clareza o que foi medido, o que foi agregado estatisticamente e o que é inferência analítica baseada nos números produzidos pelo benchmark.
