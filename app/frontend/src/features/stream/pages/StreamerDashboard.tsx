@@ -179,7 +179,7 @@ export function StreamerDashboard() {
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-slate-900 flex items-center justify-center">
+      <div className="min-h-screen bg-[#0b0d10] flex items-center justify-center">
         <Loader2 className="w-8 h-8 text-purple-500 animate-spin" />
       </div>
     );
@@ -187,8 +187,8 @@ export function StreamerDashboard() {
 
   if (error || !stream) {
     return (
-      <div className="min-h-screen bg-slate-900 flex items-center justify-center p-4">
-        <div className="bg-slate-800 rounded-lg p-8 max-w-md text-center border border-slate-700">
+      <div className="min-h-screen bg-[#0b0d10] flex items-center justify-center p-4">
+        <div className="bg-white/[0.04] rounded-xl p-8 max-w-md text-center border border-white/10">
           <AlertCircle className="w-16 h-16 text-red-500 mx-auto mb-4" />
           <h2 className="text-2xl font-bold text-white mb-2">Erro</h2>
           <p className="text-slate-400 mb-6">
@@ -249,8 +249,8 @@ export function StreamerDashboard() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-900">
-      <div className="container mx-auto px-4 py-8 max-w-4xl">
+    <div className="min-h-screen bg-[#0b0d10]">
+      <div className="container mx-auto max-w-5xl px-5 py-10">
         {/* Header */}
         <div className="mb-8">
           <button
@@ -267,7 +267,7 @@ export function StreamerDashboard() {
 
         {/* Status Badge */}
         <div
-          className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-slate-800 border border-slate-700 mb-6 ${getStatusColor(stream.status)}`}
+          className={`inline-flex items-center gap-2 px-3 py-2 rounded-md bg-white/[0.04] border border-white/10 mb-6 ${getStatusColor(stream.status)}`}
         >
           {getStatusIcon(stream.status)}
           <span className="font-semibold">{getStatusText(stream.status)}</span>
@@ -285,8 +285,8 @@ export function StreamerDashboard() {
         </div>
 
         {/* Stats */}
-        <div className="grid grid-cols-3 gap-4 mb-8">
-          <div className="bg-slate-800 rounded-lg p-6 border border-slate-700">
+        <div className="mb-8 grid grid-cols-1 gap-3 sm:grid-cols-3">
+          <div className="bg-white/[0.04] rounded-xl p-5 border border-white/10">
             <div className="flex items-center gap-3 mb-2">
               <Eye className="w-5 h-5 text-purple-400" />
               <span className="text-slate-400 text-sm">
@@ -297,7 +297,7 @@ export function StreamerDashboard() {
               {stream.currentViewers}
             </p>
           </div>
-          <div className="bg-slate-800 rounded-lg p-6 border border-slate-700">
+          <div className="bg-white/[0.04] rounded-xl p-5 border border-white/10">
             <div className="flex items-center gap-3 mb-2">
               <Eye className="w-5 h-5 text-purple-400" />
               <span className="text-slate-400 text-sm">
@@ -308,7 +308,7 @@ export function StreamerDashboard() {
               {stream.viewersPeak}
             </p>
           </div>
-          <div className="bg-slate-800 rounded-lg p-6 border border-slate-700">
+          <div className="bg-white/[0.04] rounded-xl p-5 border border-white/10">
             <div className="flex items-center gap-3 mb-2">
               <Clock className="w-5 h-5 text-purple-400" />
               <span className="text-slate-400 text-sm">
@@ -337,7 +337,7 @@ export function StreamerDashboard() {
 
         {/* Instructions for OBS */}
         {stream.status !== "ENDED" && (
-          <div className="bg-slate-800 rounded-lg p-6 border border-slate-700 mb-6">
+          <div className="mb-6 rounded-xl border border-white/10 bg-white/[0.04] p-5 sm:p-6">
             <h2 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
               <Video className="w-6 h-6 text-purple-400" />
               Configuração do OBS Studio
@@ -346,7 +346,7 @@ export function StreamerDashboard() {
             <div className="space-y-4">
               {/* RTMP URL */}
               <div>
-                <label className="block text-sm font-medium text-slate-300 mb-2">
+                <label className="mb-2 block text-xs font-medium uppercase tracking-wide text-slate-400">
                   URL do Servidor
                 </label>
                 <div className="flex gap-2">
@@ -354,7 +354,7 @@ export function StreamerDashboard() {
                     type="text"
                     value={rtmpUrl}
                     readOnly
-                    className="flex-1 px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white font-mono text-sm"
+                    className="min-w-0 flex-1 rounded-md border border-white/10 bg-white/[0.06] px-3 py-2 text-sm text-white font-mono"
                   />
                   <button
                     onClick={() => handleCopy(rtmpUrl, "rtmp")}
@@ -371,7 +371,7 @@ export function StreamerDashboard() {
 
               {/* Stream Key */}
               <div>
-                <label className="block text-sm font-medium text-slate-300 mb-2">
+                <label className="mb-2 block text-xs font-medium uppercase tracking-wide text-slate-400">
                   Chave de Transmissão
                 </label>
                 <div className="flex gap-2">
@@ -379,7 +379,7 @@ export function StreamerDashboard() {
                     type="text"
                     value={streamKey}
                     readOnly
-                    className="flex-1 px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white font-mono text-sm"
+                    className="min-w-0 flex-1 rounded-md border border-white/10 bg-white/[0.06] px-3 py-2 text-sm text-white font-mono"
                   />
                   <button
                     onClick={() => handleCopy(streamKey, "key")}
@@ -396,7 +396,7 @@ export function StreamerDashboard() {
 
               {/* Watch URL */}
               <div>
-                <label className="block text-sm font-medium text-slate-300 mb-2">
+                <label className="mb-2 block text-xs font-medium uppercase tracking-wide text-slate-400">
                   Link para Compartilhar
                 </label>
                 <div className="flex gap-2">
@@ -404,9 +404,9 @@ export function StreamerDashboard() {
                     type="text"
                     value={watchUrl}
                     readOnly
-                    className="flex-1 px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white font-mono text-sm"
+                    className="min-w-0 flex-1 rounded-md border border-white/10 bg-white/[0.06] px-3 py-2 text-sm text-white font-mono"
                   />
-                  <button className="px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white flex items-center justify-center">
+                  <button className="px-4 py-2 bg-white/[0.06] border border-white/10 rounded-md text-white flex items-center justify-center">
                     <a
                       href={watchUrl}
                       target="_blank"
@@ -430,10 +430,8 @@ export function StreamerDashboard() {
             </div>
 
             {/* OBS Instructions */}
-            <div className="mt-6 bg-slate-700/50 rounded-lg p-4">
-              <h3 className="font-semibold text-white mb-2">
-                Como configurar:
-              </h3>
+            <div className="mt-6 rounded-lg border border-white/10 bg-white/[0.02] p-4">
+              <h3 className="font-semibold text-white mb-2">Configuração rápida</h3>
               <ol className="text-sm text-slate-300 space-y-1 list-decimal list-inside">
                 <li>Abra o OBS Studio</li>
                 <li>Vá em Configurações → Transmissão</li>
@@ -467,15 +465,12 @@ export function StreamerDashboard() {
 
         {/* Stream Ended Message */}
         {stream.status === "ENDED" && (
-          <div className="bg-slate-800 rounded-lg p-8 border border-slate-700 text-center">
+          <div className="bg-white/[0.04] rounded-xl p-8 border border-white/10 text-center">
             <XCircle className="w-16 h-16 text-red-500 mx-auto mb-4" />
             <h3 className="text-2xl font-bold text-white mb-2">
               Transmissão Encerrada
             </h3>
-            <p className="text-slate-400 mb-6">
-              Esta transmissão foi finalizada. Você pode reiniciá-la usando a
-              mesma stream key ou criar uma nova.
-            </p>
+            <p className="text-slate-400 mb-6">Esta transmissão foi finalizada.</p>
             <div className="flex gap-4 justify-center">
               <button
                 onClick={handleRestartStream}

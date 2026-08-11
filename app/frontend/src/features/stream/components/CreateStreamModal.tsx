@@ -73,11 +73,11 @@ export function CreateStreamModal({ isOpen, onClose }: CreateStreamModalProps) {
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center p-4 z-50">
-      <div className="bg-slate-800 rounded-lg shadow-xl max-w-md w-full border border-slate-700">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm">
+      <div className="w-full max-w-md rounded-xl border border-white/10 bg-[#15181d] shadow-2xl">
         {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-slate-700">
-          <h2 className="text-2xl font-bold text-white">Criar Nova Stream</h2>
+        <div className="flex items-center justify-between border-b border-white/10 p-5">
+          <h2 className="text-xl font-semibold text-white">Nova transmissão</h2>
           <button
             onClick={handleClose}
             disabled={isLoading}
@@ -88,12 +88,12 @@ export function CreateStreamModal({ isOpen, onClose }: CreateStreamModalProps) {
         </div>
 
         {/* Form */}
-        <form onSubmit={handleSubmit} className="p-6 space-y-4">
+        <form onSubmit={handleSubmit} className="space-y-5 p-5">
           {/* Title */}
           <div>
             <label
               htmlFor="title"
-              className="block text-sm font-medium text-slate-300 mb-2"
+              className="mb-2 block text-xs font-medium uppercase tracking-wide text-slate-400"
             >
               Título da Stream *
             </label>
@@ -105,9 +105,9 @@ export function CreateStreamModal({ isOpen, onClose }: CreateStreamModalProps) {
               placeholder="Ex: Jogando Minecraft"
               maxLength={100}
               disabled={isLoading}
-              className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent disabled:opacity-50"
+              className="w-full rounded-md border border-white/10 bg-white/[0.06] px-3 py-2 text-white placeholder-slate-500 focus:border-violet-500 focus:outline-none focus:ring-1 focus:ring-violet-500 disabled:opacity-50"
             />
-            <p className="text-xs text-slate-400 mt-1">
+            <p className="mt-1 text-xs text-slate-500">
               {title.length}/100 caracteres
             </p>
           </div>
@@ -116,7 +116,7 @@ export function CreateStreamModal({ isOpen, onClose }: CreateStreamModalProps) {
           <div>
             <label
               htmlFor="description"
-              className="block text-sm font-medium text-slate-300 mb-2"
+              className="mb-2 block text-xs font-medium uppercase tracking-wide text-slate-400"
             >
               Descrição (opcional)
             </label>
@@ -128,9 +128,9 @@ export function CreateStreamModal({ isOpen, onClose }: CreateStreamModalProps) {
               rows={3}
               maxLength={500}
               disabled={isLoading}
-              className="w-full px-4 py-2 bg-slate-700 border border-slate-600 rounded-lg text-white placeholder-slate-400 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-transparent resize-none disabled:opacity-50"
+              className="w-full resize-none rounded-md border border-white/10 bg-white/[0.06] px-3 py-2 text-white placeholder-slate-500 focus:border-violet-500 focus:outline-none focus:ring-1 focus:ring-violet-500 disabled:opacity-50"
             />
-            <p className="text-xs text-slate-400 mt-1">
+            <p className="mt-1 text-xs text-slate-500">
               {description.length}/500 caracteres
             </p>
           </div>
@@ -148,14 +148,14 @@ export function CreateStreamModal({ isOpen, onClose }: CreateStreamModalProps) {
               type="button"
               onClick={handleClose}
               disabled={isLoading}
-              className="flex-1 px-4 py-2 bg-slate-700 hover:bg-slate-600 text-white rounded-lg transition-colors disabled:opacity-50"
+              className="flex-1 rounded-md border border-white/10 bg-white/[0.06] px-4 py-2 text-white transition-colors hover:bg-white/10 disabled:opacity-50"
             >
               Cancelar
             </button>
             <button
               type="submit"
               disabled={isLoading || !title.trim()}
-              className="flex-1 px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-colors disabled:opacity-50 flex items-center justify-center gap-2"
+              className="flex-1 rounded-md bg-violet-600 px-4 py-2 text-white transition-colors hover:bg-violet-500 disabled:opacity-50 flex items-center justify-center gap-2"
             >
               {isLoading ? (
                 <>
