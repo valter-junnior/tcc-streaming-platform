@@ -1,32 +1,11 @@
 \section{Introdução}
 
-O streaming ao vivo exige que uma cadeia de processamento receba o vídeo, transforme-o em representações adequadas e o entregue aos espectadores com continuidade e atraso reduzido. Nessa cadeia, o servidor de ingestão e o transcodificador podem consumir recursos de forma diferente e introduzir atrasos distintos. A escolha entre alternativas aparentemente equivalentes, portanto, deve ser apoiada por medições reproduzíveis, e não apenas por disponibilidade de documentação ou popularidade.
+O streaming de vídeo ao vivo depende de uma cadeia que recebe o conteúdo, processa o fluxo e o disponibiliza aos espectadores com continuidade e atraso controlado. Em uma arquitetura desse tipo, o servidor de ingestão, o transcodificador e a camada de entrega exercem funções diferentes, mas compartilham recursos computacionais e influenciam o tempo necessário para iniciar a reprodução. A literatura de qualidade de experiência mostra que o usuário percebe a combinação de atraso inicial, interrupções, variações de qualidade e estabilidade da sessão, e não uma métrica isolada \citep{seufert,barman,rfc9317}.
 
-O projeto deste trabalho implementa uma plataforma de streaming composta por frontend, backend de controle, servidor RTMP, transcodificador e entrega HLS. O desenho permite alternar o servidor entre Nginx-RTMP e SRS e o transcodificador entre FFmpeg e GStreamer, mantendo a aplicação e o conteúdo de teste sob controle. Essa característica torna possível investigar o efeito da combinação dos componentes sobre uma mesma carga de trabalho.
+Uma estratégia comum é usar RTMP na publicação e HLS na distribuição. O RTMP organiza a transferência de áudio, vídeo e dados em uma sessão de publicação, enquanto o HLS descreve a apresentação por meio de playlists e segmentos acessíveis via HTTP \citep{rtmp,hls}. Essa separação permite que a entrada seja recebida por um servidor especializado e que a saída seja consumida por navegadores e clientes HTTP. Entretanto, a escolha do servidor RTMP e do transcodificador pode alterar o momento de criação das playlists, o consumo de CPU e memória e a estabilidade da entrega.
 
-O problema de pesquisa é: \textit{como as combinações de servidores RTMP e transcodificadores influenciam o desempenho, o consumo de recursos e a estabilidade de uma plataforma de streaming de vídeo ao vivo em um ambiente conteinerizado?}
+Este artigo deriva de uma plataforma implementada em Java Spring Boot e React, com execução conteinerizada por Docker Compose. O projeto permite alternar Nginx-RTMP e SRS na ingestão \citep{nginxrtmp,srs}, bem como FFmpeg e GStreamer na transcodificação \citep{ffmpeg,gstreamer}. O benchmark automatiza a criação da transmissão, a publicação de uma fonte sintética, a geração de espectadores HTTP e a coleta de métricas. Assim, as quatro combinações são avaliadas dentro da mesma aplicação, com a mesma matriz de carga e no mesmo host.
 
-\subsection{Objetivo geral}
+O objetivo é comparar o comportamento operacional dessas combinações sob cargas de 1, 10 e 50 espectadores sintéticos. São examinados o tempo de disponibilização da playlist mestre HLS, o consumo de CPU e memória do container RTMP, o bitrate efetivo observado, os erros de requisições HTTP e os reinícios registrados durante a sessão. A principal contribuição é uma comparação experimental reproduzível e delimitada ao ambiente documentado, acompanhada da identificação explícita das métricas que ainda não permitem inferir a latência percebida pelo espectador.
 
-Avaliar o desempenho de servidores RTMP e transcodificadores no streaming de vídeo, comparando Nginx-RTMP e SRS combinados com FFmpeg e GStreamer em cargas controladas.
-
-\subsection{Objetivos específicos}
-\begin{itemize}[leftmargin=1.2cm]
-  \item Descrever a arquitetura implementada e o fluxo RTMP--transcodificação--HLS.
-  \item Definir uma matriz experimental que permita comparar servidor, transcodificador e número de espectadores.
-  \item Medir tempo de disponibilização, CPU, memória, bitrate, erros de entrega e reinícios.
-  \item Analisar a estabilidade dos cenários por médias e desvios padrão de três repetições.
-  \item Identificar limitações da instrumentação e propor melhorias para uma avaliação posterior.
-\end{itemize}
-
-\subsection{Contribuições}
-\begin{itemize}[leftmargin=1.2cm]
-  \item Uma plataforma de streaming configurável e executável por Docker Compose.
-  \item Um benchmark automatizado com dados brutos, logs e agregação estatística.
-  \item Uma comparação experimental entre quatro combinações de software sob três cargas.
-  \item Uma análise explícita das limitações de validade dos resultados disponíveis.
-\end{itemize}
-
-\subsection{Organização do trabalho}
-
-O texto está organizado em seis seções principais. A Seção 2 apresenta os trabalhos relacionados; a Seção 3 descreve a metodologia; a Seção 4 apresenta e discute os resultados; a Seção 5 conclui o estudo e indica trabalhos futuros; e a Seção 6 reúne as referências utilizadas.
+O recorte é relevante porque a transcodificação para múltiplas representações concentra uma parcela importante do custo da plataforma, enquanto a entrega HLS introduz uma sequência de operações de geração, retenção e leitura de segmentos. A análise proposta não pretende estabelecer um ranking universal das ferramentas. Ela procura responder, em condições controladas, como as implementações configuradas no projeto se comportam e quais trade-offs aparecem entre tempo de inicialização, uso de recursos e estabilidade.

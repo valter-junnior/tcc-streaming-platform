@@ -1,4 +1,4 @@
-\documentclass[12pt,a4paper]{article}
+\documentclass[10pt,a4paper]{article}
 
 \usepackage[T1]{fontenc}
 \usepackage[utf8]{inputenc}
@@ -15,44 +15,47 @@
 \usepackage{xcolor}
 \usepackage{listings}
 \usepackage[hidelinks]{hyperref}
-\usepackage{fancyhdr}
+\usepackage{microtype}
+\usepackage[round,authoryear]{natbib}
+\setcitestyle{open={[},close={]},aysep={ },yysep={,},citesep={, }}
+\usepackage{tikz}
+\usetikzlibrary{positioning}
+\usepackage{pgfplots}
+\pgfplotsset{compat=1.18}
 
-\geometry{margin=2.5cm}
-\setlength{\parindent}{1.25cm}
-\setlength{\parskip}{0.35em}
-\setlength{\headheight}{15pt}
-\renewcommand{\arraystretch}{1.15}
+\geometry{top=2.2cm,bottom=2.2cm,left=2.3cm,right=2.3cm}
+\setlength{\parindent}{1.0cm}
+\setlength{\parskip}{0.2em}
+\renewcommand{\arraystretch}{1.1}
 \newcommand{\articletitle}{Análise de Desempenho de Servidores RTMP e Transcodificadores no Streaming de Vídeo}
-\newcommand{\placeholder}[1]{\textcolor{red}{[Preencher: #1]}}
-
-\pagestyle{fancy}
-\fancyhf{}
-\lhead{Análise de Desempenho de Servidores RTMP e Transcodificadores}
-\rhead{TCC}
-\cfoot{\thepage}
 
 \lstset{basicstyle=\ttfamily\small,breaklines=true,frame=single}
 
-\title{\articletitle}
-\author{\small Orientado: Valter Abreu Silva Junior\\
-Departamento de Informática -- Universidade Federal do Maranhão (UFMA)\\
-Av. dos Portugueses, 1966 -- Cidade Universitária Dom Delgado\\
-65080-805 -- São Luís -- MA -- Brasil\\
-Orientador: Mario Antonio Meireles Teixeira}
-\date{\placeholder{Cidade -- ano}}
-
 \begin{document}
-\maketitle
 
-\begin{abstract}
-Este trabalho apresenta um estudo experimental para avaliar o desempenho de servidores RTMP e transcodificadores empregados em uma plataforma de streaming de vídeo ao vivo. A plataforma implementada combina Nginx-RTMP ou SRS para ingestão, FFmpeg ou GStreamer para transcodificação e HLS para entrega ao navegador. A avaliação considera uma matriz fatorial de quatro combinações tecnológicas submetidas a cargas de 1, 10 e 50 espectadores sintéticos, com três repetições por cenário. São analisados tempo de disponibilização da playlist HLS, consumo de CPU e memória, bitrate efetivo, taxa de erros HTTP e reinícios de sessão. Os resultados disponíveis indicam vantagem do SRS no startup da playlist e menor consumo de memória nos cenários com GStreamer, enquanto o GStreamer apresenta maior pressão de CPU sob carga. A latência ponta a ponta ainda requer instrumentação específica e, por isso, não é usada como evidência conclusiva nesta versão.
-\end{abstract}
+\begin{center}
+  \vspace*{-0.8cm}
+  \parbox{0.92\textwidth}{
+    \centering
+    {\Large\bfseries \articletitle\par}
+    \vspace{0.45cm}
+    {\normalsize Valter Abreu Silva Júnior\textsuperscript{1}, Prof. Dr. Mário Antônio Meirelles Teixeira\textsuperscript{2}\par}
+    \vspace{0.08cm}
+    {\small Departamento de Informática -- Universidade Federal do Maranhão (UFMA)\par}
+    {\small Av. dos Portugueses, 1966 -- Cidade Universitária Dom Delgado\par}
+    {\small 65080-805 -- São Luís -- MA -- Brasil\par}
+    {\small valter.abreu@discente.ufma.br, mario.teixeira@ufma.br\par}
+  }
+  \vspace{0.35cm}
+\end{center}
+
+\noindent\textbf{Abstract.} This paper presents an experimental study on the performance of RTMP servers and video transcoders in a live streaming platform. The implemented platform combines Nginx-RTMP or SRS for ingestion, FFmpeg or GStreamer for transcoding, and HLS for browser delivery. A $2\times2\times3$ factorial design was executed with four technology combinations, loads of 1, 10, and 50 synthetic viewers, and three repetitions per treatment. The analysis considers master-playlist startup time, CPU and memory consumption, effective bitrate, HTTP request error rate, and container restarts. The results indicate that SRS made the HLS master playlist available earlier in the evaluated environment, while GStreamer used less memory and, in some combinations, exerted greater CPU pressure. The measured end-to-end latency is treated as an invalidated proxy rather than conclusive evidence, because the benchmark does not yet synchronize publication, segment generation, delivery, and playback timestamps.
+
+\noindent\textbf{Keywords:} video streaming; RTMP; transcoding; FFmpeg; GStreamer; performance; HLS.
+
+\noindent\textbf{Resumo.} Este artigo apresenta um estudo experimental sobre o desempenho de servidores RTMP e transcodificadores em uma plataforma de streaming de vídeo ao vivo. A plataforma implementada combina Nginx-RTMP ou SRS para ingestão, FFmpeg ou GStreamer para transcodificação e HLS para entrega ao navegador. Foi executado um delineamento fatorial $2\times2\times3$, com quatro combinações tecnológicas, cargas de 1, 10 e 50 espectadores sintéticos e três repetições por tratamento. A análise considera o tempo de disponibilização da playlist mestre, o consumo de CPU e memória, o bitrate efetivo, a taxa de erros de requisições HTTP e os reinícios do container. Os resultados indicam que o SRS disponibilizou a playlist mestre mais cedo no ambiente avaliado, enquanto o GStreamer consumiu menos memória e, em algumas combinações, exerceu maior pressão sobre a CPU. A latência ponta a ponta medida é tratada como um proxy não validado, pois o benchmark ainda não sincroniza os timestamps de publicação, geração do segmento, entrega e reprodução.
 
 \noindent\textbf{Palavras-chave:} streaming de vídeo; RTMP; transcodificação; FFmpeg; GStreamer; desempenho; HLS.
-
-\clearpage
-\tableofcontents
-\clearpage
 
 \input{sections/01-introducao}
 \input{sections/02-trabalhos-relacionados}

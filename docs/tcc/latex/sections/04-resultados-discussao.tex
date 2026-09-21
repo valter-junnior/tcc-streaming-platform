@@ -1,6 +1,6 @@
 \section{Resultados e Discussão}
 
-Esta seção apresenta os resultados agregados das três repetições realizadas para cada tratamento experimental. Os valores reportados são médias; os desvios padrão foram calculados a partir das respectivas repetições. Os registros brutos foram preservados para auditoria e reprodutibilidade do experimento.
+Esta seção apresenta os resultados agregados das três repetições realizadas para cada tratamento experimental. Os valores reportados são médias; os desvios padrão foram calculados a partir das respectivas repetições. Os registros brutos foram preservados para auditoria e reprodutibilidade do experimento. A palavra startup, quando usada nas tabelas e figuras, significa o tempo até a playlist mestre responder HTTP 200; ela não representa a latência ponta a ponta da sessão.
 
 \begin{table}[H]
 \centering
@@ -8,7 +8,7 @@ Esta seção apresenta os resultados agregados das três repetições realizadas
 \caption{Médias agregadas dos tratamentos}
 \begin{tabular}{@{}llrrrrrr@{}}
 \toprule
-Servidor & Transcod. & Viewers & Startup (s) & CPU (\%) & RAM (MB) & Bitrate (kbps) & Erros (\%) \\
+Servidor & Transcod. & Viewers & Playlist (s) & CPU (\%) & RAM (MB) & Bitrate (kbps) & Erros HTTP (\%) \\
 \midrule
 Nginx & FFmpeg & 1 & 21,67 & 177,88 & 1658,06 & 3524,66 & 0,00 \\
 Nginx & FFmpeg & 10 & 22,00 & 159,35 & 1679,64 & 3526,08 & 0,00 \\
@@ -26,14 +26,140 @@ SRS & GStreamer & 50 & 1,00 & 192,35 & 500,90 & 5337,81 & 3,15 \\
 \end{tabular}
 \end{table}
 
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}
+\begin{axis}[
+  ybar,
+  bar width=7pt,
+  width=0.92\textwidth,
+  height=5.2cm,
+  ylabel={CPU média (\%)},
+  symbolic x coords={N-F,N-G,S-F,S-G},
+  xtick=data,
+  xticklabels={Nginx + FFmpeg,Nginx + GStreamer,SRS + FFmpeg,SRS + GStreamer},
+  x tick label style={rotate=18,anchor=east,font=\scriptsize},
+  ymin=0,ymax=340,
+  legend style={font=\scriptsize,at={(0.5,1.03)},anchor=south,legend columns=3},
+  nodes near coords, nodes near coords style={font=\scriptsize,rotate=90,anchor=west,inner sep=1pt},
+  enlarge x limits=0.12
+]
+\addplot coordinates {(N-F,177.88) (N-G,233.44) (S-F,195.32) (S-G,207.80)};
+\addplot coordinates {(N-F,159.35) (N-G,243.48) (S-F,197.34) (S-G,215.82)};
+\addplot coordinates {(N-F,196.86) (N-G,292.13) (S-F,215.74) (S-G,192.35)};
+\legend{1 viewer,10 viewers,50 viewers}
+\end{axis}
+\end{tikzpicture}
+\caption{CPU média por combinação tecnológica e carga.}
+\label{fig:cpu-medio}
+\end{figure}
+
+A Figura~\ref{fig:cpu-medio} mostra que a elevação da carga não produz o mesmo comportamento em todas as combinações. Nginx + GStreamer apresenta crescimento contínuo da CPU média, de 233,44\% para 292,13\%, enquanto SRS + GStreamer apresenta maior variação entre os tratamentos e chega a 192,35\% no cenário de 50 viewers. Essa diferença reforça a necessidade de analisar a interação entre servidor e transcodificador, em vez de comparar apenas as médias gerais de FFmpeg e GStreamer.
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}
+\begin{axis}[
+  ybar,
+  bar width=9pt,
+  width=0.92\textwidth,
+  height=5.0cm,
+  ylabel={Startup HLS (s)},
+  symbolic x coords={N-F,N-G,S-F,S-G},
+  xtick=data,
+  xticklabels={Nginx + FFmpeg,Nginx + GStreamer,SRS + FFmpeg,SRS + GStreamer},
+  x tick label style={rotate=18,anchor=east,font=\scriptsize},
+  ymin=0,ymax=25,
+  nodes near coords, nodes near coords style={font=\scriptsize,anchor=south,yshift=2pt,inner sep=1pt},
+  enlarge x limits=0.12
+]
+\addplot coordinates {(N-F,22.0) (N-G,22.0) (S-F,8.0) (S-G,1.0)};
+\end{axis}
+\end{tikzpicture}
+\caption{Startup médio da playlist HLS por combinação.}
+\label{fig:startup-playlist}
+\end{figure}
+
+O comportamento da disponibilização da playlist é mais estável que o das métricas de CPU. As três combinações executadas com Nginx permanecem próximas de 22 s, enquanto SRS + FFmpeg fica em 8 s e SRS + GStreamer em 1 s. O padrão sugere um efeito associado ao caminho de inicialização do servidor RTMP, mas a conclusão deve ser limitada ao evento medido. A medição de qualidade percebida exigiria acompanhar também o carregamento de segmentos, o preenchimento do buffer e o início efetivo do vídeo, aspectos tratados em modelos de avaliação de streaming como o ITU-T P.1203 \citep{itu1203} e nas considerações operacionais do RFC 9317 \citep{rfc9317}.
+
+\begin{figure}[H]
+\centering
+\begin{tikzpicture}
+\begin{axis}[
+  ybar,
+  bar width=10pt,
+  width=0.92\textwidth,
+  height=5.2cm,
+  ylabel={Memória média (MB)},
+  symbolic x coords={N-F,N-G,S-F,S-G},
+  xtick=data,
+  xticklabels={Nginx + FFmpeg,Nginx + GStreamer,SRS + FFmpeg,SRS + GStreamer},
+  x tick label style={rotate=18,anchor=east,font=\scriptsize},
+  ymin=0,ymax=2050,
+  nodes near coords, nodes near coords style={font=\scriptsize,anchor=south,yshift=2pt,inner sep=1pt},
+  enlarge x limits=0.12
+]
+\addplot coordinates {(N-F,1658.06) (N-G,657.02) (S-F,1665.30) (S-G,642.26)};
+\end{axis}
+\end{tikzpicture}
+\caption{Memória média no cenário de um viewer.}
+\label{fig:memoria-media}
+\end{figure}
+
+O contraste de memória é consistente no cenário de baixa carga: as combinações com FFmpeg permanecem próximas de 1,66 GB, enquanto as combinações com GStreamer ficam próximas de 0,65 GB. Essa diferença é expressiva, mas não deve ser interpretada como superioridade absoluta do GStreamer. Os pipelines precisam ser comparados com parâmetros equivalentes de qualidade, número de processos e variantes, pois diferenças de implementação podem deslocar o custo entre CPU e memória.
+
+\begin{table}[H]
+\centering
+\scriptsize
+\caption{Desvio padrão de métricas selecionadas nas três repetições}
+\begin{tabular}{@{}llrrr@{}}
+\toprule
+Servidor & Transcodificador & Viewers & Startup (s) & CPU média (\%) \\
+\midrule
+Nginx & FFmpeg & 1 & 0,58 & 3,62 \\
+Nginx & FFmpeg & 10 & 0,00 & 0,56 \\
+Nginx & FFmpeg & 50 & 0,58 & 9,62 \\
+Nginx & GStreamer & 1 & 0,00 & 2,36 \\
+Nginx & GStreamer & 10 & 0,00 & 1,04 \\
+Nginx & GStreamer & 50 & 0,00 & 5,74 \\
+SRS & FFmpeg & 1 & 0,00 & 2,33 \\
+SRS & FFmpeg & 10 & 0,00 & 3,15 \\
+SRS & FFmpeg & 50 & 0,00 & 2,33 \\
+SRS & GStreamer & 1 & 0,00 & 2,55 \\
+SRS & GStreamer & 10 & 0,00 & 4,14 \\
+SRS & GStreamer & 50 & 0,00 & 129,23 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+A dispersão elevada de CPU no tratamento SRS + GStreamer + 50 viewers merece atenção. Embora a média de 192,35\% pareça inferior à de outros cenários, o desvio padrão de 129,23\% indica comportamento instável entre repetições. O mesmo tratamento também apresenta desvio padrão de 216,52 MB na memória média e 5,46 pontos percentuais na taxa de erros. Portanto, a média sozinha poderia levar a uma interpretação equivocada; a variabilidade é parte importante da análise de confiabilidade.
+
 \subsection{Síntese dos achados}
 
-Nos dados atuais, o SRS apresenta startup de playlist menor que o Nginx nos dois transcodificadores: 8 s contra aproximadamente 22 s com FFmpeg e 1 s contra 22 s com GStreamer. Essa vantagem deve ser descrita como vantagem de disponibilização da playlist, não como redução comprovada da latência percebida, pois a instrumentação de latência ponta a ponta é incompleta.
+Nos dados atuais, o SRS apresenta tempo de disponibilização da playlist menor que o Nginx nos dois transcodificadores: 8 s contra aproximadamente 22 s com FFmpeg e 1 s contra 22 s com GStreamer. Em termos relativos, isso corresponde a uma redução aproximada de 64\% na combinação com FFmpeg e de 95\% na combinação com GStreamer. Essas porcentagens descrevem apenas o evento observado pelo benchmark e não uma redução comprovada da latência percebida, pois a instrumentação ponta a ponta é incompleta.
 
-O FFmpeg consome aproximadamente 1,62--1,68 GB de memória média, enquanto o GStreamer fica aproximadamente entre 0,50 e 0,66 GB. Em contrapartida, o GStreamer apresenta maior CPU média, especialmente com Nginx: 243,48\% em 10 viewers e 292,13\% em 50 viewers. Portanto, os dados sugerem um trade-off entre memória e CPU, mas não permitem concluir que um transcodificador seja globalmente melhor sem normalizar o número de variantes, bitrate e parâmetros de codificação.
+O FFmpeg consome aproximadamente 1,62--1,68 GB de memória média, enquanto o GStreamer fica aproximadamente entre 0,50 e 0,66 GB. Em contrapartida, o GStreamer apresenta maior CPU média com Nginx: 243,48\% em 10 viewers e 292,13\% em 50 viewers. No maior nível de carga, Nginx + GStreamer utiliza cerca de 48\% mais CPU que Nginx + FFmpeg, enquanto SRS + GStreamer tem média menor que SRS + FFmpeg, mas com grande dispersão. Os dados sugerem um trade-off entre memória e CPU, mas não permitem concluir que um transcodificador seja globalmente melhor porque os alvos de bitrate e alguns parâmetros de codificação não são idênticos.
 
-A taxa de erros foi zero em todos os tratamentos, exceto SRS + GStreamer + 50 viewers, que apresentou 3,15\% e 1229 requisições com erro em média. Esse resultado é relevante porque ultrapassa o limite local de 3\% e indica degradação sob carga alta. Deve-se investigar nos logs se os erros correspondem a segmentos ausentes, janela de playlist, saturação de conexão ou falha transitória do viewer.
+A taxa de erros HTTP foi zero em todos os tratamentos, exceto SRS + GStreamer + 50 viewers, que apresentou 3,15\% e 1229 requisições com erro em média. Esse resultado ultrapassa o limite local de 3\% e indica degradação sob carga alta. Como o viewer sintético agrega requisições da playlist mestre, da playlist de variante e de segmentos, a métrica não identifica sozinha a causa do erro. É necessário separar os códigos de resposta e os tipos de recurso nos logs antes de atribuir o problema a segmentos ausentes, janela de playlist, saturação de conexão ou falha transitória do cliente.
 
-\subsection{O que ainda falta para uma conclusão forte}
+\subsection{Comparação do startup e do bitrate}
 
-Antes da submissão final, recomenda-se repetir os 12 tratamentos após: (i) validar o mesmo número de variantes em FFmpeg e GStreamer; (ii) registrar versões exatas das imagens e ferramentas; (iii) medir latência ponta a ponta com um timestamp embutido no conteúdo; (iv) coletar percentis, especialmente p50, p95 e p99, para startup e requisições; e (v) separar erros de playlist, segmentos e conexão. Sem essas medidas, a conclusão deve permanecer restrita a desempenho operacional do container e disponibilidade HLS.
+O tempo médio de disponibilização da playlist foi de aproximadamente 22 s nos três tratamentos com Nginx, contra 8 s nos tratamentos SRS + FFmpeg e 1 s nos tratamentos SRS + GStreamer. O resultado sugere que o caminho de inicialização do SRS disponibiliza o manifesto mais cedo no ambiente avaliado. Contudo, o startup da playlist não equivale à latência ponta a ponta: o espectador ainda precisa receber segmentos válidos e o player precisa iniciar a reprodução. Essa distinção é coerente com modelos de QoE que tratam o atraso inicial e os eventos de buffering como componentes próprios da qualidade da sessão \citep{itu1203}.
+
+O bitrate efetivo também varia entre as famílias de transcodificador. Os cenários com FFmpeg ficaram próximos de 3,15--3,53 Mbps, ao passo que os cenários com GStreamer ficaram próximos de 5,34 Mbps. Essa diferença não pode ser atribuída apenas ao servidor, pois os pipelines possuem alvos de bitrate distintos e produzem saídas com características diferentes. Um pipeline que gera mais bits por segundo pode oferecer outra relação entre custo computacional e qualidade, mas o presente estudo não realizou avaliação objetiva de qualidade visual.
+
+\subsection{Interpretação integrada}
+
+A leitura conjunta das métricas aponta três perfis. Nginx + FFmpeg apresenta consumo de memória elevado, CPU intermediária e taxa de erros nula. Nginx + GStreamer reduz a memória, mas passa dos limites de CPU em 10 e 50 viewers. SRS + FFmpeg mantém memória elevada, startup menor e comportamento estável na matriz. SRS + GStreamer combina baixo consumo de memória e startup reduzido, mas apresenta a única taxa de erro acima do critério no maior nível de carga.
+
+Esses perfis mostram que a decisão depende do objetivo operacional. Se a prioridade for reduzir a memória do container, GStreamer é uma alternativa promissora; se a prioridade for manter erros nulos e baixa variabilidade nas métricas observadas, SRS + FFmpeg apresenta o perfil mais equilibrado na matriz analisada. SRS + GStreamer tem o melhor startup da playlist, mas combina esse resultado com erro HTTP acima do limite no maior nível de carga e elevada dispersão. A conclusão é contextual e não substitui testes com outros hosts, codecs, resoluções, bitrates e níveis de audiência. Em sistemas de live streaming, a capacidade computacional e a arquitetura de distribuição são fatores diretamente relacionados à qualidade do serviço \citep{dao}.
+
+\subsection{Ameaças à validade}
+
+Há ameaças à validade interna, externa e de construção. A validade interna é afetada pela possibilidade de processos do sistema hospedeiro interferirem nas medições de CPU e memória; a mitigação adotada foi executar todos os tratamentos no mesmo host, reconstruir os containers e repetir cada combinação três vezes. A validade externa é limitada porque o estudo utiliza uma única máquina, uma rede local e uma única fonte sintética. A validade de construção é afetada pela latência ponta a ponta não instrumentada e pela taxa de erros medida a partir de requisições sintéticas, que não representa integralmente a experiência de um usuário humano.
+
+Outra ameaça decorre da assimetria potencial entre os pipelines de FFmpeg e GStreamer. Mesmo quando ambos geram as mesmas resoluções, seus parâmetros de bitrate, número de processos, sincronização e comportamento de buffer podem ser diferentes. A comparação, portanto, deve ser apresentada como avaliação das implementações configuradas no projeto, e não como uma propriedade universal das ferramentas. A repetição em diferentes hosts e a normalização rigorosa dos parâmetros são etapas necessárias para ampliar a validade externa.
+
+\subsection{Implicações e controles futuros}
+
+A validade dos resultados pode ser ampliada por meio da equalização dos alvos de bitrate e demais parâmetros dos pipelines, do registro das versões exatas das imagens, ferramentas e plugins, da medição da latência ponta a ponta com um timestamp embutido no conteúdo, da coleta de percentis, especialmente p50, p95 e p99, para startup e requisições, e da separação dos erros de playlist, segmentos e conexão. Sem essas medidas, as conclusões permanecem restritas ao desempenho operacional do container e à disponibilidade da playlist HLS.
