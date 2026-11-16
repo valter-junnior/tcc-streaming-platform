@@ -50,3 +50,14 @@ docs/tcc/latex/*.bcf
 docs/tcc/latex/*.run.xml
 docs/tcc/latex/*.lof
 docs/tcc/latex/*.lot
+# Local reference material and superseded drafts
+/docs/examples/
+/docs/tcc/diagrams/
+/docs/tcc/report/
+/docs/planning/
+/docs/benchmark/ESTRUTURA.md
+/package-lock.json
+
+# Local benchmark artifacts; publish only reviewed, sanitized CSVs
+/docs/benchmark/results-raw.csv
+/docs/benchmark/run-console.log

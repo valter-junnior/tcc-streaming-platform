@@ -21,6 +21,7 @@ HLS_PORT=8081
 HLS_HTTP_PORT=8081
 KEEP_UP=0
 AGGREGATE=0
+PUBLISH=0
 STATS_PID=0
 CONSOLE_LOG_FILE=""
 LOG_MIRROR_ENABLED=0
@@ -52,7 +53,8 @@ Opcoes:
   --rtmp-port <port>           Porta RTMP interna dos servicos (default: 1935)
   --hls-port <port>            Porta HLS exposta no host (default: 8081)
   --keep-up                    Nao derruba stack no final
-  --aggregate                  Apos execucao full, agrega resultados e salva artefatos em docs/benchmark/
+  --aggregate                  Apos execucao full, agrega resultados na pasta local da run
+  --publish                    Publica somente CSVs revisados em docs/benchmark/ (requer --mode full --aggregate)
   --help                       Exibe ajuda
 
 Exemplos:
@@ -130,6 +132,10 @@ parse_args() {
         AGGREGATE=1
         shift
         ;;
+      --publish)
+        PUBLISH=1
+        shift
+        ;;
       --help|-h)
         usage
         exit 0
@@ -148,6 +154,9 @@ parse_args() {
   [[ "$BACKEND_PORT" =~ ^[0-9]+$ ]] || die "--backend-port deve ser inteiro"
   [[ "$RTMP_PORT" =~ ^[0-9]+$ ]] || die "--rtmp-port deve ser inteiro"
   [[ "$HLS_PORT" =~ ^[0-9]+$ ]] || die "--hls-port deve ser inteiro"
+  if [[ "$PUBLISH" -eq 1 ]]; then
+    [[ "$MODE" == "full" && "$AGGREGATE" -eq 1 ]] || die "--publish requer --mode full --aggregate"
+  fi
 }
 
 is_port_in_use() {
@@ -189,6 +198,10 @@ ensure_results() {
 
 validate_preflight() {
   require_cmd docker
+  if [[ "$PUBLISH" -eq 1 ]]; then
+    require_cmd python3
+    [[ -f "${SCRIPT_DIR}/export-public-results.py" ]] || die "Exportador publico nao encontrado"
+  fi
   require_cmd awk
   require_cmd sed
   [[ -f "$COMPOSE_FILE" ]] || die "docker-compose.yml nao encontrado em $COMPOSE_FILE"
@@ -226,11 +239,11 @@ enable_console_log_mirror() {
   exec > >(tee -a "$CONSOLE_LOG_FILE") 2>&1
 }
 
-generate_reports() {
-  cp "$CSV_FILE" "${DOCS_BENCHMARK_DIR}/results.csv"
-  if [[ -f "$CONSOLE_LOG_FILE" ]]; then
-    cp "$CONSOLE_LOG_FILE" "${DOCS_BENCHMARK_DIR}/run-console.log"
-  fi
+publish_reports() {
+  local aggregate_dir="$1"
+  python3 "${SCRIPT_DIR}/export-public-results.py" "$CSV_FILE" "${DOCS_BENCHMARK_DIR}/results.csv"
+  cp "${aggregate_dir}/results-aggregated.csv" "${DOCS_BENCHMARK_DIR}/results-aggregated.csv"
+  cp "${aggregate_dir}/resultado.csv" "${DOCS_BENCHMARK_DIR}/resultado.csv"
 }
 
 scenario_selected() {
@@ -917,8 +930,6 @@ execute_plan() {
     echo "csv=${CSV_FILE}"
   } > "$summary_file"
 
-  generate_reports
-
   if [[ "$failed" -gt 0 ]]; then
     return 1
   fi
@@ -953,15 +964,10 @@ main() {
       log "Agregando resultados com aggregate-results.py ..."
       python3 "$aggregate_script" "$CSV_FILE" "$RUN_DIR"
       log "CSV agregado: ${RUN_DIR}/results-aggregated.csv"
-      if [[ -f "${RUN_DIR}/results-aggregated.csv" ]]; then
-        cp "${RUN_DIR}/results-aggregated.csv" "${DOCS_BENCHMARK_DIR}/results-aggregated.csv"
+      if [[ "$PUBLISH" -eq 1 ]]; then
+        publish_reports "$RUN_DIR"
+        log "CSVs publicos atualizados em ${DOCS_BENCHMARK_DIR}"
       fi
-      if [[ -f "${RUN_DIR}/resultado.csv" ]]; then
-        cp "${RUN_DIR}/resultado.csv" "${DOCS_BENCHMARK_DIR}/resultado.csv"
-        log "CSV final (matriz): ${RUN_DIR}/resultado.csv"
-      fi
-      cp "${CSV_FILE}" "${DOCS_BENCHMARK_DIR}/results-raw.csv"
-      cp "${LOG_DIR}/run-console.log" "${DOCS_BENCHMARK_DIR}/run-console.log" 2>/dev/null || true
     else
       log "AVISO: python3 ou aggregate-results.py nao encontrado, pulando agregacao."
     fi

@@ -3,7 +3,6 @@
 Os arquivos CSV abaixo, localizados em `docs/benchmark/`, são disponibilizados por Valter Abreu Silva Júnior sob a licença [Creative Commons Atribuição 4.0 Internacional (CC BY 4.0)](https://creativecommons.org/licenses/by/4.0/deed.pt-br/):
 
 - `results.csv`
-- `results-raw.csv`
 - `results-aggregated.csv`
 - `resultado.csv`
 
@@ -11,4 +10,4 @@ Você pode compartilhar e adaptar esses dados, inclusive para fins comerciais, d
 
 Forma sugerida de atribuição: **Silva Júnior, Valter Abreu. Dados do benchmark de servidores RTMP e transcodificadores para streaming de vídeo, 2026.** Disponível em: https://github.com/valter-junnior/tcc-streaming-platform/tree/main/docs/benchmark. Licença: CC BY 4.0.
 
-Esta declaração abrange apenas os quatro arquivos CSV listados. O código, os logs, as imagens e o texto da monografia não são incluídos por esta declaração.
+Esta declaração abrange apenas os três arquivos CSV listados. O código, os logs, as imagens e o texto da monografia não são incluídos por esta declaração.
