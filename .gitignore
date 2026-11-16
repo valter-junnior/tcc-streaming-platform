@@ -33,3 +33,6 @@ build/
 docker-compose.override.yml
 
 app/benchmark/results/bench-*
+
+# Keep thesis drafts local until publication is authorized
+/docs/tcc/
