@@ -52,6 +52,7 @@ docs/tcc/latex/*.lof
 docs/tcc/latex/*.lot
 # Local reference material and superseded drafts
 /docs/examples/
+/docs/tcc/
 /docs/tcc/diagrams/
 /docs/tcc/report/
 /docs/planning/

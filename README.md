@@ -1,6 +1,6 @@
 # Plataforma de Streaming — TCC
 
-Plataforma de streaming ao vivo desenvolvida para comparação de tecnologias de ingestão RTMP e transcodificação. Os [dados tabulares do benchmark e o guia de reprodução](docs/benchmark/REPRODUCIBILITY.md) estão disponíveis neste repositório público, com os CSVs sob [CC BY 4.0](docs/benchmark/LICENSE-DATA.md); a [monografia em PDF](docs/tcc/latex/main.pdf) apresenta método e resultados.
+Plataforma de streaming ao vivo desenvolvida para comparação de tecnologias de ingestão RTMP e transcodificação. Os [dados tabulares do benchmark e o guia de reprodução](docs/benchmark/REPRODUCIBILITY.md) estão disponíveis neste repositório público, com os CSVs sob [CC BY 4.0](docs/benchmark/LICENSE-DATA.md).
 
 No estado atual do código, o ambiente principal em `app/docker-compose.yml` sobe:
 - PostgreSQL

@@ -1,6 +1,6 @@
 # Benchmark RTMP
 
-O experimento compara Nginx-RTMP e SRS, cada um com FFmpeg e GStreamer, sob 1, 10 e 50 espectadores sintéticos. Há três repetições por tratamento na execução publicada. A [monografia](../tcc/latex/main.pdf) define as métricas, apresenta o ambiente e discute os limites das conclusões. O [guia de reprodução](REPRODUCIBILITY.md) identifica os dados abertos e o procedimento de auditoria.
+O experimento compara Nginx-RTMP e SRS, cada um com FFmpeg e GStreamer, sob 1, 10 e 50 espectadores sintéticos. Há três repetições por tratamento na execução publicada. O [guia de reprodução](REPRODUCIBILITY.md) identifica os dados abertos, as métricas, o ambiente, os limites das conclusões e o procedimento de auditoria.
 
 ## Executar localmente
 
