@@ -10,7 +10,7 @@
 - Registro do console: [`run-console.log`](run-console.log).
 - Código do experimento: [`../../app/benchmark/run-rtmp-benchmark.sh`](../../app/benchmark/run-rtmp-benchmark.sh) e [`../../app/benchmark/aggregate-results.py`](../../app/benchmark/aggregate-results.py).
 
-O repositório é público e os arquivos podem ser baixados sem autenticação. Não há licença explícita de reutilização no repositório; é necessário definir uma antes de chamar o conjunto de dados de aberto no sentido jurídico.
+O repositório é público e os arquivos podem ser baixados sem autenticação. Os quatro arquivos CSV listados em [`LICENSE-DATA.md`](LICENSE-DATA.md) estão disponíveis sob CC BY 4.0, com atribuição obrigatória. A licença não abrange código, logs ou a monografia.
 
 ## Reagregação dos dados existentes
 
