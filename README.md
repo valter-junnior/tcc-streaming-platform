@@ -1,6 +1,6 @@
 # Plataforma de Streaming — TCC
 
-Plataforma de streaming ao vivo desenvolvida para comparação de tecnologias de ingestão RTMP e transcodificação.
+Plataforma de streaming ao vivo desenvolvida para comparação de tecnologias de ingestão RTMP e transcodificação. Os [dados tabulares do benchmark e o guia de reprodução](docs/benchmark/REPRODUCIBILITY.md) estão disponíveis neste repositório público; a [monografia em PDF](docs/tcc/latex/main.pdf) apresenta método e resultados.
 
 No estado atual do código, o ambiente principal em `app/docker-compose.yml` sobe:
 - PostgreSQL
@@ -85,7 +85,7 @@ docker compose --profile "${COMPOSE_PROFILES:-nginx}" up -d --build --force-recr
 
 Observação importante:
 - `ffmpeg` gera 4 variantes (`1080p`, `720p`, `480p`, `360p`).
-- `gstreamer` está estabilizado com 2 variantes (`1080p`, `480p`) no `master.m3u8` atual.
+- `gstreamer` declara 4 variantes (`1080p`, `720p`, `480p`, `360p`) nos scripts atuais. A disponibilidade real de cada variante deve ser confirmada em uma nova execução.
 
 ## Cenários mínimos (RTMP + Transcoder)
 

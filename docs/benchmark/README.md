@@ -87,7 +87,7 @@ Dentro de cada `<run_id>/`:
 ## Para que serve o resultado.csv
 - Entrega a planilha final no formato da matriz experimental (T01..T12), pronta para uso no TCC.
 - Mantem apenas o necessario do plano de testes: startup HLS, CPU, memoria, bitrate, taxa de erros, reinicios e status.
-- Inclui colunas de apoio para metricas manuais fora do escopo automatizado atual (`Latencia_ponta_a_ponta_s` e `Tempo_primeiro_segmento_s`).
+- Inclui campos automatizados `Latencia_ponta_a_ponta_s` e `Tempo_primeiro_segmento_s`; o primeiro apenas copia o segundo e não é uma medida válida de latência ponta a ponta.
 
 ## Como interpretar as metricas
 - `CPU Média (%)` e `CPU Máxima (%)` representam a ocupação observada no container RTMP durante a execução. O valor pode passar de 100% porque o Docker contabiliza uso agregado de mais de uma thread do host.
@@ -113,7 +113,7 @@ Observação: a RAM "disponível" durante a execução varia conforme o uso do s
 - PASS para os cenarios que conseguem publicar a live, servir playlists HLS e finalizar sem erro critico.
 - Startup HLS idealmente <= 24s (criterio recalibrado para este estudo).
 - CPU media idealmente <= 240% (1 e 10 viewers) e <= 280% (50 viewers).
-- Taxa de erro de segmento idealmente <= 1% (1 e 10 viewers) e <= 3% (50 viewers).
+- Taxa de erro das requisições HTTP dos viewers idealmente <= 1% (1 e 10 viewers) e <= 3% (50 viewers).
 - Reinicios involuntarios idealmente 0.
 
 ## Dicionario de colunas
