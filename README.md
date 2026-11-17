@@ -25,7 +25,7 @@ O streamer transmite via OBS, o backend valida a stream key por callback HTTP, o
 | Backend | Java 21, Spring Boot 3.2, Spring Data JPA, Spring AMQP |
 | Banco de dados | PostgreSQL 16 |
 | Mensageria | RabbitMQ 3 (management) |
-| Ingestão RTMP | Nginx compilado com `nginx-rtmp-module` |
+| Ingestão RTMP | Nginx com `nginx-rtmp-module` ou SRS (profile do Compose) |
 | Transcodificação | FFmpeg ou GStreamer (seleção via `TRANSCODER`) |
 | Entrega | HLS via HTTP no container RTMP |
 | Frontend | React 19, TypeScript, Vite, React Router 7, TanStack Query 5 |
@@ -37,25 +37,30 @@ O streamer transmite via OBS, o backend valida a stream key por callback HTTP, o
 ### Pré-requisitos
 
 - Docker e Docker Compose
-- Portas livres: `1935`, `8080`, `8081`, `3001`, `5672`, `15672`
+- Portas livres: `1935`, `8080`, `8081`, `3001`, `5432`, `5672`, `15672`
 
 ### 1. Configurar ambiente
 
 ```bash
 cd app
 cp .env.example .env
+# Defina senhas locais próprias em .env antes de iniciar.
 ```
+
+O exemplo configura `COMPOSE_PROFILES=srs` e `TRANSCODER=gstreamer`. Ajuste esses valores no `.env` para escolher outro cenário.
 
 ### 2. Subir serviços
 
 ```bash
-docker compose --profile "${COMPOSE_PROFILES:-nginx}" up -d --build
+docker compose up -d --build
 docker compose ps
 ```
 
-`COMPOSE_PROFILES` define qual servidor RTMP será iniciado:
+`COMPOSE_PROFILES`, lido do `.env` pelo Docker Compose, define qual servidor RTMP será iniciado:
 - `nginx`: sobe `rtmp-server-nginx`
 - `srs`: sobe `rtmp-server-srs`
+
+Também é possível usar `./run.sh up nginx` ou `./run.sh up srs`: o script atualiza `COMPOSE_PROFILES` no `.env`. Para trocar de servidor com o ambiente já ativo, use `./run.sh swap nginx` ou `./run.sh swap srs`, pois ambos usam as mesmas portas.
 
 ### 3. Validar backend
 
@@ -65,7 +70,7 @@ curl http://localhost:8080/actuator/health
 
 ### 4. Abrir frontend
 
-`http://localhost:3001`
+[http://localhost:3001](http://localhost:3001)
 
 ## Trocar transcodificador
 
@@ -80,8 +85,10 @@ TRANSCODER=gstreamer
 Recriar o serviço RTMP:
 
 ```bash
-docker compose --profile "${COMPOSE_PROFILES:-nginx}" up -d --build --force-recreate
+docker compose up -d --build --force-recreate streaming-platform rtmp-server-srs
 ```
+
+No exemplo acima, troque `rtmp-server-srs` por `rtmp-server-nginx` se esse for o profile selecionado. A variável `TRANSCODER` também é passada ao backend.
 
 Observação importante:
 - `ffmpeg` gera 4 variantes (`1080p`, `720p`, `480p`, `360p`).
@@ -89,28 +96,23 @@ Observação importante:
 
 ## Cenários mínimos (RTMP + Transcoder)
 
-Todos os cenários usam o mesmo comando base:
-
-```bash
-COMPOSE_PROFILES=<nginx|srs> TRANSCODER=<ffmpeg|gstreamer> \
-docker compose --profile "$COMPOSE_PROFILES" up -d --build --force-recreate
-```
-
-Exemplos:
+Execute os exemplos a partir de `app/`. Cada comando define o profile e o transcodificador apenas para aquela execução do Compose:
 
 ```bash
 # 1) nginx + ffmpeg
-COMPOSE_PROFILES=nginx TRANSCODER=ffmpeg docker compose --profile nginx up -d --build --force-recreate
+COMPOSE_PROFILES=nginx TRANSCODER=ffmpeg docker compose up -d --build --force-recreate
 
 # 2) nginx + gstreamer
-COMPOSE_PROFILES=nginx TRANSCODER=gstreamer docker compose --profile nginx up -d --build --force-recreate
+COMPOSE_PROFILES=nginx TRANSCODER=gstreamer docker compose up -d --build --force-recreate
 
 # 3) srs + ffmpeg
-COMPOSE_PROFILES=srs TRANSCODER=ffmpeg docker compose --profile srs up -d --build --force-recreate
+COMPOSE_PROFILES=srs TRANSCODER=ffmpeg docker compose up -d --build --force-recreate
 
 # 4) srs + gstreamer
-COMPOSE_PROFILES=srs TRANSCODER=gstreamer docker compose --profile srs up -d --build --force-recreate
+COMPOSE_PROFILES=srs TRANSCODER=gstreamer docker compose up -d --build --force-recreate
 ```
+
+Ao trocar entre Nginx e SRS, encerre primeiro o cenário anterior com `docker compose down` para liberar as portas `1935` e `8081`. Para uso interativo, `./run.sh swap <nginx|srs>` faz essa troca e atualiza o `.env`.
 
 ## Configuração do OBS
 
@@ -133,5 +135,5 @@ Parâmetros recomendados:
 
 ## Limitações conhecidas
 
-- O compose principal não possui serviço SRS ativo.
+- Apenas um servidor RTMP pode usar as portas publicadas por vez; selecione `nginx` ou `srs` em `COMPOSE_PROFILES`.
 - Monitoramento com Prometheus/Grafana não está orquestrado no compose atual.

@@ -80,14 +80,15 @@ export function EditStreamModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm">
-      <div className="w-full max-w-md rounded-xl border border-white/10 bg-[#15181d] shadow-2xl">
+      <div className="w-full max-w-md rounded-md border border-white/10 bg-[#15181d] shadow-2xl">
         {/* Header */}
         <div className="flex items-center justify-between border-b border-white/10 p-5">
           <h2 className="text-xl font-semibold text-white">Editar transmissão</h2>
           <button
             onClick={handleClose}
             disabled={updateStream.isPending}
-            className="text-slate-400 hover:text-white transition-colors disabled:opacity-50"
+            aria-label="Fechar janela"
+            className="text-slate-300 hover:text-white transition-colors disabled:opacity-50"
           >
             <X className="w-6 h-6" />
           </button>
@@ -99,9 +100,9 @@ export function EditStreamModal({
           <div>
             <label
               htmlFor="title"
-              className="mb-2 block text-xs font-medium uppercase tracking-wide text-slate-400"
+              className="mb-2 block text-xs font-medium tracking-normal text-slate-300"
             >
-              Título da Stream *
+              Título da transmissão *
             </label>
             <input
               id="title"
@@ -111,7 +112,7 @@ export function EditStreamModal({
               placeholder="Ex: Jogando Minecraft"
               maxLength={100}
               disabled={updateStream.isPending}
-              className="w-full rounded-md border border-white/10 bg-white/[0.06] px-3 py-2 text-white placeholder-slate-500 focus:border-violet-500 focus:outline-none focus:ring-1 focus:ring-violet-500 disabled:opacity-50"
+              className="w-full rounded-md border border-white/10 bg-white/[0.06] px-3 py-2 text-white placeholder-slate-500 focus:border-[#7c3aed] focus:outline-none focus:ring-1 focus:ring-[#7c3aed] disabled:opacity-50"
             />
           </div>
 
@@ -119,7 +120,7 @@ export function EditStreamModal({
           <div>
             <label
               htmlFor="description"
-              className="mb-2 block text-xs font-medium uppercase tracking-wide text-slate-400"
+              className="mb-2 block text-xs font-medium tracking-normal text-slate-300"
             >
               Descrição
             </label>
@@ -131,13 +132,13 @@ export function EditStreamModal({
               maxLength={500}
               rows={4}
               disabled={updateStream.isPending}
-              className="w-full resize-none rounded-md border border-white/10 bg-white/[0.06] px-3 py-2 text-white placeholder-slate-500 focus:border-violet-500 focus:outline-none focus:ring-1 focus:ring-violet-500 disabled:opacity-50"
+              className="w-full resize-none rounded-md border border-white/10 bg-white/[0.06] px-3 py-2 text-white placeholder-slate-500 focus:border-[#7c3aed] focus:outline-none focus:ring-1 focus:ring-[#7c3aed] disabled:opacity-50"
             />
           </div>
 
           {/* Error Message */}
           {error && (
-            <div className="flex items-center gap-2 p-3 bg-red-500/10 border border-red-500 rounded-lg text-red-400 text-sm">
+            <div className="flex items-center gap-2 p-3 bg-red-500/10 border border-red-500 rounded-md text-red-400 text-sm">
               <AlertCircle className="w-4 h-4 flex-shrink-0" />
               <span>{error}</span>
             </div>
@@ -145,7 +146,7 @@ export function EditStreamModal({
 
           {/* Success Message */}
           {updateStream.isSuccess && (
-            <div className="flex items-center gap-2 p-3 bg-green-500/10 border border-green-500 rounded-lg text-green-400 text-sm">
+            <div className="flex items-center gap-2 p-3 bg-green-500/10 border border-green-500 rounded-md text-green-400 text-sm">
               <CheckCircle className="w-4 h-4 flex-shrink-0" />
               <span>Stream atualizada com sucesso!</span>
             </div>
@@ -164,7 +165,7 @@ export function EditStreamModal({
             <button
               type="submit"
               disabled={updateStream.isPending}
-              className="flex-1 rounded-md bg-violet-600 px-4 py-2 text-white transition-colors hover:bg-violet-500 disabled:opacity-50 flex items-center justify-center gap-2"
+              className="flex-1 rounded-md bg-[#7c3aed] px-4 py-2 text-white transition-colors hover:bg-[#8b5cf6] disabled:opacity-50 flex items-center justify-center gap-2"
             >
               {updateStream.isPending ? (
                 <>

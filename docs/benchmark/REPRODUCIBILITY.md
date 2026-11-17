@@ -12,6 +12,8 @@
 
 O CSV público não contém URLs internas, chaves de transmissão, nomes de contêiner, caminhos absolutos nem mensagens livres de erro. O resultado original detalhado e os logs permanecem na pasta local `app/benchmark/results/<run_id>/`, excluída do Git. A ausência dessas amostras e logs limita a investigação posterior de falhas por requisição.
 
+Na execução de maio, a primeira repetição de SRS + GStreamer com 50 viewers recebeu `PASS` apesar de `tempo_primeiro_segmento_s=-1`: foram 3.688 erros em 38.986 requisições e uma janela total de 472 s. As repetições 2 e 3 localizaram o segmento, duraram 320 s e não registraram erros de viewers. A média agregada de 3,15% mistura essas condições. O roteiro daquela coleta iniciava o publicador de 300 s antes das sondagens e só depois iniciava os viewers por outros 300 s; também mascarava o código de saída do publicador. Portanto, o CSV histórico não demonstra que a publicação permaneceu ativa durante toda a carga, nem que a combinação tecnológica degrada especificamente com 50 viewers.
+
 ## Reagregação dos dados publicados
 
 A partir da raiz do repositório:
@@ -33,6 +35,8 @@ cp .env.example .env
 ```
 
 O script combina dois servidores RTMP, dois transcodificadores e três cargas, com três repetições por tratamento. Uma nova matriz dura várias horas. O resultado bruto e os logs ficam em `app/benchmark/results/<run_id>/`; a opção `--publish` é separada para evitar que uma execução local sobrescreva os CSVs públicos automaticamente. Se decidir publicar uma nova rodada, revise os resultados e use a mesma linha de comando com `--publish`.
+
+O roteiro atual mantém a fonte ativa até o fim da janela dos viewers, reprova o timeout do primeiro segmento e grava `timing.csv` em cada pasta de repetição, separando os intervalos de sondagem e de carga. Cada viewer também grava um arquivo `viewer-N-requests.csv` com timestamp, tipo de recurso e código HTTP. As médias de CPU e memória de uma nova execução usam apenas amostras colhidas durante a janela dos viewers; por isso, não devem substituir diretamente as médias históricas, que incluíam preparação e sondagens.
 
 ## Versões e limites
 

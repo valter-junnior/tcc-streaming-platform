@@ -180,7 +180,7 @@ export function StreamerDashboard() {
   if (isLoading) {
     return (
       <div className="min-h-screen bg-[#0b0d10] flex items-center justify-center">
-        <Loader2 className="w-8 h-8 text-purple-500 animate-spin" />
+        <Loader2 className="w-8 h-8 text-[#7c3aed] animate-spin" />
       </div>
     );
   }
@@ -188,7 +188,7 @@ export function StreamerDashboard() {
   if (error || !stream) {
     return (
       <div className="min-h-screen bg-[#0b0d10] flex items-center justify-center p-4">
-        <div className="bg-white/[0.04] rounded-xl p-8 max-w-md text-center border border-white/10">
+        <div className="bg-white/[0.04] rounded-md p-8 max-w-md text-center border border-white/10">
           <AlertCircle className="w-16 h-16 text-red-500 mx-auto mb-4" />
           <h2 className="text-2xl font-bold text-white mb-2">Erro</h2>
           <p className="text-slate-400 mb-6">
@@ -196,7 +196,7 @@ export function StreamerDashboard() {
           </p>
           <button
             onClick={() => navigate(routes.home())}
-            className="px-6 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-colors"
+            className="px-6 py-2 bg-[#7c3aed] hover:bg-[#8b5cf6] text-white rounded-md transition-colors"
           >
             Voltar ao Início
           </button>
@@ -255,7 +255,7 @@ export function StreamerDashboard() {
         <div className="mb-8">
           <button
             onClick={() => navigate(routes.home())}
-            className="text-purple-400 hover:text-purple-300 mb-4 inline-flex items-center gap-2"
+            className="text-[#a78bfa] hover:text-[#c4b5fd] mb-4 inline-flex items-center gap-2"
           >
             ← Voltar ao Início
           </button>
@@ -286,9 +286,9 @@ export function StreamerDashboard() {
 
         {/* Stats */}
         <div className="mb-8 grid grid-cols-1 gap-3 sm:grid-cols-3">
-          <div className="bg-white/[0.04] rounded-xl p-5 border border-white/10">
+          <div className="bg-white/[0.04] rounded-md p-5 border border-white/10">
             <div className="flex items-center gap-3 mb-2">
-              <Eye className="w-5 h-5 text-purple-400" />
+              <Eye className="w-5 h-5 text-[#a78bfa]" />
               <span className="text-slate-400 text-sm">
                 Espectadores Atuais
               </span>
@@ -297,9 +297,9 @@ export function StreamerDashboard() {
               {stream.currentViewers}
             </p>
           </div>
-          <div className="bg-white/[0.04] rounded-xl p-5 border border-white/10">
+          <div className="bg-white/[0.04] rounded-md p-5 border border-white/10">
             <div className="flex items-center gap-3 mb-2">
-              <Eye className="w-5 h-5 text-purple-400" />
+              <Eye className="w-5 h-5 text-[#a78bfa]" />
               <span className="text-slate-400 text-sm">
                 Pico de Espectadores
               </span>
@@ -308,9 +308,9 @@ export function StreamerDashboard() {
               {stream.viewersPeak}
             </p>
           </div>
-          <div className="bg-white/[0.04] rounded-xl p-5 border border-white/10">
+          <div className="bg-white/[0.04] rounded-md p-5 border border-white/10">
             <div className="flex items-center gap-3 mb-2">
-              <Clock className="w-5 h-5 text-purple-400" />
+              <Clock className="w-5 h-5 text-[#a78bfa]" />
               <span className="text-slate-400 text-sm">
                 {stream.status === "LIVE"
                   ? "Tempo de Transmissão"
@@ -337,9 +337,9 @@ export function StreamerDashboard() {
 
         {/* Instructions for OBS */}
         {stream.status !== "ENDED" && (
-          <div className="mb-6 rounded-xl border border-white/10 bg-white/[0.04] p-5 sm:p-6">
+          <div className="mb-6 rounded-md border border-white/10 bg-white/[0.04] p-5 sm:p-6">
             <h2 className="text-xl font-bold text-white mb-4 flex items-center gap-2">
-              <Video className="w-6 h-6 text-purple-400" />
+              <Video className="w-6 h-6 text-[#a78bfa]" />
               Configuração do OBS Studio
             </h2>
 
@@ -358,7 +358,7 @@ export function StreamerDashboard() {
                   />
                   <button
                     onClick={() => handleCopy(rtmpUrl, "rtmp")}
-                    className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-colors flex items-center gap-2"
+                    className="px-4 py-2 bg-[#7c3aed] hover:bg-[#8b5cf6] text-white rounded-md transition-colors flex items-center gap-2"
                   >
                     {copiedField === "rtmp" ? (
                       <CheckCircle className="w-4 h-4" />
@@ -383,7 +383,7 @@ export function StreamerDashboard() {
                   />
                   <button
                     onClick={() => handleCopy(streamKey, "key")}
-                    className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-colors flex items-center gap-2"
+                    className="px-4 py-2 bg-[#7c3aed] hover:bg-[#8b5cf6] text-white rounded-md transition-colors flex items-center gap-2"
                   >
                     {copiedField === "key" ? (
                       <CheckCircle className="w-4 h-4" />
@@ -412,12 +412,12 @@ export function StreamerDashboard() {
                       target="_blank"
                       rel="noopener noreferrer"
                     >
-                      <Eye className="w-4 h-4 text-purple-400" />
+                      <Eye className="w-4 h-4 text-[#a78bfa]" />
                     </a>
                   </button>
                   <button
                     onClick={() => handleCopy(watchUrl, "watch")}
-                    className="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-colors flex items-center gap-2"
+                    className="px-4 py-2 bg-[#7c3aed] hover:bg-[#8b5cf6] text-white rounded-md transition-colors flex items-center gap-2"
                   >
                     {copiedField === "watch" ? (
                       <CheckCircle className="w-4 h-4" />
@@ -430,7 +430,7 @@ export function StreamerDashboard() {
             </div>
 
             {/* OBS Instructions */}
-            <div className="mt-6 rounded-lg border border-white/10 bg-white/[0.02] p-4">
+            <div className="mt-6 rounded-md border border-white/10 bg-white/[0.02] p-4">
               <h3 className="font-semibold text-white mb-2">Configuração rápida</h3>
               <ol className="text-sm text-slate-300 space-y-1 list-decimal list-inside">
                 <li>Abra o OBS Studio</li>
@@ -447,7 +447,7 @@ export function StreamerDashboard() {
           <button
             onClick={handleEndStream}
             disabled={isEnding}
-            className="w-full px-6 py-3 bg-red-600 hover:bg-red-700 text-white rounded-lg transition-colors disabled:opacity-50 flex items-center justify-center gap-2 font-semibold"
+            className="w-full px-6 py-3 bg-red-600 hover:bg-red-700 text-white rounded-md transition-colors disabled:opacity-50 flex items-center justify-center gap-2 font-semibold"
           >
             {isEnding ? (
               <>
@@ -465,7 +465,7 @@ export function StreamerDashboard() {
 
         {/* Stream Ended Message */}
         {stream.status === "ENDED" && (
-          <div className="bg-white/[0.04] rounded-xl p-8 border border-white/10 text-center">
+          <div className="bg-white/[0.04] rounded-md p-8 border border-white/10 text-center">
             <XCircle className="w-16 h-16 text-red-500 mx-auto mb-4" />
             <h3 className="text-2xl font-bold text-white mb-2">
               Transmissão Encerrada
@@ -475,7 +475,7 @@ export function StreamerDashboard() {
               <button
                 onClick={handleRestartStream}
                 disabled={isRestarting}
-                className="px-6 py-2 bg-green-600 hover:bg-green-700 text-white rounded-lg transition-colors disabled:opacity-50 flex items-center gap-2"
+                className="px-6 py-2 bg-green-600 hover:bg-green-700 text-white rounded-md transition-colors disabled:opacity-50 flex items-center gap-2"
               >
                 {isRestarting ? (
                   <>
@@ -491,7 +491,7 @@ export function StreamerDashboard() {
               </button>
               <button
                 onClick={() => navigate(routes.home())}
-                className="px-6 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-colors"
+                className="px-6 py-2 bg-[#7c3aed] hover:bg-[#8b5cf6] text-white rounded-md transition-colors"
               >
                 Criar Nova Stream
               </button>

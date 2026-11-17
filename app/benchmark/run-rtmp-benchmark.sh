@@ -23,6 +23,7 @@ KEEP_UP=0
 AGGREGATE=0
 PUBLISH=0
 STATS_PID=0
+PUBLISHER_NAME=""
 CONSOLE_LOG_FILE=""
 LOG_MIRROR_ENABLED=0
 
@@ -44,7 +45,7 @@ Uso: ./benchmark/run-rtmp-benchmark.sh [opcoes]
 Opcoes:
   --mode <sanity|full>         Modo de execucao (default: sanity)
   --scenario <all|combinacao>  Filtro de cenario (ex.: nginx+ffmpeg)
-  --duration <segundos>        Duracao da live ativa por execucao
+  --duration <segundos>        Duracao da carga de viewers por execucao
   --viewers <n>                Numero de viewers (usado no modo sanity)
   --viewers-list <lista>       Lista CSV de viewers (modo full, default: 1,10,50)
   --repeats <n>                Repeticoes por cenario (modo full default: 3)
@@ -292,6 +293,9 @@ compose_down_quiet() {
 }
 
 cleanup() {
+  if [[ -n "${PUBLISHER_NAME:-}" ]]; then
+    docker stop -t 5 "$PUBLISHER_NAME" >/dev/null 2>&1 || true
+  fi
   if [[ "${KEEP_UP:-0}" -eq 0 ]]; then
     compose_down_quiet
   fi
@@ -461,6 +465,8 @@ start_viewers() {
         STREAM_KEY="$1"
         DURATION="$2"
         OUT_FILE="$3"
+        REQUEST_LOG="/out/${OUT_FILE%.txt}-requests.csv"
+        printf "timestamp,resource,http_code\n" > "$REQUEST_LOG"
         END_TS=$(( $(date +%s) + DURATION ))
         TOTAL=0
         ERRORS=0
@@ -468,6 +474,7 @@ start_viewers() {
         while [ "$(date +%s)" -lt "$END_TS" ]; do
           MASTER_URL="${BASE_URL}/hls/${STREAM_KEY}/master.m3u8"
           CODE=$(curl -s -o /tmp/master.m3u8 -w "%{http_code}" "$MASTER_URL" || true)
+          printf "%s,master,%s\n" "$(date +%s)" "$CODE" >> "$REQUEST_LOG"
           TOTAL=$((TOTAL + 1))
           if [ "$CODE" != "200" ]; then
             ERRORS=$((ERRORS + 1))
@@ -484,6 +491,7 @@ start_viewers() {
 
           PURL="${BASE_URL}/hls/${STREAM_KEY}/${PLAYLIST}"
           PCODE=$(curl -s -o /tmp/variant.m3u8 -w "%{http_code}" "$PURL" || true)
+          printf "%s,variant,%s\n" "$(date +%s)" "$PCODE" >> "$REQUEST_LOG"
           TOTAL=$((TOTAL + 1))
           if [ "$PCODE" != "200" ]; then
             ERRORS=$((ERRORS + 1))
@@ -495,6 +503,7 @@ start_viewers() {
           if [ -n "$SEGMENT" ]; then
             SURL="${BASE_URL}/hls/${STREAM_KEY}/$(dirname "$PLAYLIST")/${SEGMENT}"
             SCODE=$(curl -s -o /dev/null -w "%{http_code}" "$SURL" || true)
+            printf "%s,segment,%s\n" "$(date +%s)" "$SCODE" >> "$REQUEST_LOG"
             TOTAL=$((TOTAL + 1))
             if [ "$SCODE" != "200" ]; then
               ERRORS=$((ERRORS + 1))
@@ -547,8 +556,11 @@ format_decimal() {
 
 compute_metrics_from_samples() {
   local file="$1"
-  awk -F',' '
+  local start_ts="${2:-0}"
+  local end_ts="${3:-0}"
+  awk -F',' -v start_ts="$start_ts" -v end_ts="$end_ts" '
     NR==1 {next}
+    ($1 < start_ts || (end_ts > 0 && $1 > end_ts)) {next}
     {
       c+=$2; if($2>cmax)cmax=$2;
       m+=$3; if($3>mmax)mmax=$3;
@@ -750,6 +762,8 @@ run_one_attempt() {
   publisher_name="bench-pub-${scenario_slug}"
   publisher_name="${publisher_name:0:55}"
   publisher_name="${publisher_name%-}"
+  PUBLISHER_NAME="$publisher_name"
+  trap 'if [[ -n "${PUBLISHER_NAME:-}" ]]; then docker stop -t 5 "$PUBLISHER_NAME" >/dev/null 2>&1 || true; fi' EXIT
 
   local stream_url
   stream_url="rtmp://${rtmp_service}:${RTMP_PORT}/live/${stream_key}"
@@ -765,7 +779,6 @@ run_one_attempt() {
     -re \
     -f lavfi -i "testsrc=size=1280x720:rate=30" \
     -f lavfi -i "sine=frequency=1000:sample_rate=44100" \
-    -t "$DURATION_SECONDS" \
     -c:v libx264 -preset veryfast -pix_fmt yuv420p \
     -c:a aac -ar 44100 -ac 2 \
     -f flv "$stream_url" >> "$scenario_log_file" 2>&1 &
@@ -776,6 +789,8 @@ run_one_attempt() {
   local master_url
   master_url="${base_hls_url}/hls/${stream_key}/master.m3u8"
 
+  local probe_start_ts probe_end_ts probe_elapsed_seconds
+  probe_start_ts="$(date +%s)"
   local startup_hls_seconds
   startup_hls_seconds="$(measure_startup_latency "$compose_network" "$master_url" 90 || true)"
   if [[ -z "$startup_hls_seconds" ]]; then
@@ -787,19 +802,49 @@ run_one_attempt() {
   if [[ -z "$tempo_primeiro_segmento_s" ]]; then
     tempo_primeiro_segmento_s="-1"
   fi
+  probe_end_ts="$(date +%s)"
+  probe_elapsed_seconds=$((probe_end_ts - probe_start_ts))
 
   local latencia_ponta_a_ponta_s
   latencia_ponta_a_ponta_s="$tempo_primeiro_segmento_s"
 
+  local publisher_alive_before_viewers=0
+  if kill -0 "$publisher_pid" 2>/dev/null &&
+     [[ "$(docker inspect -f '{{.State.Running}}' "$publisher_name" 2>/dev/null || true)" == "true" ]]; then
+    publisher_alive_before_viewers=1
+  fi
+  local viewers_start_ts viewers_end_ts viewers_window_seconds
+  viewers_start_ts="$(date +%s)"
   start_viewers "$compose_network" "$base_hls_url" "$stream_key" "$viewers" "$DURATION_SECONDS" "$scenario_viewers"
-
-  wait "$publisher_pid" || true
-  local publisher_exit=$?
-
   wait_for_viewers
+  viewers_end_ts="$(date +%s)"
+  viewers_window_seconds=$((viewers_end_ts - viewers_start_ts))
+
+  local publisher_alive_after_viewers=0
+  if kill -0 "$publisher_pid" 2>/dev/null &&
+     [[ "$(docker inspect -f '{{.State.Running}}' "$publisher_name" 2>/dev/null || true)" == "true" ]]; then
+    publisher_alive_after_viewers=1
+  fi
+
+  local bitrate_kbps
+  bitrate_kbps="$(probe_bitrate_kbps "$compose_network" "$master_url")"
 
   local measurement_end_ts
-  measurement_end_ts="$(date +%s)"
+  measurement_end_ts="$viewers_end_ts"
+  docker stop -t 5 "$publisher_name" >/dev/null 2>&1 || true
+  local publisher_exit
+  if wait "$publisher_pid"; then
+    publisher_exit=0
+  else
+    publisher_exit=$?
+  fi
+  PUBLISHER_NAME=""
+
+  printf 'probe_start_ts,probe_end_ts,probe_elapsed_seconds,viewers_start_ts,viewers_end_ts,viewers_window_seconds,publisher_alive_before_viewers,publisher_alive_after_viewers,publisher_exit_code\n%s,%s,%s,%s,%s,%s,%s,%s,%s\n' \
+    "$probe_start_ts" "$probe_end_ts" "$probe_elapsed_seconds" \
+    "$viewers_start_ts" "$viewers_end_ts" "$viewers_window_seconds" \
+    "$publisher_alive_before_viewers" "$publisher_alive_after_viewers" "$publisher_exit" \
+    > "${scenario_dir}/timing.csv"
 
   sleep 2
   touch "${samples_file}.stop"
@@ -816,6 +861,11 @@ run_one_attempt() {
   local request_total request_errors
   request_total="${req_summary%%,*}"
   request_errors="${req_summary##*,}"
+  local completed_viewers=0 viewer_result
+  for viewer_result in "$scenario_viewers"/viewer-*.txt; do
+    [[ -f "$viewer_result" ]] || continue
+    completed_viewers=$((completed_viewers + 1))
+  done
 
   local error_rate_percent
   if [[ "$request_total" -gt 0 ]]; then
@@ -825,12 +875,9 @@ run_one_attempt() {
   fi
 
   local metrics
-  metrics="$(compute_metrics_from_samples "$samples_file")"
+  metrics="$(compute_metrics_from_samples "$samples_file" "$viewers_start_ts" "$viewers_end_ts")"
   local cpu_avg cpu_max mem_avg mem_max net_in_mb net_out_mb
   IFS=',' read -r cpu_avg cpu_max mem_avg mem_max net_in_mb net_out_mb <<< "$metrics"
-
-  local bitrate_kbps
-  bitrate_kbps="$(probe_bitrate_kbps "$compose_network" "$master_url")"
 
   local measurement_window
   measurement_window=$((measurement_end_ts - measurement_start_ts))
@@ -841,9 +888,15 @@ run_one_attempt() {
   if [[ "$startup_hls_seconds" == "-1" ]]; then
     status="FAIL"
     error_message="master_playlist_timeout"
-  elif [[ "$publisher_exit" -ne 0 ]]; then
+  elif [[ "$tempo_primeiro_segmento_s" == "-1" ]]; then
     status="FAIL"
-    error_message="publisher_exit_${publisher_exit}"
+    error_message="first_segment_timeout"
+  elif [[ "$publisher_alive_before_viewers" -ne 1 || "$publisher_alive_after_viewers" -ne 1 ]]; then
+    status="FAIL"
+    error_message="publisher_not_active_through_viewers_exit_${publisher_exit}"
+  elif [[ "$completed_viewers" -ne "$viewers" || "$request_total" -eq 0 ]]; then
+    status="FAIL"
+    error_message="incomplete_viewer_results_${completed_viewers}_of_${viewers}"
   fi
 
   echo "$status,$error_message,$rtmp_container,$scenario_log_file,$samples_file,$scenario_viewers,$measurement_start_ts,$measurement_end_ts,$measurement_window,$startup_hls_seconds,$latencia_ponta_a_ponta_s,$tempo_primeiro_segmento_s,$request_total,$request_errors,$error_rate_percent,$cpu_avg,$cpu_max,$mem_avg,$mem_max,$net_in_mb,$net_out_mb,$bitrate_kbps,$restarts_before,$restarts_after,$compose_network,$master_url"
@@ -948,7 +1001,7 @@ main() {
   log "RUN_ID: ${RUN_ID}"
   log "Log da execucao: ${CONSOLE_LOG_FILE}"
   log "Modo: ${MODE}"
-  log "Duracao live ativa: ${DURATION_SECONDS}s"
+  log "Duracao da carga de viewers: ${DURATION_SECONDS}s"
   log "Cenarios planejados: ${#PLAN_ITEMS[@]}"
 
   if execute_plan; then

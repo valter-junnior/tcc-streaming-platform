@@ -74,14 +74,15 @@ export function CreateStreamModal({ isOpen, onClose }: CreateStreamModalProps) {
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm">
-      <div className="w-full max-w-md rounded-xl border border-white/10 bg-[#15181d] shadow-2xl">
+      <div className="w-full max-w-md rounded-md border border-white/10 bg-[#15181d] shadow-2xl">
         {/* Header */}
         <div className="flex items-center justify-between border-b border-white/10 p-5">
           <h2 className="text-xl font-semibold text-white">Nova transmissão</h2>
           <button
             onClick={handleClose}
             disabled={isLoading}
-            className="text-slate-400 hover:text-white transition-colors disabled:opacity-50"
+            aria-label="Fechar janela"
+            className="text-slate-300 hover:text-white transition-colors disabled:opacity-50"
           >
             <X className="w-6 h-6" />
           </button>
@@ -93,9 +94,9 @@ export function CreateStreamModal({ isOpen, onClose }: CreateStreamModalProps) {
           <div>
             <label
               htmlFor="title"
-              className="mb-2 block text-xs font-medium uppercase tracking-wide text-slate-400"
+              className="mb-2 block text-xs font-medium tracking-normal text-slate-300"
             >
-              Título da Stream *
+              Título da transmissão *
             </label>
             <input
               id="title"
@@ -105,9 +106,9 @@ export function CreateStreamModal({ isOpen, onClose }: CreateStreamModalProps) {
               placeholder="Ex: Jogando Minecraft"
               maxLength={100}
               disabled={isLoading}
-              className="w-full rounded-md border border-white/10 bg-white/[0.06] px-3 py-2 text-white placeholder-slate-500 focus:border-violet-500 focus:outline-none focus:ring-1 focus:ring-violet-500 disabled:opacity-50"
+              className="w-full rounded-md border border-white/10 bg-white/[0.06] px-3 py-2 text-white placeholder-slate-500 focus:border-[#7c3aed] focus:outline-none focus:ring-1 focus:ring-[#7c3aed] disabled:opacity-50"
             />
-            <p className="mt-1 text-xs text-slate-500">
+            <p className="mt-1 text-xs text-slate-400">
               {title.length}/100 caracteres
             </p>
           </div>
@@ -116,7 +117,7 @@ export function CreateStreamModal({ isOpen, onClose }: CreateStreamModalProps) {
           <div>
             <label
               htmlFor="description"
-              className="mb-2 block text-xs font-medium uppercase tracking-wide text-slate-400"
+              className="mb-2 block text-xs font-medium tracking-normal text-slate-300"
             >
               Descrição (opcional)
             </label>
@@ -128,16 +129,16 @@ export function CreateStreamModal({ isOpen, onClose }: CreateStreamModalProps) {
               rows={3}
               maxLength={500}
               disabled={isLoading}
-              className="w-full resize-none rounded-md border border-white/10 bg-white/[0.06] px-3 py-2 text-white placeholder-slate-500 focus:border-violet-500 focus:outline-none focus:ring-1 focus:ring-violet-500 disabled:opacity-50"
+              className="w-full resize-none rounded-md border border-white/10 bg-white/[0.06] px-3 py-2 text-white placeholder-slate-500 focus:border-[#7c3aed] focus:outline-none focus:ring-1 focus:ring-[#7c3aed] disabled:opacity-50"
             />
-            <p className="mt-1 text-xs text-slate-500">
+            <p className="mt-1 text-xs text-slate-400">
               {description.length}/500 caracteres
             </p>
           </div>
 
           {/* Error Message */}
           {error && (
-            <div className="bg-red-500/10 border border-red-500/50 rounded-lg p-3">
+            <div className="bg-red-500/10 border border-red-500/50 rounded-md p-3">
               <p className="text-red-400 text-sm">{error}</p>
             </div>
           )}
@@ -155,7 +156,7 @@ export function CreateStreamModal({ isOpen, onClose }: CreateStreamModalProps) {
             <button
               type="submit"
               disabled={isLoading || !title.trim()}
-              className="flex-1 rounded-md bg-violet-600 px-4 py-2 text-white transition-colors hover:bg-violet-500 disabled:opacity-50 flex items-center justify-center gap-2"
+              className="flex-1 rounded-md bg-[#7c3aed] px-4 py-2 text-white transition-colors hover:bg-[#8b5cf6] disabled:opacity-50 flex items-center justify-center gap-2"
             >
               {isLoading ? (
                 <>
@@ -163,7 +164,7 @@ export function CreateStreamModal({ isOpen, onClose }: CreateStreamModalProps) {
                   Criando...
                 </>
               ) : (
-                "Criar Stream"
+                "Criar transmissão"
               )}
             </button>
           </div>

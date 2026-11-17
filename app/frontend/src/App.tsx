@@ -2,6 +2,7 @@ import { lazy, Suspense } from "react";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Loader2 } from "lucide-react";
+import "./App.css";
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -38,8 +39,8 @@ const WatchPage = lazy(() =>
 // Loading fallback component
 function LoadingFallback() {
   return (
-    <div className="min-h-screen bg-slate-900 flex items-center justify-center">
-      <Loader2 className="w-8 h-8 text-purple-500 animate-spin" />
+    <div className="min-h-screen bg-[#0b0d10] flex items-center justify-center">
+      <Loader2 className="w-8 h-8 text-[#a78bfa] animate-spin" />
     </div>
   );
 }

@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Eye, Loader2, Play, Plus, Radio, Video } from "lucide-react";
+import { ArrowUpRight, Eye, Loader2, Plus, Radio, Video } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { CreateStreamModal } from "../components/CreateStreamModal";
 import { useLiveStreams } from "../../../app/hooks/useLiveStreams";
@@ -9,111 +9,20 @@ export function HomePage() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const navigate = useNavigate();
   const { data: liveStreams, isLoading } = useLiveStreams();
-
-  return (
-    <div className="min-h-screen bg-[#0b0d10] text-white">
-      <header className="border-b border-white/10 bg-[#0b0d10]/95">
-        <div className="mx-auto flex max-w-7xl items-center justify-between px-5 py-4">
-          <button
-            onClick={() => navigate(routes.home())}
-            className="flex items-center gap-2 text-lg font-semibold tracking-tight"
-          >
-            <span className="flex h-8 w-8 items-center justify-center rounded-lg bg-violet-600">
-              <Radio className="h-4 w-4" />
-            </span>
-            StreamLab
-          </button>
-
-          <button
-            onClick={() => navigate(routes.myStreams())}
-            className="rounded-md px-3 py-2 text-sm text-slate-300 transition hover:bg-white/10 hover:text-white"
-          >
-            Minhas transmissões
-          </button>
-        </div>
-      </header>
-
-      <main className="mx-auto max-w-7xl px-5 pb-16">
-        <section className="flex flex-col gap-6 border-b border-white/10 py-16 md:flex-row md:items-end md:justify-between">
-          <div className="max-w-2xl">
-            <p className="mb-3 text-sm font-medium uppercase tracking-[0.18em] text-violet-400">
-              Streaming ao vivo
-            </p>
-            <h1 className="text-4xl font-semibold tracking-tight text-white md:text-5xl">
-              Transmita. Assista. Ao vivo.
-            </h1>
-            <p className="mt-4 max-w-xl text-base leading-7 text-slate-400">
-              Publique sua live via OBS e acompanhe o conteúdo direto do navegador.
-            </p>
-          </div>
-
-          <button
-            onClick={() => setIsModalOpen(true)}
-            className="inline-flex w-fit items-center gap-2 rounded-md bg-violet-600 px-4 py-3 text-sm font-semibold transition hover:bg-violet-500"
-          >
-            <Plus className="h-4 w-4" />
-            Nova transmissão
-          </button>
-        </section>
-
-        <section className="pt-10">
-          <div className="mb-5 flex items-center justify-between">
-            <div>
-              <h2 className="text-xl font-semibold">Ao vivo agora</h2>
-              <p className="mt-1 text-sm text-slate-500">
-                {liveStreams?.length ?? 0} transmissões disponíveis
-              </p>
-            </div>
-          </div>
-
-          {isLoading ? (
-            <div className="flex min-h-48 items-center justify-center rounded-xl border border-white/10 bg-white/[0.03]">
-              <Loader2 className="h-6 w-6 animate-spin text-violet-400" />
-            </div>
-          ) : liveStreams && liveStreams.length > 0 ? (
-            <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-              {liveStreams.map((stream) => (
-                <button
-                  key={stream.id}
-                  onClick={() => navigate(routes.watch(stream.id))}
-                  className="group overflow-hidden rounded-xl border border-white/10 bg-white/[0.04] text-left transition hover:-translate-y-0.5 hover:border-violet-500/70 hover:bg-white/[0.07]"
-                >
-                  <div className="relative flex aspect-video items-center justify-center overflow-hidden bg-gradient-to-br from-violet-950 via-slate-900 to-[#11151b]">
-                    <Video className="h-10 w-10 text-white/30 transition group-hover:scale-110 group-hover:text-violet-300" />
-                    <span className="absolute left-3 top-3 inline-flex items-center gap-1.5 rounded bg-red-500 px-2 py-1 text-[10px] font-bold tracking-wide">
-                      <span className="h-1.5 w-1.5 rounded-full bg-white" />
-                      AO VIVO
-                    </span>
-                  </div>
-                  <div className="p-4">
-                    <h3 className="truncate font-medium text-white">{stream.title}</h3>
-                    <div className="mt-2 flex items-center gap-1.5 text-sm text-slate-400">
-                      <Eye className="h-4 w-4" />
-                      {stream.currentViewers} assistindo
-                    </div>
-                  </div>
-                </button>
-              ))}
-            </div>
-          ) : (
-            <div className="rounded-xl border border-dashed border-white/15 bg-white/[0.02] px-6 py-14 text-center">
-              <Play className="mx-auto h-8 w-8 text-slate-600" />
-              <p className="mt-3 text-sm text-slate-400">Nenhuma transmissão ao vivo no momento.</p>
-              <button
-                onClick={() => setIsModalOpen(true)}
-                className="mt-5 text-sm font-medium text-violet-400 hover:text-violet-300"
-              >
-                Começar uma transmissão
-              </button>
-            </div>
-          )}
-        </section>
-      </main>
-
-      <CreateStreamModal
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-      />
-    </div>
-  );
+  return <div className="site-shell">
+    <header className="site-header"><div className="site-header__inner">
+      <button className="brand" onClick={() => navigate(routes.home())} aria-label="StreamLab, início"><span className="brand__mark"><Radio size={20} /></span>streamlab<span className="accent">.</span></button>
+      <nav className="site-nav" aria-label="Navegação principal"><span>Explorar</span><button onClick={() => navigate(routes.myStreams())}>Meu estúdio <ArrowUpRight size={16}/></button></nav>
+    </div></header>
+    <main><section className="hero"><div className="hero__inner"><div className="hero__copy">
+      <div className="hero__status"><i className="signal-dot"/> Transmissões em tempo real</div>
+      <h1>O momento acontece <em>agora.</em></h1>
+      <p>Entre em uma transmissão ao vivo ou coloque a sua no ar. Um espaço direto para quem transmite e para quem assiste.</p>
+      <button className="action-primary" onClick={() => setIsModalOpen(true)}><Plus size={19}/> Criar transmissão</button>
+    </div><div className="hero__art" aria-hidden="true"><div className="hero__art-top"><span><i className="signal-dot"/> ON AIR</span><span>● ● ●</span></div><div className="hero__frequency">{Array.from({length:19},(_,i)=><i key={i}/>)}</div><div className="hero__art-bottom"><span>STREAMLAB / LIVE</span><span>00:00:00</span></div></div></div></section>
+    <section className="broadcasts" aria-labelledby="broadcasts-title"><div className="section-heading"><div><h2 id="broadcasts-title">No ar agora<span className="accent">.</span></h2><p>Escolha uma transmissão para assistir.</p></div><span className="broadcast-count">{liveStreams?.length ?? 0} no ar</span></div>
+      {isLoading ? <div className="empty-state"><Loader2 className="animate-spin" size={28}/><p>Procurando transmissões...</p></div> : liveStreams?.length ? <div className="broadcast-grid">{liveStreams.map((stream,index)=><button className="broadcast-card" key={stream.id} onClick={()=>navigate(routes.watch(stream.id))}><div className="broadcast-card__visual"><span className="broadcast-card__index">{String(index+1).padStart(2,"0")}</span><Video size={42} strokeWidth={1.2}/><span className="live-pill"><i className="signal-dot"/> Ao vivo</span></div><div className="broadcast-card__info"><div><h3>{stream.title}</h3><span><Eye size={15}/> {stream.currentViewers} assistindo</span></div><ArrowUpRight size={21}/></div></button>)}</div> : <div className="empty-state empty-state--editorial"><div className="empty-state__icon"><Radio size={32}/></div><div><h3>O palco está pronto.</h3><p>Ainda não há transmissões ao vivo. Seja a primeira pessoa a entrar no ar.</p><button className="text-action" onClick={()=>setIsModalOpen(true)}>Criar transmissão <ArrowUpRight size={17}/></button></div></div>}
+    </section></main><footer className="site-footer"><strong>streamlab.</strong><span>Feito para acontecer ao vivo.</span></footer>
+    <CreateStreamModal isOpen={isModalOpen} onClose={()=>setIsModalOpen(false)}/>
+  </div>;
 }

@@ -204,7 +204,7 @@ export function WatchPage() {
   if (isLoading) {
     return (
       <div className="min-h-screen bg-[#0b0d10] flex items-center justify-center">
-        <Loader2 className="w-8 h-8 text-purple-500 animate-spin" />
+        <Loader2 className="w-8 h-8 text-[#7c3aed] animate-spin" />
       </div>
     );
   }
@@ -212,7 +212,7 @@ export function WatchPage() {
   if (error || !stream) {
     return (
       <div className="min-h-screen bg-[#0b0d10] flex items-center justify-center p-4">
-        <div className="bg-white/[0.04] rounded-xl p-8 max-w-md text-center border border-white/10">
+        <div className="bg-white/[0.04] rounded-md p-8 max-w-md text-center border border-white/10">
           <AlertCircle className="w-16 h-16 text-red-500 mx-auto mb-4" />
           <h2 className="text-2xl font-bold text-white mb-2">
             Stream não encontrada
@@ -220,7 +220,7 @@ export function WatchPage() {
           <p className="text-slate-400 mb-6">{error}</p>
           <button
             onClick={() => navigate(routes.home())}
-            className="px-6 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg transition-colors"
+            className="px-6 py-2 bg-[#7c3aed] hover:bg-[#8b5cf6] text-white rounded-md transition-colors"
           >
             Voltar ao Início
           </button>
@@ -238,7 +238,7 @@ export function WatchPage() {
         {/* Back Button */}
         <button
           onClick={() => navigate(routes.home())}
-          className="text-purple-400 hover:text-purple-300 mb-6 inline-flex items-center gap-2"
+          className="text-[#a78bfa] hover:text-[#c4b5fd] mb-6 inline-flex items-center gap-2"
         >
           ← Voltar ao Início
         </button>
@@ -250,7 +250,7 @@ export function WatchPage() {
               <VideoPlayer hlsUrl={hlsUrl} />
             ) : stream.status === "LIVE" && !hlsAvailable ? (
               <div
-                className="relative w-full bg-white/[0.04] rounded-xl flex items-center justify-center border border-white/10"
+                className="relative w-full bg-white/[0.04] rounded-md flex items-center justify-center border border-white/10"
                 style={{ aspectRatio: "16/9" }}
               >
                 <div className="text-center p-8">
@@ -267,7 +267,7 @@ export function WatchPage() {
               </div>
             ) : stream.status === "WAITING" ? (
               <div
-                className="relative w-full bg-white/[0.04] rounded-xl flex items-center justify-center border border-white/10"
+                className="relative w-full bg-white/[0.04] rounded-md flex items-center justify-center border border-white/10"
                 style={{ aspectRatio: "16/9" }}
               >
                 <div className="text-center p-8">
@@ -282,7 +282,7 @@ export function WatchPage() {
               </div>
             ) : (
               <div
-                className="relative w-full bg-white/[0.04] rounded-xl flex items-center justify-center border border-white/10"
+                className="relative w-full bg-white/[0.04] rounded-md flex items-center justify-center border border-white/10"
                 style={{ aspectRatio: "16/9" }}
               >
                 <div className="text-center p-8">
@@ -311,7 +311,7 @@ export function WatchPage() {
           {/* Sidebar */}
           <div className="space-y-4">
             {/* Status Card */}
-            <div className="bg-white/[0.04] rounded-xl p-5 border border-white/10">
+            <div className="bg-white/[0.04] rounded-md p-5 border border-white/10">
               <div className="flex items-center gap-2 mb-4">
                 {stream.status === "LIVE" ? (
                   <>
@@ -344,7 +344,7 @@ export function WatchPage() {
 
               <div className="space-y-3">
                 <div className="flex items-center gap-3">
-                  <Eye className="w-5 h-5 text-purple-400" />
+                  <Eye className="w-5 h-5 text-[#a78bfa]" />
                   <div>
                     <p className="text-sm text-slate-400">Espectadores</p>
                     <p className="text-xl font-bold text-white">
@@ -354,9 +354,9 @@ export function WatchPage() {
                 </div>
 
                 <div className="flex items-center gap-3">
-                  <Eye className="w-5 h-5 text-purple-400" />
+                  <Eye className="w-5 h-5 text-[#a78bfa]" />
                   <div>
-                    <p className="text-sm text-slate-400">Pico de Viewers</p>
+                    <p className="text-sm text-slate-400">Pico de espectadores</p>
                     <p className="text-xl font-bold text-white">
                       {stream.viewersPeak}
                     </p>
@@ -365,7 +365,7 @@ export function WatchPage() {
 
                 {(stream.status === "LIVE" || stream.status === "ENDED") && (
                   <div className="flex items-center gap-3">
-                    <Clock className="w-5 h-5 text-purple-400" />
+                    <Clock className="w-5 h-5 text-[#a78bfa]" />
                     <div>
                       <p className="text-sm text-slate-400">
                         {stream.status === "LIVE"

@@ -74,17 +74,18 @@ export function DeleteStreamModal({
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm">
-      <div className="w-full max-w-md rounded-xl border border-white/10 bg-[#15181d] shadow-2xl">
+      <div className="w-full max-w-md rounded-md border border-white/10 bg-[#15181d] shadow-2xl">
         {/* Header */}
         <div className="flex items-center justify-between border-b border-white/10 p-5">
           <h2 className="text-2xl font-bold text-white flex items-center gap-2">
             <AlertTriangle className="w-6 h-6 text-red-500" />
-            Excluir Stream
+            Excluir transmissão
           </h2>
           <button
             onClick={handleClose}
             disabled={deleteStream.isPending}
-            className="text-slate-400 hover:text-white transition-colors disabled:opacity-50"
+            aria-label="Fechar janela"
+            className="text-slate-300 hover:text-white transition-colors disabled:opacity-50"
           >
             <X className="w-6 h-6" />
           </button>
@@ -94,7 +95,7 @@ export function DeleteStreamModal({
         <div className="p-6 space-y-4">
           {/* Warning for LIVE streams */}
           {isLive ? (
-            <div className="bg-red-500/10 border border-red-500 rounded-lg p-4">
+            <div className="bg-red-500/10 border border-red-500 rounded-md p-4">
               <div className="flex items-start gap-3">
                 <AlertCircle className="w-5 h-5 text-red-500 flex-shrink-0 mt-0.5" />
                 <div>
@@ -117,7 +118,7 @@ export function DeleteStreamModal({
                 </span>
                 ?
               </p>
-              <p className="text-slate-400 text-sm">
+              <p className="text-slate-300 text-sm">
                 Esta ação não pode ser desfeita. Todos os dados da stream serão
                 permanentemente removidos.
               </p>
@@ -126,7 +127,7 @@ export function DeleteStreamModal({
 
           {/* Error Message */}
           {error && (
-            <div className="flex items-center gap-2 p-3 bg-red-500/10 border border-red-500 rounded-lg text-red-400 text-sm">
+            <div className="flex items-center gap-2 p-3 bg-red-500/10 border border-red-500 rounded-md text-red-400 text-sm">
               <AlertCircle className="w-4 h-4 flex-shrink-0" />
               <span>{error}</span>
             </div>
