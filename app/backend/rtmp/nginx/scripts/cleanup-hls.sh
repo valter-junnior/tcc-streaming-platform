@@ -17,7 +17,8 @@ DELETED_COUNT=0
 if [ -d "$HLS_DIR" ]; then
     DELETED_COUNT=$(find "$HLS_DIR" -xdev -type f \( -name "*.ts" -o -name "*.m3u8" -o -name "*.log" \) -mmin "+${RETENTION_MINUTES}" -print -delete 2>/dev/null | wc -l)
 
-    find "$HLS_DIR" -xdev -mindepth 1 -type d -empty -delete 2>/dev/null
+    # Keep newly created variant directories while the first segment is pending.
+    find "$HLS_DIR" -xdev -mindepth 1 -depth -type d -empty -mmin "+${RETENTION_MINUTES}" -delete 2>/dev/null
 
     echo "[$(date '+%Y-%m-%d %H:%M:%S')] Cleanup completed - $DELETED_COUNT files deleted"
 else

@@ -173,7 +173,7 @@ def build_output_fieldnames():
 
 def write_aggregated(output_path, aggregated_rows, fieldnames):
     with open(output_path, "w", newline="", encoding="utf-8") as f:
-        writer = csv.DictWriter(f, fieldnames=fieldnames, extrasaction="ignore")
+        writer = csv.DictWriter(f, fieldnames=fieldnames, extrasaction="ignore", lineterminator="\n")
         writer.writeheader()
         writer.writerows(aggregated_rows)
     print(f"Escrito: {output_path}")
@@ -309,7 +309,7 @@ def write_final_sheet(output_path, rows):
         "Observações",
     ]
     with open(output_path, "w", newline="", encoding="utf-8") as f:
-        writer = csv.writer(f)
+        writer = csv.writer(f, lineterminator="\n")
         writer.writerow(["Legenda Status", "Descrição"])
         writer.writerow(["✓", "Passou em critérios críticos e de alerta"])
         writer.writerow(["⚠", "Passou em critérios críticos, com alerta (CPU ou taxa de erros)"])
@@ -322,7 +322,7 @@ def write_final_sheet(output_path, rows):
         writer.writerow(["Reinícios Sessão", "<= 0"])
         writer.writerow([])
 
-        dict_writer = csv.DictWriter(f, fieldnames=fieldnames, extrasaction="ignore")
+        dict_writer = csv.DictWriter(f, fieldnames=fieldnames, extrasaction="ignore", lineterminator="\n")
         dict_writer.writeheader()
         dict_writer.writerows(rows)
     print(f"Escrito: {output_path}")

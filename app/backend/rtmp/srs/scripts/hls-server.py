@@ -3,8 +3,9 @@
 Minimal HTTP server for serving HLS files with CORS headers.
 Replaces `python3 -m http.server` which does not support CORS.
 """
+import os
 import sys
-from http.server import SimpleHTTPRequestHandler, HTTPServer
+from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 
 CORS_HEADERS = {
     "Access-Control-Allow-Origin": "*",
@@ -32,11 +33,16 @@ class CORSRequestHandler(SimpleHTTPRequestHandler):
         super().log_message(fmt, *args)
 
 
+class HLSHTTPServer(ThreadingHTTPServer):
+    request_queue_size = 128
+    daemon_threads = True
+
+
 if __name__ == "__main__":
     port = int(sys.argv[1]) if len(sys.argv) > 1 else 8081
     directory = sys.argv[2] if len(sys.argv) > 2 else os.getcwd()
 
     handler = lambda *args, **kwargs: CORSRequestHandler(*args, directory=directory, **kwargs)
-    server = HTTPServer(("", port), handler)
+    server = HLSHTTPServer(("", port), handler)
     print(f"HLS HTTP server with CORS started on port {port}, serving from {directory}", flush=True)
     server.serve_forever()

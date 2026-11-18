@@ -23,6 +23,7 @@ KEEP_UP=0
 AGGREGATE=0
 PUBLISH=0
 STATS_PID=0
+HOST_VMSTAT_PID=0
 PUBLISHER_NAME=""
 CONSOLE_LOG_FILE=""
 LOG_MIRROR_ENABLED=0
@@ -55,7 +56,7 @@ Opcoes:
   --hls-port <port>            Porta HLS exposta no host (default: 8081)
   --keep-up                    Nao derruba stack no final
   --aggregate                  Apos execucao full, agrega resultados na pasta local da run
-  --publish                    Publica somente CSVs revisados em docs/benchmark/ (requer --mode full --aggregate)
+  --publish                    Publica CSVs revisados em docs/benchmark/runs/<run_id>/ (requer matriz completa)
   --help                       Exibe ajuda
 
 Exemplos:
@@ -156,7 +157,7 @@ parse_args() {
   [[ "$RTMP_PORT" =~ ^[0-9]+$ ]] || die "--rtmp-port deve ser inteiro"
   [[ "$HLS_PORT" =~ ^[0-9]+$ ]] || die "--hls-port deve ser inteiro"
   if [[ "$PUBLISH" -eq 1 ]]; then
-    [[ "$MODE" == "full" && "$AGGREGATE" -eq 1 ]] || die "--publish requer --mode full --aggregate"
+    [[ "$MODE" == "full" && "$AGGREGATE" -eq 1 && "$SCENARIO_FILTER" == "all" && "$VIEWERS_LIST" == "1,10,50" && "$REPEATS" -eq 3 ]] || die "--publish requer matriz completa (4 cenarios, cargas 1,10,50, tres repeticoes) e --aggregate"
   fi
 }
 
@@ -232,6 +233,45 @@ prepare_run_dirs() {
   ln -sfn "$RUN_DIR" "${RESULTS_ROOT}/latest"
 }
 
+capture_run_environment() {
+  {
+    date --iso-8601=seconds
+    git -C "$APP_DIR" rev-parse HEAD 2>/dev/null || true
+    sha256sum "$SCRIPT_DIR/run-rtmp-benchmark.sh"
+    uname -a
+    docker version
+    docker compose version
+    echo "--- host memory ---"
+    free -m
+    echo "--- active containers before benchmark ---"
+    docker ps --format '{{.Names}} {{.Image}} {{.Status}}'
+  } > "${RUN_DIR}/environment.txt" 2>&1
+}
+
+capture_attempt_environment() {
+  local container_name="$1"
+  local output_file="$2"
+  {
+    date --iso-8601=seconds
+    docker inspect -f 'container={{.Name}} image_ref={{.Config.Image}} image_id={{.Image}}' "$container_name"
+    local image_id
+    image_id="$(docker inspect -f '{{.Image}}' "$container_name")"
+    docker image inspect -f 'created={{.Created}} repo_digests={{json .RepoDigests}}' "$image_id"
+    docker exec "$container_name" sh -c 'ffmpeg -version 2>&1 | head -n 1; gst-launch-1.0 --version 2>&1 | head -n 1; if [ -x /usr/local/nginx/sbin/nginx ]; then /usr/local/nginx/sbin/nginx -v 2>&1; fi; if [ -x /usr/local/srs/objs/srs ]; then /usr/local/srs/objs/srs -v 2>&1 | head -n 3; fi' || true
+  } > "$output_file" 2>&1
+}
+
+capture_host_snapshot() {
+  local output_file="$1"
+  {
+    date --iso-8601=seconds
+    uptime
+    free -m
+    docker ps --format '{{.Names}} {{.Image}} {{.Status}}'
+    docker stats --no-stream --format '{{.Name}} {{.CPUPerc}} {{.MemUsage}}' || true
+  } > "$output_file" 2>&1
+}
+
 enable_console_log_mirror() {
   if [[ "$LOG_MIRROR_ENABLED" -eq 1 ]]; then
     return
@@ -242,9 +282,29 @@ enable_console_log_mirror() {
 
 publish_reports() {
   local aggregate_dir="$1"
-  python3 "${SCRIPT_DIR}/export-public-results.py" "$CSV_FILE" "${DOCS_BENCHMARK_DIR}/results.csv"
-  cp "${aggregate_dir}/results-aggregated.csv" "${DOCS_BENCHMARK_DIR}/results-aggregated.csv"
-  cp "${aggregate_dir}/resultado.csv" "${DOCS_BENCHMARK_DIR}/resultado.csv"
+  python3 "${SCRIPT_DIR}/audit-results.py" "$RUN_DIR" --require-full >/dev/null || die "Auditoria da matriz falhou; publicacao cancelada"
+  local destination="${DOCS_BENCHMARK_DIR}/runs/${RUN_ID}"
+  [[ ! -e "$destination" ]] || die "Destino de publicacao ja existe: $destination"
+  mkdir -p "$destination"
+  python3 "${SCRIPT_DIR}/export-public-results.py" "$CSV_FILE" "${destination}/results.csv"
+  cp "${aggregate_dir}/results-aggregated.csv" "${destination}/results-aggregated.csv"
+  cp "${aggregate_dir}/resultado.csv" "${destination}/resultado.csv"
+}
+
+build_selected_images() {
+  local scenario server
+  local built_nginx=0 built_srs=0
+  for scenario in "${SCENARIOS[@]}"; do
+    scenario_selected "$scenario" || continue
+    server="${scenario%%+*}"
+    if [[ "$server" == "nginx" && "$built_nginx" -eq 1 ]] || [[ "$server" == "srs" && "$built_srs" -eq 1 ]]; then
+      continue
+    fi
+    setup_environment_for_scenario "$server" "ffmpeg"
+    log "Construindo imagem RTMP uma vez para ${server}"
+    compose build "rtmp-server-${server}" >> "${RUN_DIR}/logs/build.log" 2>&1 || die "Falha ao construir imagem RTMP de ${server}"
+    if [[ "$server" == "nginx" ]]; then built_nginx=1; else built_srs=1; fi
+  done
 }
 
 scenario_selected() {
@@ -301,6 +361,9 @@ cleanup() {
   fi
   if [[ "${STATS_PID:-0}" -gt 0 ]]; then
     kill "$STATS_PID" 2>/dev/null || true
+  fi
+  if [[ "${HOST_VMSTAT_PID:-0}" -gt 0 ]]; then
+    kill "$HOST_VMSTAT_PID" 2>/dev/null || true
   fi
 }
 
@@ -466,15 +529,36 @@ start_viewers() {
         DURATION="$2"
         OUT_FILE="$3"
         REQUEST_LOG="/out/${OUT_FILE%.txt}-requests.csv"
-        printf "timestamp,resource,http_code\n" > "$REQUEST_LOG"
+        printf "timestamp,resource,http_code,curl_exit_code,time_total_seconds\n" > "$REQUEST_LOG"
         END_TS=$(( $(date +%s) + DURATION ))
         TOTAL=0
         ERRORS=0
 
-        while [ "$(date +%s)" -lt "$END_TS" ]; do
+        fetch_and_record() {
+          TS="$1"
+          RESOURCE="$2"
+          OUTPUT="$3"
+          URL="$4"
+          RESPONSE=$(curl -s --connect-timeout 2 --max-time 5 -o "$OUTPUT" -w "%{http_code},%{exitcode},%{time_total}" "$URL" || true)
+          CODE=${RESPONSE%%,*}
+          REST=${RESPONSE#*,}
+          if [ "$REST" = "$RESPONSE" ]; then
+            EXIT_CODE=unknown
+            ELAPSED=0
+          else
+            EXIT_CODE=${REST%%,*}
+            ELAPSED=${REST#*,}
+          fi
+          CODE=${CODE:-000}
+          printf "%s,%s,%s,%s,%s\n" "$TS" "$RESOURCE" "$CODE" "$EXIT_CODE" "$ELAPSED" >> "$REQUEST_LOG"
+          printf "%s" "$CODE"
+        }
+
+        while :; do
+          CYCLE_TS=$(date +%s)
+          [ "$CYCLE_TS" -lt "$END_TS" ] || break
           MASTER_URL="${BASE_URL}/hls/${STREAM_KEY}/master.m3u8"
-          CODE=$(curl -s -o /tmp/master.m3u8 -w "%{http_code}" "$MASTER_URL" || true)
-          printf "%s,master,%s\n" "$(date +%s)" "$CODE" >> "$REQUEST_LOG"
+          CODE=$(fetch_and_record "$CYCLE_TS" master /tmp/master.m3u8 "$MASTER_URL")
           TOTAL=$((TOTAL + 1))
           if [ "$CODE" != "200" ]; then
             ERRORS=$((ERRORS + 1))
@@ -483,15 +567,17 @@ start_viewers() {
           fi
 
           PLAYLIST=$(grep -E "^[^#]" /tmp/master.m3u8 | head -n1 || true)
-          if [ -z "$PLAYLIST" ]; then
-            ERRORS=$((ERRORS + 1))
-            sleep 1
-            continue
-          fi
-
+          case "$PLAYLIST" in
+            v[0-3]/playlist.m3u8) ;;
+            *)
+              printf "%s,master_content,invalid,,\n" "$CYCLE_TS" >> "$REQUEST_LOG"
+              ERRORS=$((ERRORS + 1))
+              sleep 1
+              continue
+              ;;
+          esac
           PURL="${BASE_URL}/hls/${STREAM_KEY}/${PLAYLIST}"
-          PCODE=$(curl -s -o /tmp/variant.m3u8 -w "%{http_code}" "$PURL" || true)
-          printf "%s,variant,%s\n" "$(date +%s)" "$PCODE" >> "$REQUEST_LOG"
+          PCODE=$(fetch_and_record "$CYCLE_TS" variant /tmp/variant.m3u8 "$PURL")
           TOTAL=$((TOTAL + 1))
           if [ "$PCODE" != "200" ]; then
             ERRORS=$((ERRORS + 1))
@@ -500,14 +586,20 @@ start_viewers() {
           fi
 
           SEGMENT=$(grep -E "^[^#]" /tmp/variant.m3u8 | tail -n1 || true)
-          if [ -n "$SEGMENT" ]; then
-            SURL="${BASE_URL}/hls/${STREAM_KEY}/$(dirname "$PLAYLIST")/${SEGMENT}"
-            SCODE=$(curl -s -o /dev/null -w "%{http_code}" "$SURL" || true)
-            printf "%s,segment,%s\n" "$(date +%s)" "$SCODE" >> "$REQUEST_LOG"
-            TOTAL=$((TOTAL + 1))
-            if [ "$SCODE" != "200" ]; then
+          case "$SEGMENT" in
+            segment_*.ts) ;;
+            *)
+              printf "%s,variant_content,invalid,,\n" "$CYCLE_TS" >> "$REQUEST_LOG"
               ERRORS=$((ERRORS + 1))
-            fi
+              sleep 1
+              continue
+              ;;
+          esac
+          SURL="${BASE_URL}/hls/${STREAM_KEY}/${PLAYLIST%/*}/${SEGMENT}"
+          SCODE=$(fetch_and_record "$CYCLE_TS" segment /dev/null "$SURL")
+          TOTAL=$((TOTAL + 1))
+          if [ "$SCODE" != "200" ]; then
+            ERRORS=$((ERRORS + 1))
           fi
 
           sleep 1
@@ -581,7 +673,7 @@ measure_startup_latency() {
   local elapsed=0
   while (( elapsed < timeout )); do
     local code
-    code="$(docker run --rm --network "$network" curlimages/curl:8.7.1 -s -o /dev/null -w '%{http_code}' "$master_url" || true)"
+    code="$(docker run --rm --network "$network" curlimages/curl:8.7.1 -s --connect-timeout 2 --max-time 5 -o /dev/null -w '%{http_code}' "$master_url" || true)"
     if [[ "$code" == "200" ]]; then
       echo "$elapsed"
       return 0
@@ -605,18 +697,18 @@ measure_first_segment_latency() {
 set -eu
 
 MASTER_URL="$1"
-MASTER=$(curl -s "$MASTER_URL" || true)
+MASTER=$(curl -s --connect-timeout 2 --max-time 5 "$MASTER_URL" || true)
 PLAYLIST=$(printf "%s\n" "$MASTER" | grep -E "^[^#]" | head -n1 || true)
-[ -n "$PLAYLIST" ] || exit 1
+case "$PLAYLIST" in v[0-3]/playlist.m3u8) ;; *) exit 1 ;; esac
 
 BASE="${MASTER_URL%/master.m3u8}"
 VARIANT_URL="${BASE}/${PLAYLIST}"
-VARIANT=$(curl -s "$VARIANT_URL" || true)
+VARIANT=$(curl -s --connect-timeout 2 --max-time 5 "$VARIANT_URL" || true)
 SEGMENT=$(printf "%s\n" "$VARIANT" | grep -E "^[^#]" | tail -n1 || true)
-[ -n "$SEGMENT" ] || exit 1
+case "$SEGMENT" in segment_*.ts) ;; *) exit 1 ;; esac
 
 SEGMENT_URL="${BASE}/$(dirname "$PLAYLIST")/${SEGMENT}"
-CODE=$(curl -s -o /dev/null -w '%{http_code}' "$SEGMENT_URL" || true)
+CODE=$(curl -s --connect-timeout 2 --max-time 5 -o /dev/null -w '%{http_code}' "$SEGMENT_URL" || true)
 [ "$CODE" = "200" ]
 EOF
     then
@@ -629,6 +721,54 @@ EOF
 
   echo "-1"
   return 1
+}
+
+check_hls_variants() {
+  local network="$1"
+  local master_url="$2"
+  local output_dir="$3"
+
+  docker run --rm --network "$network" -v "$output_dir:/out" -i curlimages/curl:8.7.1 sh -s -- "$master_url" <<'EOF'
+set -eu
+MASTER_URL="$1"
+BASE="${MASTER_URL%/master.m3u8}"
+
+ATTEMPT=0
+while [ "$ATTEMPT" -lt 30 ]; do
+  MASTER_CODE=$(curl -s --connect-timeout 2 --max-time 5 -o /out/master.m3u8 -w '%{http_code}' "$MASTER_URL" || true)
+  printf 'variant,playlist_http_code,segment_http_code\n' > /out/hls-variants.csv
+  OK=0
+  if [ "$MASTER_CODE" = 200 ]; then
+    DECLARED=$(grep -Ec '^v[0-3]/playlist[.]m3u8$' /out/master.m3u8 || true)
+    [ "$DECLARED" -eq 4 ] || DECLARED=0
+  else
+    DECLARED=0
+  fi
+
+  for N in 0 1 2 3; do
+    VARIANT="v${N}/playlist.m3u8"
+    PLAYLIST_CODE=$(curl -s --connect-timeout 2 --max-time 5 -o "/out/v${N}-playlist.m3u8" -w '%{http_code}' "${BASE}/${VARIANT}" || true)
+    SEGMENT_CODE=0
+    if [ "$PLAYLIST_CODE" = 200 ]; then
+      SEGMENT=$(grep -E '^segment_[0-9]+[.]ts$' "/out/v${N}-playlist.m3u8" | tail -n 1 || true)
+      if [ -n "$SEGMENT" ]; then
+        SEGMENT_CODE=$(curl -s --connect-timeout 2 --max-time 5 -o /dev/null -w '%{http_code}' "${BASE}/v${N}/${SEGMENT}" || true)
+      fi
+    fi
+    printf '%s,%s,%s\n' "$VARIANT" "$PLAYLIST_CODE" "$SEGMENT_CODE" >> /out/hls-variants.csv
+    if [ "$PLAYLIST_CODE" = 200 ] && [ "$SEGMENT_CODE" = 200 ]; then
+      OK=$((OK + 1))
+    fi
+  done
+
+  if [ "$DECLARED" -eq 4 ] && [ "$OK" -eq 4 ]; then
+    exit 0
+  fi
+  ATTEMPT=$((ATTEMPT + 1))
+  sleep 1
+done
+exit 1
+EOF
 }
 
 build_failed_attempt_result() {
@@ -715,7 +855,7 @@ run_one_attempt() {
   local rtmp_service="rtmp-server-${server}"
   local rtmp_container="streaming-rtmp-server-${server}"
 
-  if ! compose up -d --build postgres rabbitmq streaming-platform "$rtmp_service" >> "$scenario_log_file" 2>&1; then
+  if ! compose up -d --no-build postgres rabbitmq streaming-platform "$rtmp_service" >> "$scenario_log_file" 2>&1; then
     build_failed_attempt_result "compose_up_failed" "$rtmp_container" "$scenario_log_file" "$samples_file" "$scenario_viewers"
     return 1
   fi
@@ -731,6 +871,11 @@ run_one_attempt() {
     build_failed_attempt_result "rtmp_container_not_running" "$rtmp_container" "$scenario_log_file" "$samples_file" "$scenario_viewers"
     return 1
   fi
+
+  capture_attempt_environment "$rtmp_container" "${scenario_dir}/environment.txt"
+  capture_host_snapshot "${scenario_dir}/host-before.txt"
+  vmstat -n 2 > "${scenario_dir}/host-vmstat.log" &
+  HOST_VMSTAT_PID=$!
 
   local compose_network
   compose_network="$(get_compose_network || true)"
@@ -763,7 +908,7 @@ run_one_attempt() {
   publisher_name="${publisher_name:0:55}"
   publisher_name="${publisher_name%-}"
   PUBLISHER_NAME="$publisher_name"
-  trap 'if [[ -n "${PUBLISHER_NAME:-}" ]]; then docker stop -t 5 "$PUBLISHER_NAME" >/dev/null 2>&1 || true; fi' EXIT
+  trap 'if [[ -n "${PUBLISHER_NAME:-}" ]]; then docker stop -t 5 "$PUBLISHER_NAME" >/dev/null 2>&1 || true; fi; if [[ "${HOST_VMSTAT_PID:-0}" -gt 0 ]]; then kill "$HOST_VMSTAT_PID" 2>/dev/null || true; fi' EXIT
 
   local stream_url
   stream_url="rtmp://${rtmp_service}:${RTMP_PORT}/live/${stream_key}"
@@ -805,6 +950,13 @@ run_one_attempt() {
   probe_end_ts="$(date +%s)"
   probe_elapsed_seconds=$((probe_end_ts - probe_start_ts))
 
+  local variants_check_start_ts variants_check_end_ts variants_ok=0
+  variants_check_start_ts="$(date +%s)"
+  if check_hls_variants "$compose_network" "$master_url" "$scenario_dir" >> "$scenario_log_file" 2>&1; then
+    variants_ok=1
+  fi
+  variants_check_end_ts="$(date +%s)"
+
   local latencia_ponta_a_ponta_s
   latencia_ponta_a_ponta_s="$tempo_primeiro_segmento_s"
 
@@ -819,6 +971,10 @@ run_one_attempt() {
   wait_for_viewers
   viewers_end_ts="$(date +%s)"
   viewers_window_seconds=$((viewers_end_ts - viewers_start_ts))
+  capture_host_snapshot "${scenario_dir}/host-after.txt"
+  kill "$HOST_VMSTAT_PID" 2>/dev/null || true
+  wait "$HOST_VMSTAT_PID" 2>/dev/null || true
+  HOST_VMSTAT_PID=0
 
   local publisher_alive_after_viewers=0
   if kill -0 "$publisher_pid" 2>/dev/null &&
@@ -827,7 +983,8 @@ run_one_attempt() {
   fi
 
   local bitrate_kbps
-  bitrate_kbps="$(probe_bitrate_kbps "$compose_network" "$master_url")"
+  bitrate_kbps="$(probe_bitrate_kbps "$compose_network" "$master_url" 2>> "$scenario_log_file" || true)"
+  [[ -n "$bitrate_kbps" ]] || bitrate_kbps="0"
 
   local measurement_end_ts
   measurement_end_ts="$viewers_end_ts"
@@ -840,8 +997,9 @@ run_one_attempt() {
   fi
   PUBLISHER_NAME=""
 
-  printf 'probe_start_ts,probe_end_ts,probe_elapsed_seconds,viewers_start_ts,viewers_end_ts,viewers_window_seconds,publisher_alive_before_viewers,publisher_alive_after_viewers,publisher_exit_code\n%s,%s,%s,%s,%s,%s,%s,%s,%s\n' \
+  printf 'probe_start_ts,probe_end_ts,probe_elapsed_seconds,variants_check_start_ts,variants_check_end_ts,variants_ok,viewers_start_ts,viewers_end_ts,viewers_window_seconds,publisher_alive_before_viewers,publisher_alive_after_viewers,publisher_exit_code\n%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s\n' \
     "$probe_start_ts" "$probe_end_ts" "$probe_elapsed_seconds" \
+    "$variants_check_start_ts" "$variants_check_end_ts" "$variants_ok" \
     "$viewers_start_ts" "$viewers_end_ts" "$viewers_window_seconds" \
     "$publisher_alive_before_viewers" "$publisher_alive_after_viewers" "$publisher_exit" \
     > "${scenario_dir}/timing.csv"
@@ -861,10 +1019,14 @@ run_one_attempt() {
   local request_total request_errors
   request_total="${req_summary%%,*}"
   request_errors="${req_summary##*,}"
-  local completed_viewers=0 viewer_result
+  local completed_viewers=0 request_logs=0 viewer_result
   for viewer_result in "$scenario_viewers"/viewer-*.txt; do
     [[ -f "$viewer_result" ]] || continue
     completed_viewers=$((completed_viewers + 1))
+  done
+  for viewer_result in "$scenario_viewers"/viewer-*-requests.csv; do
+    [[ -f "$viewer_result" ]] || continue
+    request_logs=$((request_logs + 1))
   done
 
   local error_rate_percent
@@ -878,6 +1040,8 @@ run_one_attempt() {
   metrics="$(compute_metrics_from_samples "$samples_file" "$viewers_start_ts" "$viewers_end_ts")"
   local cpu_avg cpu_max mem_avg mem_max net_in_mb net_out_mb
   IFS=',' read -r cpu_avg cpu_max mem_avg mem_max net_in_mb net_out_mb <<< "$metrics"
+  local sample_count
+  sample_count="$(awk -F',' -v first="$viewers_start_ts" -v last="$viewers_end_ts" 'NR>1 && $1>=first && $1<=last {n++} END{print n+0}' "$samples_file")"
 
   local measurement_window
   measurement_window=$((measurement_end_ts - measurement_start_ts))
@@ -891,12 +1055,21 @@ run_one_attempt() {
   elif [[ "$tempo_primeiro_segmento_s" == "-1" ]]; then
     status="FAIL"
     error_message="first_segment_timeout"
+  elif [[ "$variants_ok" -ne 1 ]]; then
+    status="FAIL"
+    error_message="hls_variants_unavailable"
   elif [[ "$publisher_alive_before_viewers" -ne 1 || "$publisher_alive_after_viewers" -ne 1 ]]; then
     status="FAIL"
     error_message="publisher_not_active_through_viewers_exit_${publisher_exit}"
-  elif [[ "$completed_viewers" -ne "$viewers" || "$request_total" -eq 0 ]]; then
+  elif [[ "$completed_viewers" -ne "$viewers" || "$request_logs" -ne "$viewers" || "$request_total" -eq 0 ]]; then
     status="FAIL"
     error_message="incomplete_viewer_results_${completed_viewers}_of_${viewers}"
+  elif [[ "$sample_count" -lt 3 ]]; then
+    status="FAIL"
+    error_message="insufficient_cpu_memory_samples_${sample_count}"
+  elif ! awk -v v="$bitrate_kbps" 'BEGIN {exit !(v+0>0)}'; then
+    status="FAIL"
+    error_message="bitrate_probe_failed"
   fi
 
   echo "$status,$error_message,$rtmp_container,$scenario_log_file,$samples_file,$scenario_viewers,$measurement_start_ts,$measurement_end_ts,$measurement_window,$startup_hls_seconds,$latencia_ponta_a_ponta_s,$tempo_primeiro_segmento_s,$request_total,$request_errors,$error_rate_percent,$cpu_avg,$cpu_max,$mem_avg,$mem_max,$net_in_mb,$net_out_mb,$bitrate_kbps,$restarts_before,$restarts_after,$compose_network,$master_url"
@@ -995,8 +1168,10 @@ main() {
   validate_preflight
   ensure_results
   prepare_run_dirs
+  capture_run_environment
   enable_console_log_mirror
   build_execution_plan
+  build_selected_images
 
   log "RUN_ID: ${RUN_ID}"
   log "Log da execucao: ${CONSOLE_LOG_FILE}"
@@ -1004,11 +1179,12 @@ main() {
   log "Duracao da carga de viewers: ${DURATION_SECONDS}s"
   log "Cenarios planejados: ${#PLAN_ITEMS[@]}"
 
+  local execution_status=0
   if execute_plan; then
     log "Benchmark concluido com sucesso"
   else
     log "Benchmark concluido com falhas parciais"
-    exit 1
+    execution_status=1
   fi
 
   if [[ "$AGGREGATE" -eq 1 && "$MODE" == "full" ]]; then
@@ -1017,14 +1193,15 @@ main() {
       log "Agregando resultados com aggregate-results.py ..."
       python3 "$aggregate_script" "$CSV_FILE" "$RUN_DIR"
       log "CSV agregado: ${RUN_DIR}/results-aggregated.csv"
-      if [[ "$PUBLISH" -eq 1 ]]; then
+      if [[ "$PUBLISH" -eq 1 && "$execution_status" -eq 0 ]]; then
         publish_reports "$RUN_DIR"
-        log "CSVs publicos atualizados em ${DOCS_BENCHMARK_DIR}"
+        log "CSVs publicos gravados em ${DOCS_BENCHMARK_DIR}/runs/${RUN_ID}"
       fi
     else
       log "AVISO: python3 ou aggregate-results.py nao encontrado, pulando agregacao."
     fi
   fi
+  return "$execution_status"
 }
 
 main "$@"
