@@ -8,6 +8,8 @@ O `status=PASS` valida a integridade operacional de cada repetição: playlist m
 
 CPU e memória pertencem ao contêiner RTMP/transcodificador e são calculadas somente com amostras durante a janela dos viewers. `startup_hls_seconds` e `tempo_primeiro_segmento_s` são nomes legados de colunas: seus valores são **contagens de ciclos malsucedidos**, não segundos cronometrados. `latencia_ponta_a_ponta_s` copia a sondagem do primeiro segmento e não mede a reprodução no player. `bitrate_kbps` estima uma janela da primeira variante HLS; os pipelines FFmpeg e GStreamer possuem configurações de saída diferentes, de modo que consumo de recursos não demonstra eficiência para qualidade equivalente. Os campos locais de tráfego de rede não são exportados nem analisados: o coletor soma snapshots de contadores acumulados do Docker, o que não fornece um volume transferido válido.
 
+Em 24 repetições o primeiro segmento já estava disponível na primeira tentativa da segunda sondagem; em 12 foram necessários ciclos adicionais. SRS + GStreamer apresentou playlist mestre após um ciclo malsucedido em todos os tratamentos, mas o primeiro segmento exigiu em média de 7,00 a 8,67 ciclos adicionais. As sondagens são sequenciais e ocorrem antes da carga dos viewers; não se deve somar as contagens como segundos de latência.
+
 Para reagregar os CSVs públicos a partir da raiz do repositório:
 
 ```bash
