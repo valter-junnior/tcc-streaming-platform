@@ -1,32 +1,16 @@
 # Benchmark RTMP
 
-O experimento compara Nginx-RTMP e SRS, cada um com FFmpeg e GStreamer, sob 1, 10 e 50 espectadores sintéticos. Há três repetições por tratamento na execução publicada. O [guia de reprodução](REPRODUCIBILITY.md) identifica os dados abertos, as métricas, o ambiente, os limites das conclusões e o procedimento de auditoria.
+A [execução analisada no TCC](runs/bench-full-20261118-095048/) contém 36 repetições de uma matriz fatorial com dois servidores RTMP (Nginx-RTMP e SRS), dois transcodificadores (FFmpeg e GStreamer) e três cargas (1, 10 e 50 viewers). Os dados públicos estão em [`results.csv`](runs/bench-full-20261118-095048/results.csv), [`results-aggregated.csv`](runs/bench-full-20261118-095048/results-aggregated.csv) e [`resultado.csv`](runs/bench-full-20261118-095048/resultado.csv). O [guia de reprodução](REPRODUCIBILITY.md) explica o procedimento, as métricas e as limitações.
 
 ## Executar localmente
 
 ```bash
 cd app
 cp .env.example .env
-# Edite as senhas de .env antes de iniciar a stack.
+# Defina senhas próprias em .env e mantenha esse arquivo fora do Git.
 ./benchmark/run-rtmp-benchmark.sh --mode full --duration 300 --viewers-list 1,10,50 --repeats 3 --aggregate
 ```
 
-O script exige Docker Engine e Compose, além das portas configuradas em `.env` disponíveis. A execução completa demora várias horas. Os arquivos detalhados ficam em `app/benchmark/results/<run_id>/` e não entram no Git. O comando `--aggregate` gera `results-aggregated.csv` e `resultado.csv` nessa pasta local.
+A matriz completa leva várias horas. Os arquivos detalhados são gravados em `app/benchmark/results/<run_id>/`, ignorado pelo Git. Depois de revisar e auditar uma nova execução, a opção `--publish` pode exportar os CSVs sanitizados para `docs/benchmark/runs/<run_id>/` sem sobrescrever as coletas anteriores. Confira os arquivos exportados antes de commitar.
 
-Para publicar uma **nova** rodada, revise os arquivos locais e execute com `--publish` além de `--aggregate`. Essa opção exporta somente colunas de medidas explicitamente permitidas para `docs/benchmark/results.csv` e copia os dois CSVs agregados. Não publica logs, caminhos absolutos, URLs internas nem chaves de transmissão. A publicação é uma atualização deliberada dos dados do repositório; confira o diff antes de commitar.
-
-```bash
-./benchmark/run-rtmp-benchmark.sh --mode full --duration 300 --viewers-list 1,10,50 --repeats 3 --aggregate --publish
-```
-
-## Arquivos públicos
-
-| Arquivo | Papel |
-|---|---|
-| `results.csv` | Medidas por repetição, com campos locais e chaves removidos |
-| `results-aggregated.csv` | Médias, desvios padrão e critérios por tratamento |
-| `resultado.csv` | Resumo da matriz para apresentação |
-| `LICENSE-DATA.md` | Licença CC BY 4.0 para os três CSVs |
-| `REPRODUCIBILITY.md` | Versões, comandos e limitações de reprodução |
-
-CPU e memória referem-se ao contêiner RTMP/transcodificador, não ao host inteiro. `bitrate_kbps` estima a primeira variante HLS. `latencia_ponta_a_ponta_s` é uma cópia da sondagem do primeiro segmento e não mede latência de reprodução. A taxa de erros agrega requisições HTTP dos viewers sintéticos.
+CPU e memória são do contêiner RTMP/transcodificador, não do host inteiro. `bitrate_kbps` estima uma variante HLS. Os campos legados `startup_hls_seconds` e `tempo_primeiro_segmento_s` contam ciclos de sondagem, enquanto `latencia_ponta_a_ponta_s` não mede a reprodução no player. A licença [CC BY 4.0](LICENSE-DATA.md) cobre os CSVs identificados, não o código nem a monografia.

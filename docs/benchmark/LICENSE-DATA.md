@@ -10,4 +10,4 @@ Você pode compartilhar e adaptar esses dados, inclusive para fins comerciais, d
 
 Forma sugerida de atribuição: **Silva Junior, Valter Abreu. Dados do benchmark de servidores RTMP e transcodificadores para streaming de vídeo, 2026.** Disponível em: https://github.com/valter-junnior/tcc-streaming-platform/tree/main/docs/benchmark. Licença: CC BY 4.0.
 
-Esta declaração também abrange `runs/bench-combined-20261117-18/results.csv` e `runs/bench-combined-20261117-18/results-aggregated.csv`, com a mesma exigência de atribuição. O código, os logs, as imagens e o texto da monografia não são incluídos por esta declaração.
+Esta declaração também abrange os três CSVs em `runs/bench-full-20261118-095048/` e os CSVs em `runs/bench-combined-20261117-18/`, com a mesma exigência de atribuição. O código, os logs, as imagens e o texto da monografia não são incluídos por esta declaração.
