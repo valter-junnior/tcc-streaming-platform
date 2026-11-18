@@ -37,7 +37,7 @@ SCENARIOS=(
 
 VIEWER_PIDS=()
 
-CSV_HEADER="run_id,mode,scenario,server,transcoder,repeat_index,viewers,duration_seconds,status,error_message,measurement_start_ts,measurement_end_ts,measurement_window_seconds,startup_hls_seconds,latencia_ponta_a_ponta_s,tempo_primeiro_segmento_s,request_total,request_errors,error_rate_percent,cpu_avg_percent,cpu_max_percent,mem_avg_mb,mem_max_mb,net_in_mb,net_out_mb,bitrate_kbps,restarts_before,restarts_after,retry_index,compose_network,rtmp_container,master_playlist_url,scenario_log_file,metrics_samples_file,viewer_results_dir"
+CSV_HEADER="run_id,mode,scenario,server,transcoder,repeat_index,viewers,duration_seconds,status,error_message,measurement_start_ts,measurement_end_ts,measurement_window_seconds,viewers_start_ts,viewers_end_ts,viewers_window_seconds,viewer_cycle_seconds,request_rate_per_second,startup_hls_seconds,latencia_ponta_a_ponta_s,tempo_primeiro_segmento_s,request_total,request_errors,error_rate_percent,cpu_avg_percent,cpu_max_percent,mem_avg_mb,mem_max_mb,net_in_mb,net_out_mb,bitrate_kbps,restarts_before,restarts_after,retry_index,compose_network,rtmp_container,master_playlist_url,scenario_log_file,metrics_samples_file,viewer_results_dir"
 
 usage() {
   cat <<EOF
@@ -150,6 +150,7 @@ parse_args() {
 
   [[ "$MODE" == "sanity" || "$MODE" == "full" ]] || die "--mode deve ser sanity ou full"
   [[ "$DURATION_SECONDS" =~ ^[0-9]+$ ]] || die "--duration deve ser inteiro"
+  (( DURATION_SECONDS > 0 )) || die "--duration deve ser maior que zero"
   [[ "$VIEWERS_SINGLE" =~ ^[0-9]+$ ]] || die "--viewers deve ser inteiro"
   [[ "$REPEATS" =~ ^[0-9]+$ ]] || die "--repeats deve ser inteiro"
   [[ "$RETRIES" =~ ^[0-9]+$ ]] || die "--retries deve ser inteiro"
@@ -530,7 +531,12 @@ start_viewers() {
         OUT_FILE="$3"
         REQUEST_LOG="/out/${OUT_FILE%.txt}-requests.csv"
         printf "timestamp,resource,http_code,curl_exit_code,time_total_seconds\n" > "$REQUEST_LOG"
-        END_TS=$(( $(date +%s) + DURATION ))
+        touch "/out/${OUT_FILE%.txt}.ready"
+        while [ ! -f /out/start_at ]; do sleep 0.1; done
+        START_TS=$(cat /out/start_at)
+        while [ "$(date +%s)" -lt "$START_TS" ]; do sleep 0.1; done
+        END_TS=$((START_TS + DURATION))
+        NEXT_TS=$START_TS
         TOTAL=0
         ERRORS=0
 
@@ -554,6 +560,16 @@ start_viewers() {
           printf "%s" "$CODE"
         }
 
+        pace_next_cycle() {
+          NEXT_TS=$((NEXT_TS + 2))
+          NOW_TS=$(date +%s)
+          if [ "$NOW_TS" -lt "$NEXT_TS" ]; then
+            sleep $((NEXT_TS - NOW_TS))
+          else
+            NEXT_TS=$NOW_TS
+          fi
+        }
+
         while :; do
           CYCLE_TS=$(date +%s)
           [ "$CYCLE_TS" -lt "$END_TS" ] || break
@@ -562,7 +578,7 @@ start_viewers() {
           TOTAL=$((TOTAL + 1))
           if [ "$CODE" != "200" ]; then
             ERRORS=$((ERRORS + 1))
-            sleep 1
+            pace_next_cycle
             continue
           fi
 
@@ -572,7 +588,7 @@ start_viewers() {
             *)
               printf "%s,master_content,invalid,,\n" "$CYCLE_TS" >> "$REQUEST_LOG"
               ERRORS=$((ERRORS + 1))
-              sleep 1
+              pace_next_cycle
               continue
               ;;
           esac
@@ -581,7 +597,7 @@ start_viewers() {
           TOTAL=$((TOTAL + 1))
           if [ "$PCODE" != "200" ]; then
             ERRORS=$((ERRORS + 1))
-            sleep 1
+            pace_next_cycle
             continue
           fi
 
@@ -591,7 +607,7 @@ start_viewers() {
             *)
               printf "%s,variant_content,invalid,,\n" "$CYCLE_TS" >> "$REQUEST_LOG"
               ERRORS=$((ERRORS + 1))
-              sleep 1
+              pace_next_cycle
               continue
               ;;
           esac
@@ -602,13 +618,34 @@ start_viewers() {
             ERRORS=$((ERRORS + 1))
           fi
 
-          sleep 1
+          pace_next_cycle
         done
 
         printf "%s,%s\n" "$TOTAL" "$ERRORS" > "/out/${OUT_FILE}"
       ' "$base_url" "$stream_key" "$duration" "$file_name" >/dev/null 2>&1 &
     VIEWER_PIDS+=("$!")
   done
+}
+
+release_viewers_together() {
+  local out_dir="$1"
+  local expected="$2"
+  local elapsed=0 ready=0
+  while (( elapsed < 180 )); do
+    ready="$(find "$out_dir" -maxdepth 1 -name 'viewer-*.ready' -type f | wc -l)"
+    if (( ready == expected )); then
+      local start_at
+      start_at=$(( $(date +%s) + 5 ))
+      printf '%s\n' "$start_at" > "${out_dir}/start_at.tmp"
+      mv "${out_dir}/start_at.tmp" "${out_dir}/start_at"
+      printf '%s\n' "$start_at"
+      return 0
+    fi
+    sleep 1
+    elapsed=$((elapsed + 1))
+  done
+  log "Apenas ${ready}/${expected} viewers ficaram prontos em 180 s"
+  return 1
 }
 
 wait_for_viewers() {
@@ -778,7 +815,13 @@ build_failed_attempt_result() {
   local samples_file="$4"
   local viewers_dir="$5"
 
-  echo "FAIL,${error_message},${rtmp_container},${scenario_log_file},${samples_file},${viewers_dir},0,0,0,-1,-1,-1,0,0,0,0,0,0,0,0,0,0,0,0,,"
+  {
+    printf 'FAIL,%s,%s,%s,%s,%s' "$error_message" "$rtmp_container" "$scenario_log_file" "$samples_file" "$viewers_dir"
+    for _ in {1..8}; do printf ',0'; done
+    printf ',-1,-1,-1'
+    for _ in {1..12}; do printf ',0'; done
+    printf ',,\n'
+  }
 }
 
 probe_bitrate_kbps() {
@@ -893,7 +936,7 @@ run_one_attempt() {
 
   if [[ -z "$stream_key" ]]; then
     echo "$create_response" >> "$scenario_log_file"
-    echo "FAIL,stream_create_failed,$rtmp_container,$scenario_log_file,$samples_file,$scenario_viewers,0,0,0,0,0,0,0,0,0,0,0,0,0"
+    build_failed_attempt_result "stream_create_failed" "$rtmp_container" "$scenario_log_file" "$samples_file" "$scenario_viewers"
     return 1
   fi
 
@@ -965,12 +1008,12 @@ run_one_attempt() {
      [[ "$(docker inspect -f '{{.State.Running}}' "$publisher_name" 2>/dev/null || true)" == "true" ]]; then
     publisher_alive_before_viewers=1
   fi
-  local viewers_start_ts viewers_end_ts viewers_window_seconds
-  viewers_start_ts="$(date +%s)"
+  local viewers_start_ts viewers_end_ts viewers_window_seconds request_rate_per_second
   start_viewers "$compose_network" "$base_hls_url" "$stream_key" "$viewers" "$DURATION_SECONDS" "$scenario_viewers"
+  viewers_start_ts="$(release_viewers_together "$scenario_viewers" "$viewers")" || die "Falha na barreira de inicio dos viewers"
+  viewers_end_ts=$((viewers_start_ts + DURATION_SECONDS))
+  viewers_window_seconds="$DURATION_SECONDS"
   wait_for_viewers
-  viewers_end_ts="$(date +%s)"
-  viewers_window_seconds=$((viewers_end_ts - viewers_start_ts))
   capture_host_snapshot "${scenario_dir}/host-after.txt"
   kill "$HOST_VMSTAT_PID" 2>/dev/null || true
   wait "$HOST_VMSTAT_PID" 2>/dev/null || true
@@ -1019,6 +1062,7 @@ run_one_attempt() {
   local request_total request_errors
   request_total="${req_summary%%,*}"
   request_errors="${req_summary##*,}"
+  request_rate_per_second="$(awk -v n="$request_total" -v s="$viewers_window_seconds" 'BEGIN{if(s>0) printf "%.4f", n/s; else print "0"}')"
   local completed_viewers=0 request_logs=0 viewer_result
   for viewer_result in "$scenario_viewers"/viewer-*.txt; do
     [[ -f "$viewer_result" ]] || continue
@@ -1072,7 +1116,7 @@ run_one_attempt() {
     error_message="bitrate_probe_failed"
   fi
 
-  echo "$status,$error_message,$rtmp_container,$scenario_log_file,$samples_file,$scenario_viewers,$measurement_start_ts,$measurement_end_ts,$measurement_window,$startup_hls_seconds,$latencia_ponta_a_ponta_s,$tempo_primeiro_segmento_s,$request_total,$request_errors,$error_rate_percent,$cpu_avg,$cpu_max,$mem_avg,$mem_max,$net_in_mb,$net_out_mb,$bitrate_kbps,$restarts_before,$restarts_after,$compose_network,$master_url"
+  echo "$status,$error_message,$rtmp_container,$scenario_log_file,$samples_file,$scenario_viewers,$measurement_start_ts,$measurement_end_ts,$measurement_window,$viewers_start_ts,$viewers_end_ts,$viewers_window_seconds,2,$request_rate_per_second,$startup_hls_seconds,$latencia_ponta_a_ponta_s,$tempo_primeiro_segmento_s,$request_total,$request_errors,$error_rate_percent,$cpu_avg,$cpu_max,$mem_avg,$mem_max,$net_in_mb,$net_out_mb,$bitrate_kbps,$restarts_before,$restarts_after,$compose_network,$master_url"
 
   if [[ "$KEEP_UP" -eq 0 ]]; then
     compose_down_quiet
@@ -1115,12 +1159,12 @@ execute_plan() {
     done
 
     local status error_message rtmp_container scenario_log_file samples_file viewers_dir
-    local measurement_start_ts measurement_end_ts measurement_window startup_hls_seconds latencia_ponta_a_ponta_s tempo_primeiro_segmento_s
+    local measurement_start_ts measurement_end_ts measurement_window viewers_start_ts viewers_end_ts viewers_window_seconds viewer_cycle_seconds request_rate_per_second startup_hls_seconds latencia_ponta_a_ponta_s tempo_primeiro_segmento_s
     local request_total request_errors error_rate_percent cpu_avg cpu_max mem_avg mem_max net_in_mb net_out_mb
     local bitrate_kbps restarts_before restarts_after compose_network master_url
 
     IFS=',' read -r status error_message rtmp_container scenario_log_file samples_file viewers_dir \
-      measurement_start_ts measurement_end_ts measurement_window startup_hls_seconds latencia_ponta_a_ponta_s tempo_primeiro_segmento_s request_total request_errors \
+      measurement_start_ts measurement_end_ts measurement_window viewers_start_ts viewers_end_ts viewers_window_seconds viewer_cycle_seconds request_rate_per_second startup_hls_seconds latencia_ponta_a_ponta_s tempo_primeiro_segmento_s request_total request_errors \
       error_rate_percent cpu_avg cpu_max mem_avg mem_max net_in_mb net_out_mb bitrate_kbps \
       restarts_before restarts_after compose_network master_url <<< "$final_result"
 
@@ -1134,7 +1178,7 @@ execute_plan() {
     fi
 
     local row
-    row="${RUN_ID},${MODE},${scenario},${scenario%%+*},${scenario##*+},${repeat_idx},${viewers},${DURATION_SECONDS},${status},${error_message},${measurement_start_ts},${measurement_end_ts},${measurement_window},${startup_hls_seconds},${latencia_ponta_a_ponta_s},${tempo_primeiro_segmento_s},${request_total},${request_errors},${error_rate_percent},${cpu_avg},${cpu_max},${mem_avg},${mem_max},${net_in_mb},${net_out_mb},${bitrate_kbps},${restarts_before},${restarts_after},${attempt},${compose_network},${rtmp_container},${master_url},${scenario_log_file},${samples_file},${viewers_dir}"
+    row="${RUN_ID},${MODE},${scenario},${scenario%%+*},${scenario##*+},${repeat_idx},${viewers},${DURATION_SECONDS},${status},${error_message},${measurement_start_ts},${measurement_end_ts},${measurement_window},${viewers_start_ts},${viewers_end_ts},${viewers_window_seconds},${viewer_cycle_seconds},${request_rate_per_second},${startup_hls_seconds},${latencia_ponta_a_ponta_s},${tempo_primeiro_segmento_s},${request_total},${request_errors},${error_rate_percent},${cpu_avg},${cpu_max},${mem_avg},${mem_max},${net_in_mb},${net_out_mb},${bitrate_kbps},${restarts_before},${restarts_after},${attempt},${compose_network},${rtmp_container},${master_url},${scenario_log_file},${samples_file},${viewers_dir}"
     append_csv_row "$row"
 
     log "Resultado: ${status} (${scenario}, viewers=${viewers}, repeat=${repeat_idx})"

@@ -47,6 +47,13 @@ def audit_row(root, row):
         errors.append("viewer timestamps do not match their duration")
     if last - first < int(row["duration_seconds"]):
         errors.append("viewer window shorter than nominal duration")
+    if "viewers_start_ts" in row:
+        if (int(row["viewers_start_ts"]) != first
+                or int(row["viewers_end_ts"]) != last
+                or int(row["viewers_window_seconds"]) != last - first):
+            errors.append("public viewer window differs from timing.csv")
+        if int(row["viewer_cycle_seconds"]) != 2:
+            errors.append("unexpected viewer cycle interval")
 
     variants_path = directory / "hls-variants.csv"
     if not variants_path.exists():
@@ -76,10 +83,24 @@ def audit_row(root, row):
         failed += int(values[1])
     if total != int(row["request_total"]) or failed != int(row["request_errors"]):
         errors.append("viewer summaries disagree with results.csv")
+    if "request_rate_per_second" in row:
+        if abs(total / (last - first) - float(row["request_rate_per_second"])) > 0.0001:
+            errors.append("request rate differs from total / viewer window")
 
     codes = Counter()
     for path in request_logs:
-        for request in read_csv(path):
+        requests = read_csv(path)
+        if not requests:
+            errors.append(f"no requests from {path.name}")
+        elif "viewers_start_ts" in row:
+            first_request = int(requests[0]["timestamp"])
+            if not first <= first_request <= first + 2:
+                errors.append(f"viewer did not start at shared barrier: {path.name}")
+        for request in requests:
+            if "viewers_start_ts" in row and request["resource"] in ("master", "variant", "segment"):
+                timestamp = int(request["timestamp"])
+                if not first <= timestamp < last:
+                    errors.append(f"request outside shared window: {path.name}")
             codes[(request["resource"], request["http_code"])] += 1
     http_count = sum(count for (resource, _), count in codes.items() if resource in ("master", "variant", "segment"))
     bad_http = sum(count for (resource, code), count in codes.items() if resource in ("master", "variant", "segment") and code != "200")

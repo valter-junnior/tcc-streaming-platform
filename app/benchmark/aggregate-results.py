@@ -33,6 +33,7 @@ METRICS = [
     "restarts_after",
     "request_errors",
     "measurement_window_seconds",
+    "request_rate_per_second",
 ]
 
 KEY_COLS = ("mode", "server", "transcoder", "viewers")
