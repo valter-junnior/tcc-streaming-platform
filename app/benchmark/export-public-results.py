@@ -33,8 +33,6 @@ PUBLIC_FIELDS = (
     "cpu_max_percent",
     "mem_avg_mb",
     "mem_max_mb",
-    "net_in_mb",
-    "net_out_mb",
     "bitrate_kbps",
     "restarts_before",
     "restarts_after",
