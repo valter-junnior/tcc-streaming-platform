@@ -1,6 +1,6 @@
 # Benchmark RTMP
 
-A [execução analisada no TCC](runs/bench-full-20261118-195052/) contém 36 repetições de uma matriz fatorial com dois servidores RTMP (Nginx-RTMP e SRS), dois transcodificadores (FFmpeg e GStreamer) e três cargas (1, 10 e 50 viewers). Os dados públicos estão em [`results.csv`](runs/bench-full-20261118-195052/results.csv), [`results-aggregated.csv`](runs/bench-full-20261118-195052/results-aggregated.csv) e [`resultado.csv`](runs/bench-full-20261118-195052/resultado.csv). O [guia de reprodução](REPRODUCIBILITY.md) explica o procedimento, as métricas e as limitações.
+A [execução analisada no TCC](runs/bench-full-20261118-195052/) contém 36 repetições de uma matriz fatorial com dois servidores RTMP (Nginx-RTMP e SRS), dois transcodificadores (FFmpeg e GStreamer) e três cargas (1, 10 e 50 viewers). Os dados públicos estão em [`results.csv`](runs/bench-full-20261118-195052/results.csv), [`results-aggregated.csv`](runs/bench-full-20261118-195052/results-aggregated.csv) e [`resultado.csv`](runs/bench-full-20261118-195052/resultado.csv). Os dados detalhados estão em [`requests-detail.csv`](runs/bench-full-20261118-195052/requests-detail.csv) e [`resource-samples.csv`](runs/bench-full-20261118-195052/resource-samples.csv). O [guia de reprodução](REPRODUCIBILITY.md) explica o procedimento, as métricas e as limitações.
 
 ## Executar localmente
 
